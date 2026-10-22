@@ -1,0 +1,472 @@
+import type { Fragment, FragmentKind, Question, Sector } from './types';
+
+type F = [FragmentKind, string, string]; // kind, hint, text
+
+function frags(id: string, list: F[]): Fragment[] {
+  return list.map(([kind, hint, text], i) => ({ id: `${id}-f${i + 1}`, kind, hint, text }));
+}
+
+type Common = {
+  id: string;
+  area: string;
+  d: 1 | 2 | 3 | 4 | 5;
+  side?: Partial<Record<Sector, number>>;
+  stem: string;
+  f: F[];
+  why: string;
+  deepen?: string[];
+  bridge?: string[];
+};
+
+function base(c: Common) {
+  return {
+    id: c.id,
+    area: c.area,
+    side: c.side,
+    stem: c.stem,
+    fragments: frags(c.id, c.f),
+    explanation: c.why,
+    difficulty: c.d,
+    deepen: c.deepen ?? [],
+    bridge: c.bridge ?? [],
+  };
+}
+
+function choice(c: Common & { options: string[]; answer: number }): Question {
+  return { ...base(c), type: 'choice', options: c.options, answer: c.answer };
+}
+function estimate(c: Common & { answer: number; tol: number; unit: string }): Question {
+  return { ...base(c), type: 'estimate', answer: c.answer, tolerance: c.tol, unit: c.unit };
+}
+function order(c: Common & { items: string[] }): Question {
+  return { ...base(c), type: 'order', items: c.items };
+}
+
+/**
+ * Mock question pool. The real pool will be produced by the Gemini pipeline
+ * (see docs/CONCEPT.md §7); this keeps the prototype playable offline.
+ */
+export const MOCK_QUESTIONS: Question[] = [
+  // ───────────── Wissenschaft & Technik ─────────────
+  choice({
+    id: 'sci-light', area: 'physics', d: 1,
+    stem: 'Wie weit kommt Licht im Vakuum ungefähr in einer Sekunde?',
+    options: ['3.000 km', '30.000 km', '300.000 km', '3 Millionen km'], answer: 2,
+    f: [
+      ['key', 'Entfernung', 'Die Sonne ist rund 150 Millionen km von der Erde entfernt.'],
+      ['key', 'Dauer', 'Sonnenlicht braucht etwa 8 Minuten, also rund 500 Sekunden, bis zur Erde.'],
+      ['context', 'Mond', 'Der Mond ist im Mittel etwa 384.000 km entfernt; sein Licht braucht gut eine Sekunde.'],
+      ['decoy', 'Schall', 'Schall legt in Luft etwa 343 Meter pro Sekunde zurück.'],
+      ['decoy', 'Lichtjahr', 'Ein Lichtjahr misst eine Zeitspanne von genau 365 Tagen.'],
+    ],
+    why: '150 Mio. km in ~500 s ergibt etwa 300.000 km/s. (Ein Lichtjahr ist übrigens eine Strecke, keine Zeit.)',
+    deepen: ['sci-relativity'], bridge: ['sci-water', 'sci-binary'],
+  }),
+  choice({
+    id: 'sci-relativity', area: 'physics', d: 3,
+    stem: 'Was ist laut Einsteins spezieller Relativitätstheorie für alle Beobachter gleich?',
+    options: ['Die Zeit zwischen zwei Ereignissen', 'Die Länge eines Stabes', 'Die Lichtgeschwindigkeit im Vakuum', 'Die Geschwindigkeit eines Zuges'], answer: 2,
+    f: [
+      ['key', 'Uhren', 'Bewegte Uhren gehen aus Sicht eines ruhenden Beobachters langsamer.'],
+      ['key', 'Stäbe', 'Bewegte Stäbe erscheinen in Bewegungsrichtung verkürzt.'],
+      ['context', 'Jahr', 'Einstein veröffentlichte die spezielle Relativitätstheorie 1905.'],
+      ['decoy', 'Formel', 'E = mc² beschreibt, wie viel Energie in einem Gramm Wasser steckt, wenn man es erhitzt.'],
+    ],
+    why: 'Zeit und Länge sind relativ, die Lichtgeschwindigkeit im Vakuum nicht: Sie ist für jeden Beobachter gleich.',
+    deepen: ['sci-gravwaves'], bridge: ['nat-climate'],
+  }),
+  estimate({
+    id: 'sci-gravwaves', area: 'physics', d: 4, side: { history: 0.1 },
+    stem: 'In welchem Jahr kam das erste direkt nachgewiesene Gravitationswellen-Signal bei LIGO an?',
+    answer: 2015, tol: 0.0003, unit: '',
+    f: [
+      ['key', 'Signal', 'Das Signal zweier verschmelzender Schwarzer Löcher traf im September 2015 ein.'],
+      ['key', 'Bekanntgabe', 'Bekannt gegeben wurde der Nachweis erst im Februar 2016.'],
+      ['context', 'Vorhersage', 'Einstein hatte Gravitationswellen 1916 vorhergesagt.'],
+      ['context', 'Nobelpreis', 'Der Physik-Nobelpreis dafür ging 2017 an Weiss, Barish und Thorne.'],
+      ['decoy', 'Higgs', 'Das Higgs-Teilchen wurde 2012 am CERN nachgewiesen.'],
+    ],
+    why: 'Das Signal kam am 14. September 2015 an; die Bekanntgabe folgte 2016.',
+  }),
+  choice({
+    id: 'sci-water', area: 'chemistry', d: 1,
+    stem: 'Woraus besteht ein Wassermolekül?',
+    options: ['2 Wasserstoff- und 1 Sauerstoffatom', '1 Wasserstoff- und 2 Sauerstoffatomen', '2 Wasserstoff- und 2 Sauerstoffatomen', '3 Wasserstoffatomen'], answer: 0,
+    f: [
+      ['key', 'Formel', 'Die Formel lautet H₂O: Die tiefgestellte 2 gehört zum Wasserstoff.'],
+      ['context', 'Siedepunkt', 'Wasser siedet auf Meereshöhe bei 100 °C.'],
+      ['decoy', 'CO₂', 'Kohlenstoffdioxid besteht aus einem Kohlenstoff- und zwei Sauerstoffatomen.'],
+      ['decoy', 'H₂O₂', 'Wasserstoffperoxid (H₂O₂) wird zum Bleichen verwendet.'],
+    ],
+    why: 'H₂O: zwei Wasserstoffatome (H) und ein Sauerstoffatom (O).',
+    deepen: ['sci-ph'], bridge: ['nat-photosynthesis', 'sci-vaccine'],
+  }),
+  choice({
+    id: 'sci-ph', area: 'chemistry', d: 2,
+    stem: 'Was gilt für eine Lösung mit dem pH-Wert 3?',
+    options: ['Sie ist sauer', 'Sie ist neutral', 'Sie ist basisch', 'Sie ist nicht messbar'], answer: 0,
+    f: [
+      ['key', 'Skala', 'pH 7 ist neutral, kleinere Werte sind sauer, größere basisch.'],
+      ['context', 'Zitrone', 'Zitronensaft hat einen pH-Wert von etwa 2.'],
+      ['decoy', 'Seife', 'Seifenlauge liegt bei einem pH-Wert von etwa 10.'],
+      ['decoy', 'Messen', 'Der pH-Wert wird in Gramm pro Liter angegeben.'],
+    ],
+    why: 'Alles unter pH 7 ist sauer. Die Skala läuft üblicherweise von 0 bis 14.',
+    bridge: ['nat-climate'],
+  }),
+  choice({
+    id: 'sci-binary', area: 'computing', d: 2,
+    stem: 'Welche Dezimalzahl entspricht der Binärzahl 1011?',
+    options: ['9', '11', '13', '15'], answer: 1,
+    f: [
+      ['key', 'Stellen', 'Die Stellenwerte im Binärsystem sind von rechts 1, 2, 4, 8, 16, …'],
+      ['context', 'Byte', 'Ein Byte besteht aus 8 Bit.'],
+      ['decoy', 'Hex', 'Hexadezimal nutzt 16 Ziffern: 0–9 und A–F.'],
+    ],
+    why: '1·8 + 0·4 + 1·2 + 1·1 = 11.',
+    deepen: ['sci-algo'], bridge: ['his-printing', 'sci-light'],
+  }),
+  estimate({
+    id: 'sci-algo', area: 'computing', d: 3,
+    stem: 'Wie viele Schritte braucht die binäre Suche in 1.000 sortierten Einträgen höchstens?',
+    answer: 10, tol: 0.05, unit: 'Schritte',
+    f: [
+      ['key', 'Halbieren', 'Die binäre Suche halbiert den Suchbereich in jedem Schritt.'],
+      ['key', 'Zweierpotenz', '2¹⁰ ist 1.024, also mehr als 1.000.'],
+      ['context', 'Linear', 'Eine lineare Suche prüft im ungünstigsten Fall alle Einträge.'],
+      ['decoy', 'Quicksort', 'Quicksort sortiert im Mittel in n·log n Schritten.'],
+    ],
+    why: 'Nach 10 Halbierungen bleibt ein Eintrag: 2¹⁰ = 1.024 ≥ 1.000.',
+    bridge: ['his-euro'],
+  }),
+  choice({
+    id: 'sci-vaccine', area: 'medicine', d: 2, side: { nature: 0.25, history: 0.15 },
+    stem: 'Wer entwickelte 1796 die erste Impfung, und zwar gegen Pocken?',
+    options: ['Louis Pasteur', 'Edward Jenner', 'Robert Koch', 'Alexander Fleming'], answer: 1,
+    f: [
+      ['key', 'Beobachtung', 'Der englische Landarzt Edward Jenner bemerkte, dass Melkerinnen selten an Pocken erkrankten.'],
+      ['key', 'Kuhpocken', 'Er impfte 1796 einen Jungen mit Kuhpocken-Material, später schützte ihn das vor den Menschenpocken.'],
+      ['context', 'Wort', 'Das Wort „Vakzine“ kommt von lateinisch vacca, die Kuh.'],
+      ['decoy', 'Tollwut', 'Louis Pasteur entwickelte 1885 einen Impfstoff gegen Tollwut.'],
+    ],
+    why: 'Jenner begründete die Impfung. Pasteur entwickelte sie später für weitere Krankheiten weiter.',
+    deepen: ['sci-penicillin'], bridge: ['nat-bee'],
+  }),
+  choice({
+    id: 'sci-penicillin', area: 'medicine', d: 3, side: { history: 0.2 },
+    stem: 'Was entdeckte Alexander Fleming 1928 im Labor?',
+    options: ['Penicillin', 'Insulin', 'Röntgenstrahlen', 'Blutgruppen'], answer: 0,
+    f: [
+      ['key', 'Schimmel', 'Auf einer Bakterienkultur wuchs ein Schimmelpilz, rundherum starben die Bakterien ab.'],
+      ['key', 'Pilz', 'Der Pilz gehörte zur Gattung Penicillium.'],
+      ['context', 'Nobelpreis', 'Fleming erhielt 1945 gemeinsam mit Florey und Chain den Medizin-Nobelpreis.'],
+      ['decoy', 'Röntgen', 'Wilhelm Conrad Röntgen entdeckte 1895 die nach ihm benannten Strahlen.'],
+    ],
+    why: 'Fleming entdeckte das erste Antibiotikum. Einsatzbereit wurde es erst später durch Florey und Chain.',
+  }),
+
+  // ───────────── Natur & Welt ─────────────
+  choice({
+    id: 'nat-photosynthesis', area: 'biology', d: 1,
+    stem: 'Welches Gas nehmen Pflanzen bei der Photosynthese auf?',
+    options: ['Kohlenstoffdioxid', 'Sauerstoff', 'Stickstoff', 'Wasserstoff'], answer: 0,
+    f: [
+      ['key', 'Zucker', 'Pflanzen bauen aus Kohlenstoffdioxid und Wasser Zucker auf und geben dabei Sauerstoff ab.'],
+      ['context', 'Chlorophyll', 'Der grüne Blattfarbstoff Chlorophyll fängt das Licht ein.'],
+      ['decoy', 'Atmen', 'Tiere und Menschen atmen Sauerstoff ein.'],
+      ['decoy', 'Luft', 'Die Luft besteht zu etwa 78 % aus Stickstoff.'],
+    ],
+    why: 'Photosynthese: Kohlenstoffdioxid + Wasser + Licht → Zucker + Sauerstoff.',
+    deepen: ['nat-chloroplast'], bridge: ['nat-rainforest', 'sci-water'],
+  }),
+  choice({
+    id: 'nat-chloroplast', area: 'biology', d: 3,
+    stem: 'In welchen Zellorganellen läuft die Photosynthese ab?',
+    options: ['Mitochondrien', 'Chloroplasten', 'Ribosomen', 'Zellkern'], answer: 1,
+    f: [
+      ['key', 'Chlorophyll', 'Chloroplasten enthalten das Chlorophyll und kommen in Pflanzenzellen vor.'],
+      ['key', 'Kraftwerk', 'Mitochondrien sind die „Kraftwerke“ der Zelle und gewinnen Energie durch Zellatmung.'],
+      ['context', 'Ribosomen', 'Ribosomen bauen Proteine zusammen.'],
+      ['decoy', 'Zellkern', 'Der Zellkern trägt die Erbinformation in Form von Chromosomen.'],
+    ],
+    why: 'Chloroplasten sind die Orte der Photosynthese; Mitochondrien betreiben die Zellatmung.',
+    bridge: ['sci-ph'],
+  }),
+  estimate({
+    id: 'nat-everest', area: 'geography', d: 1,
+    stem: 'Wie hoch ist der Mount Everest ungefähr (in Metern)?',
+    answer: 8849, tol: 0.03, unit: 'm',
+    f: [
+      ['key', 'Messung', 'Eine gemeinsame Messung von Nepal und China ergab 2020 eine Höhe von 8.849 Metern.'],
+      ['context', 'Lage', 'Der Everest liegt im Himalaya an der Grenze zwischen Nepal und China.'],
+      ['decoy', 'K2', 'Der K2 ist mit 8.611 m der zweithöchste Berg der Erde.'],
+      ['decoy', 'Zugspitze', 'Die Zugspitze ist mit 2.962 m Deutschlands höchster Berg.'],
+    ],
+    why: 'Der Everest ist mit 8.849 m der höchste Berg über dem Meeresspiegel.',
+    deepen: ['nat-tectonic'], bridge: ['nat-rainforest'],
+  }),
+  choice({
+    id: 'nat-tectonic', area: 'climate', d: 2,
+    stem: 'Wie entstand der Himalaya?',
+    options: [
+      'Durch Vulkane am Meeresboden',
+      'Durch den Zusammenstoß der Indischen mit der Eurasischen Platte',
+      'Durch eine Eiszeit',
+      'Durch einen Meteoriteneinschlag',
+    ], answer: 1,
+    f: [
+      ['key', 'Drift', 'Die Indische Platte wandert seit Millionen Jahren nach Norden.'],
+      ['key', 'Kollision', 'Sie stößt auf die Eurasische Platte und faltet das Gestein zu Gebirgen auf.'],
+      ['context', 'Wachstum', 'Der Himalaya wächst noch heute um wenige Millimeter pro Jahr.'],
+      ['decoy', 'Alpen', 'Die Alpen entstanden durch die Kollision der Afrikanischen mit der Eurasischen Platte.'],
+    ],
+    why: 'Zwei Kontinentalplatten kollidieren – keine taucht ab, das Gestein türmt sich auf.',
+    bridge: ['nat-climate'],
+  }),
+  choice({
+    id: 'nat-rainforest', area: 'geography', d: 2,
+    stem: 'Welcher Fluss führt die größte Wassermenge der Erde?',
+    options: ['Nil', 'Amazonas', 'Jangtse', 'Mississippi'], answer: 1,
+    f: [
+      ['key', 'Menge', 'Der Amazonas bringt etwa ein Fünftel des gesamten Flusswassers der Erde ins Meer.'],
+      ['context', 'Länge', 'Nil und Amazonas streiten um den Titel „längster Fluss“.'],
+      ['decoy', 'Jangtse', 'Der Jangtse ist der längste Fluss Asiens.'],
+    ],
+    why: 'Wassermenge ist nicht gleich Länge: Der Amazonas führt am meisten Wasser.',
+    bridge: ['nat-bee', 'cul-language'],
+  }),
+  choice({
+    id: 'nat-bee', area: 'animals', d: 2,
+    stem: 'Wie nennt man die „Sprache“, mit der Honigbienen Futterquellen mitteilen?',
+    options: ['Schwänzeltanz', 'Walzer', 'Balztanz', 'Regentanz'], answer: 0,
+    f: [
+      ['key', 'Forscher', 'Karl von Frisch entschlüsselte den Tanz und erhielt dafür 1973 den Nobelpreis.'],
+      ['key', 'Signal', 'Der Winkel zur Senkrechten zeigt die Richtung zur Sonne, die Dauer des Schwänzelns die Entfernung.'],
+      ['context', 'Bienenvolk', 'Ein Bienenvolk besteht im Sommer aus bis zu 50.000 Tieren.'],
+      ['decoy', 'Ameisen', 'Ameisen verständigen sich vor allem über Duftstoffe.'],
+    ],
+    why: 'Der Schwänzeltanz kodiert Richtung und Entfernung einer Futterquelle.',
+    deepen: ['nat-octopus'], bridge: ['sci-vaccine'],
+  }),
+  choice({
+    id: 'nat-octopus', area: 'animals', d: 3,
+    stem: 'Wie viele Herzen hat ein Tintenfisch (Krake)?',
+    options: ['1', '2', '3', '8'], answer: 2,
+    f: [
+      ['key', 'Kiemenherzen', 'Zwei Kiemenherzen pumpen das Blut durch die Kiemen.'],
+      ['key', 'Systemherz', 'Ein weiteres Herz versorgt den restlichen Körper.'],
+      ['context', 'Blut', 'Ihr Blut ist blau, weil es kupferhaltiges Hämocyanin enthält.'],
+      ['decoy', 'Arme', 'Kraken haben acht Arme, Kalmare haben zehn Fangarme.'],
+    ],
+    why: 'Zwei Kiemenherzen plus ein Systemherz: drei Herzen.',
+  }),
+  choice({
+    id: 'nat-climate', area: 'climate', d: 2, side: { science: 0.2 },
+    stem: 'Welches Treibhausgas entsteht vor allem beim Verbrennen fossiler Brennstoffe?',
+    options: ['Kohlenstoffdioxid', 'Argon', 'Neon', 'Stickstoff'], answer: 0,
+    f: [
+      ['key', 'Verbrennung', 'Beim Verbrennen von Kohle, Öl und Gas verbindet sich Kohlenstoff mit Sauerstoff.'],
+      ['context', 'Treibhauseffekt', 'Treibhausgase halten Wärmestrahlung in der Atmosphäre zurück.'],
+      ['decoy', 'Edelgas', 'Argon und Neon sind Edelgase und reagieren kaum.'],
+    ],
+    why: 'Kohlenstoff + Sauerstoff → Kohlenstoffdioxid (CO₂), das wichtigste vom Menschen freigesetzte Treibhausgas.',
+    bridge: ['his-euro'],
+  }),
+
+  // ───────────── Kultur & Kunst ─────────────
+  choice({
+    id: 'cul-guitar', area: 'music', d: 1,
+    stem: 'Wie viele Saiten hat eine Standard-Gitarre?',
+    options: ['4', '5', '6', '12'], answer: 2,
+    f: [
+      ['key', 'Stimmung', 'Die Standardstimmung lautet E–A–D–G–H–E: sechs Saiten.'],
+      ['decoy', 'Geige', 'Eine Violine hat vier Saiten.'],
+      ['decoy', 'Bass', 'Ein klassischer E-Bass hat ebenfalls vier Saiten.'],
+    ],
+    why: 'Eine Gitarre hat sechs Saiten. Zwölfsaitige Gitarren verdoppeln sie paarweise.',
+    deepen: ['cul-bach'], bridge: ['cul-mona', 'cul-language'],
+  }),
+  choice({
+    id: 'cul-bach', area: 'music', d: 3, side: { history: 0.2 },
+    stem: 'Wer schrieb „Das Wohltemperierte Klavier“?',
+    options: ['Johann Sebastian Bach', 'Wolfgang Amadeus Mozart', 'Ludwig van Beethoven', 'Georg Friedrich Händel'], answer: 0,
+    f: [
+      ['key', 'Werk', 'Das Werk enthält Präludien und Fugen in allen 24 Dur- und Moll-Tonarten.'],
+      ['key', 'Komponist', 'Der Komponist war Thomaskantor in Leipzig.'],
+      ['context', 'Epoche', 'Es entstand im Barock, Teil I im Jahr 1722.'],
+      ['decoy', 'Wasser', 'Händel schrieb die „Wassermusik“ für König Georg I.'],
+    ],
+    why: 'Bach, Thomaskantor in Leipzig, schrieb zwei Bände mit je 24 Präludien und Fugen.',
+    bridge: ['his-printing'],
+  }),
+  choice({
+    id: 'cul-mona', area: 'art', d: 1,
+    stem: 'Wer malte die Mona Lisa?',
+    options: ['Michelangelo', 'Leonardo da Vinci', 'Raffael', 'Botticelli'], answer: 1,
+    f: [
+      ['key', 'Maler', 'Leonardo da Vinci arbeitete ab etwa 1503 am Porträt.'],
+      ['context', 'Ort', 'Das Gemälde hängt im Louvre in Paris.'],
+      ['decoy', 'Sixtina', 'Michelangelo bemalte die Decke der Sixtinischen Kapelle.'],
+    ],
+    why: 'Die Mona Lisa ist ein Werk Leonardo da Vincis aus der italienischen Hochrenaissance.',
+    deepen: ['cul-impression'], bridge: ['cul-faust'],
+  }),
+  choice({
+    id: 'cul-impression', area: 'art', d: 3, side: { history: 0.15 },
+    stem: 'Welches Gemälde von Claude Monet gab dem Impressionismus seinen Namen?',
+    options: ['Impression, Sonnenaufgang', 'Seerosen', 'Das Frühstück im Grünen', 'Die Kathedrale von Rouen'], answer: 0,
+    f: [
+      ['key', 'Spott', 'Ein Kritiker verspottete 1874 eine Ausstellung nach dem Titel eines Bildes als bloße „Impressionisten“.'],
+      ['key', 'Motiv', 'Das Bild zeigt den Hafen von Le Havre im Morgendunst.'],
+      ['context', 'Giverny', 'Seine Seerosen malte Monet später in seinem Garten in Giverny.'],
+      ['decoy', 'Manet', '„Das Frühstück im Grünen“ stammt von Édouard Manet.'],
+    ],
+    why: '„Impression, soleil levant“ (1872) gab der Bewegung ihren Namen.',
+  }),
+  choice({
+    id: 'cul-faust', area: 'literature', d: 2,
+    stem: 'Von wem stammt das Drama „Faust“?',
+    options: ['Friedrich Schiller', 'Johann Wolfgang von Goethe', 'Gotthold Ephraim Lessing', 'Bertolt Brecht'], answer: 1,
+    f: [
+      ['key', 'Lebenswerk', 'Goethe arbeitete mehr als 60 Jahre an seinem „Faust“.'],
+      ['decoy', 'Räuber', 'Schiller schrieb „Die Räuber“ und „Wilhelm Tell“.'],
+      ['decoy', 'Nathan', 'Lessing schrieb „Nathan der Weise“.'],
+    ],
+    why: 'Goethe veröffentlichte Teil I 1808 und Teil II erst nach seinem Tod 1832.',
+    deepen: ['cul-grimm'], bridge: ['his-printing'],
+  }),
+  choice({
+    id: 'cul-grimm', area: 'literature', d: 2, side: { history: 0.15, culture: 0 },
+    stem: 'Welches riesige Nachschlagewerk begannen die Brüder Grimm neben ihren Märchen?',
+    options: ['Das Deutsche Wörterbuch', 'Den Brockhaus', 'Den Duden', 'Meyers Konversations-Lexikon'], answer: 0,
+    f: [
+      ['key', 'Wörterbuch', 'Die Brüder Grimm begannen 1838 das „Deutsche Wörterbuch“.'],
+      ['key', 'Dauer', 'Es wurde erst 1961 abgeschlossen, über hundert Jahre später.'],
+      ['decoy', 'Duden', 'Konrad Duden veröffentlichte 1880 sein Rechtschreibwörterbuch.'],
+    ],
+    why: 'Das Deutsche Wörterbuch der Grimms umfasst 32 Bände.',
+    bridge: ['cul-language'],
+  }),
+  choice({
+    id: 'cul-language', area: 'language', d: 2,
+    stem: 'Welche Sprache hat weltweit die meisten Muttersprachler?',
+    options: ['Englisch', 'Spanisch', 'Mandarin-Chinesisch', 'Hindi'], answer: 2,
+    f: [
+      ['key', 'Mandarin', 'Mandarin hat über 900 Millionen Muttersprachler.'],
+      ['key', 'Englisch', 'Englisch hat etwa 380 Millionen Muttersprachler, aber sehr viele Zweitsprachler.'],
+      ['context', 'Spanisch', 'Spanisch zählt rund 480 Millionen Muttersprachler.'],
+    ],
+    why: 'Bei den Muttersprachlern liegt Mandarin vorn; Englisch ist die meistgelernte Zweitsprache.',
+    bridge: ['nat-rainforest'],
+  }),
+
+  // ───────────── Geschichte & Gesellschaft ─────────────
+  choice({
+    id: 'his-pyramid', area: 'antiquity', d: 1,
+    stem: 'Für welchen Pharao wurde die Große Pyramide von Gizeh gebaut?',
+    options: ['Tutanchamun', 'Cheops', 'Ramses II.', 'Echnaton'], answer: 1,
+    f: [
+      ['key', 'Zeit', 'Die Große Pyramide entstand um 2560 v. Chr.'],
+      ['key', 'Name', 'Ihr Bauherr hieß auf Ägyptisch Chufu, griechisch Cheops.'],
+      ['decoy', 'Grab', 'Das Grab Tutanchamuns wurde 1922 von Howard Carter entdeckt.'],
+    ],
+    why: 'Cheops (Chufu) ließ die größte der drei Pyramiden von Gizeh errichten.',
+    deepen: ['his-rosetta'], bridge: ['his-rome', 'his-timeline'],
+  }),
+  choice({
+    id: 'his-rosetta', area: 'antiquity', d: 3, side: { culture: 0.3 },
+    stem: 'Welcher Fund ermöglichte die Entzifferung der Hieroglyphen?',
+    options: ['Der Stein von Rosette', 'Der Papyrus Ebers', 'Der Schatz des Priamos', 'Der Codex Sinaiticus'], answer: 0,
+    f: [
+      ['key', 'Dreisprachig', 'Der Stein trägt denselben Text in Hieroglyphen, Demotisch und Altgriechisch.'],
+      ['key', 'Fund', 'Er wurde 1799 bei Rosette im Nildelta gefunden.'],
+      ['context', 'Entzifferung', 'Jean-François Champollion gelang der Durchbruch 1822.'],
+      ['decoy', 'Troja', 'Heinrich Schliemann grub ab 1870 in Troja.'],
+    ],
+    why: 'Der griechische Text half, die Hieroglyphen zu verstehen. Champollion nutzte ihn 1822.',
+    bridge: ['cul-language'],
+  }),
+  estimate({
+    id: 'his-rome', area: 'antiquity', d: 2,
+    stem: 'In welchem Jahr gilt das Weströmische Reich als untergegangen?',
+    answer: 476, tol: 0.002, unit: 'n. Chr.',
+    f: [
+      ['key', 'Absetzung', 'Der Heerführer Odoaker setzte den letzten weströmischen Kaiser Romulus Augustulus ab.'],
+      ['key', 'Jahr', 'Das geschah im Jahr 476 n. Chr.'],
+      ['context', 'Ostrom', 'Das Oströmische Reich bestand noch bis 1453.'],
+      ['decoy', 'Teilung', 'Das Römische Reich wurde 395 endgültig in Ost und West geteilt.'],
+    ],
+    why: '476 setzte Odoaker Romulus Augustulus ab; das Oströmische Reich bestand weiter.',
+    deepen: ['his-timeline'],
+  }),
+  order({
+    id: 'his-timeline', area: 'antiquity', d: 3,
+    stem: 'Bringe diese Ereignisse in zeitliche Reihenfolge (früh → spät).',
+    items: ['Bau der Cheops-Pyramide', 'Erste Olympische Spiele', 'Tod Alexanders des Großen', 'Untergang Westroms'],
+    f: [
+      ['key', 'Pyramide', 'Cheops-Pyramide: um 2560 v. Chr.'],
+      ['key', 'Olympia', 'Erste antike Olympische Spiele: 776 v. Chr.'],
+      ['key', 'Alexander', 'Alexander der Große starb 323 v. Chr. in Babylon.'],
+      ['key', 'Westrom', 'Ende des Weströmischen Reiches: 476 n. Chr.'],
+    ],
+    why: '2560 v. Chr. → 776 v. Chr. → 323 v. Chr. → 476 n. Chr.',
+  }),
+  choice({
+    id: 'his-printing', area: 'modern', d: 2, side: { culture: 0.25, science: 0.15 },
+    stem: 'Wer entwickelte um 1450 den Buchdruck mit beweglichen Lettern in Europa?',
+    options: ['Johannes Gutenberg', 'Martin Luther', 'Albrecht Dürer', 'Leonardo da Vinci'], answer: 0,
+    f: [
+      ['key', 'Erfinder', 'Der Mainzer Johannes Gutenberg goss Buchstaben aus Metall.'],
+      ['key', 'Bibel', 'Die Gutenberg-Bibel entstand um 1452 bis 1454.'],
+      ['context', 'Folgen', 'Der Buchdruck beschleunigte die Verbreitung der Reformation.'],
+      ['decoy', 'Luther', 'Martin Luther übersetzte das Neue Testament 1522 ins Deutsche.'],
+    ],
+    why: 'Gutenbergs Druck mit beweglichen Lettern machte Bücher erstmals massenhaft verfügbar.',
+    bridge: ['cul-faust'],
+  }),
+  estimate({
+    id: 'his-wall', area: 'modern', d: 2,
+    stem: 'In welchem Jahr fiel die Berliner Mauer?',
+    answer: 1989, tol: 0.0003, unit: '',
+    f: [
+      ['key', 'Öffnung', 'Am 9. November wurde die Grenze zwischen Ost- und West-Berlin geöffnet.'],
+      ['context', 'Bau', 'Die Mauer war 1961 gebaut worden.'],
+      ['decoy', 'Einheit', 'Die offizielle Wiedervereinigung folgte am 3. Oktober 1990.'],
+      ['decoy', 'Vertrag', 'Der Zwei-plus-Vier-Vertrag wurde 1990 geschlossen.'],
+    ],
+    why: 'Die Mauer fiel am 9. November 1989; die Einheit folgte ein Jahr später.',
+    bridge: ['his-states', 'his-euro'],
+  }),
+  choice({
+    id: 'his-states', area: 'politics', d: 1,
+    stem: 'Wie viele Bundesländer hat Deutschland?',
+    options: ['12', '14', '16', '18'], answer: 2,
+    f: [
+      ['key', 'Flächenländer', 'Es gibt 13 Flächenländer.'],
+      ['key', 'Stadtstaaten', 'Dazu kommen drei Stadtstaaten: Berlin, Hamburg und Bremen.'],
+      ['decoy', 'Einheit', 'Mit der Wiedervereinigung kamen fünf neue Länder hinzu.'],
+    ],
+    why: '13 Flächenländer plus drei Stadtstaaten ergeben 16 Bundesländer.',
+    bridge: ['his-euro'],
+  }),
+  estimate({
+    id: 'his-euro', area: 'economy', d: 2,
+    stem: 'In welchem Jahr wurde das Euro-Bargeld eingeführt?',
+    answer: 2002, tol: 0.0003, unit: '',
+    f: [
+      ['key', 'Bargeld', 'Münzen und Scheine kamen am 1. Januar in Umlauf.'],
+      ['key', 'Jahr', 'Das war der Jahresbeginn 2002.'],
+      ['decoy', 'Buchgeld', 'Als Buchgeld existierte der Euro schon seit 1999.'],
+      ['decoy', 'Maastricht', 'Der Vertrag von Maastricht wurde 1992 unterzeichnet.'],
+    ],
+    why: 'Der Euro wurde 1999 als Buchgeld eingeführt, das Bargeld folgte 2002.',
+  }),
+];
+
+/** One starting question per sector. */
+export const ROOT_QUESTIONS: Record<Sector, string> = {
+  science: 'sci-light',
+  nature: 'nat-photosynthesis',
+  culture: 'cul-guitar',
+  history: 'his-pyramid',
+};
