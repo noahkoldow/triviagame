@@ -64,6 +64,8 @@ interface Props {
   focusKey: number;
   focusId?: string;
   focusZoom?: number;
+  /** Fraction of the screen height to place the focused node above the centre (room for a panel below). */
+  focusLift?: number;
   showStrand?: boolean;
   /** Disturbed areas still to be connected. */
   outposts?: Outpost[];
@@ -85,6 +87,7 @@ export function NetMap({
   focusKey,
   focusId,
   focusZoom,
+  focusLift = 0,
   showStrand = false,
   outposts = [],
   onOutpost,
@@ -228,9 +231,11 @@ export function NetMap({
     const n = nodesRef.current.find((x) => x.id === focusId);
     if (!n) return;
     const s = focusZoom ?? Math.max(cam.current.s, 1.1);
-    cam.current = { cx: n.pos.x, cy: n.pos.y, s };
+    // the camera looks at a point below the node, so the node sits higher on the screen
+    const cyTarget = n.pos.y + (focusLift * sizeRef.current.height) / (s * SQUASH);
+    cam.current = { cx: n.pos.x, cy: cyTarget, s };
     cx.value = withTiming(n.pos.x, { duration: 450 });
-    cy.value = withTiming(n.pos.y, { duration: 450 });
+    cy.value = withTiming(cyTarget, { duration: 450 });
     zoom.value = withTiming(s, { duration: 450 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey]);

@@ -37,7 +37,7 @@ export default function Profile() {
           <Bolt size={90} mood="happy" />
           <H1>{profile.name}</H1>
           <P>
-            Level {lv.level} · {xp} XP · 🔥 {streak.count} Tage · {streak.freezes} Streak-Schutz
+            Level {lv.level} · {xp} XP · Serie {streak.count} Tage · {streak.freezes} Streak-Schutz
           </P>
         </View>
 

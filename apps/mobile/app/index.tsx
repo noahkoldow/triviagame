@@ -26,6 +26,7 @@ import {
   type CacheEntry,
 } from '@nexus/shared';
 import { Bolt } from '../src/components/Bolt';
+import { Icon } from '../src/components/Icon';
 import { CacheBar, Dock, MapHud, glass } from '../src/components/MapUi';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
@@ -184,6 +185,7 @@ export default function Home() {
         focusKey={focusKey}
         focusId={focusId}
         focusZoom={debrisId ? 1.15 : undefined}
+        focusLift={debrisId ? 0.24 : 0}
         outposts={outposts}
         onOutpost={(id) => {
           tap();
@@ -205,9 +207,12 @@ export default function Home() {
         <MapHud />
         {integrity === 0 ? (
           <Pressable style={[styles.banner, styles.bannerBad]} onPress={() => setUnstable(true)} accessibilityRole="button">
-            <Text style={[styles.bannerText, { color: colors.bad }]}>
-              ❤ Netz instabil: neue Knoten gesperrt. Repariere beschädigte Knoten.
-            </Text>
+            <View style={styles.bannerRow}>
+              <Icon name="heart" size={18} />
+              <Text style={[styles.bannerText, { color: colors.bad, flex: 1 }]}>
+                Netz instabil: neue Knoten gesperrt. Repariere beschädigte Knoten.
+              </Text>
+            </View>
           </Pressable>
         ) : null}
         {due.length > 0 ? (
@@ -216,9 +221,12 @@ export default function Home() {
             onPress={() => onSelect(due[0]!)}
             accessibilityRole="button"
           >
-            <Text style={styles.bannerText}>
-              ⚠ {due.length} beschädigte{due.length > 1 ? ' Knoten' : 'r Knoten'} zur Reparatur fällig
-            </Text>
+            <View style={styles.bannerRow}>
+              <Icon name="warn" size={18} />
+              <Text style={[styles.bannerText, { flex: 1 }]}>
+                {due.length} beschädigte{due.length > 1 ? ' Knoten' : 'r Knoten'} zur Reparatur fällig
+              </Text>
+            </View>
           </Pressable>
         ) : null}
       </SafeAreaView>
@@ -263,9 +271,9 @@ export default function Home() {
           {!debrisNode ? (
             <Dock
               items={[
-                { label: 'Codex', icon: '📖', onPress: () => router.push('/codex') },
-                { label: 'Shop', icon: '💎', tint: colors.gem, onPress: () => router.push('/shop') },
-                { label: 'Profil', icon: '🧭', onPress: () => router.push('/profile') },
+                { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
+                { label: 'Shop', icon: 'gem', tint: colors.gem, onPress: () => router.push('/shop') },
+                { label: 'Profil', icon: 'user', onPress: () => router.push('/profile') },
               ]}
             />
           ) : null}
@@ -374,7 +382,8 @@ export default function Home() {
                 </Text>
                 <Button
                   variant="gem"
-                  label={`Sofort verbinden · ${outpostCost} 💎`}
+                  label={`Sofort verbinden · ${outpostCost}`}
+                  icon="gem"
                   sub={`Du hast ${gems} Gems`}
                   disabled={gems < outpostCost}
                   onPress={() => {
@@ -410,7 +419,8 @@ export default function Home() {
             />
             <Button
               variant="gem"
-              label={`Netz heilen · ${HEAL_COST} 💎`}
+              label={`Netz heilen · ${HEAL_COST}`}
+              icon="gem"
               sub={`Du hast ${gems} Gems`}
               disabled={gems < HEAL_COST || integrity >= 5}
               onPress={() => {
@@ -483,6 +493,7 @@ const styles = StyleSheet.create({
     borderColor: colors.warn,
   },
   bannerBad: { backgroundColor: 'rgba(58,16,16,0.92)', borderColor: colors.bad },
+  bannerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bannerText: { color: colors.warn, fontWeight: '700' },
   topicLabel: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 },
   topic: { color: colors.text, fontSize: 22, fontWeight: '900' },

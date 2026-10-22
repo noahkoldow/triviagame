@@ -12,6 +12,7 @@ import {
   grantGems,
   unlockArea,
 } from '@nexus/shared';
+import { Icon } from '../src/components/Icon';
 import { BackBar, Button, Card, Chip, P, tap } from '../src/components/ui';
 import { ads } from '../src/services/ads';
 import { pool } from '../src/services/content';
@@ -60,8 +61,8 @@ export default function Shop() {
       <ScrollView contentContainerStyle={styles.body}>
         <BackBar title="Shop" onBack={() => router.back()} />
         <View style={styles.balance}>
-          <Chip label={`💎 ${gems}`} color={colors.gem} />
-          <Chip label={`◈ ${bits}`} color={colors.bit} />
+          <Chip icon="gem" label={`${gems}`} color={colors.gem} />
+          <Chip icon="bit" label={`${bits}`} color={colors.bit} />
         </View>
         <P>
           Gems öffnen neue Bereiche in den Sektoren. Alles hier ist auch erspielbar, Gems sparen nur
@@ -79,11 +80,15 @@ export default function Shop() {
                 <View key={a.id} style={styles.row}>
                   <Text style={styles.rowText}>{a.de}</Text>
                   {isOpen ? (
-                    <Text style={styles.open}>offen ✓</Text>
+                    <View style={styles.openRow}>
+                      <Icon name="check" size={16} />
+                      <Text style={styles.open}>offen</Text>
+                    </View>
                   ) : (
                     <Button
                       variant="gem"
-                      label={`${cost} 💎`}
+                      label={`${cost}`}
+                      icon="gem"
                       disabled={gems < cost}
                       onPress={() => update((p) => unlockArea(p, a.id, pool))}
                       style={styles.smallBtn}
@@ -98,7 +103,8 @@ export default function Shop() {
         <Text style={styles.section}>GEMS</Text>
         <Card style={{ gap: 8 }}>
           <Button
-            label="Video ansehen: +1 💎"
+            label="Video ansehen: +1"
+            icon="gem"
             variant="ghost"
             disabled={busy || adFree}
             onPress={watchForGems}
@@ -146,7 +152,8 @@ export default function Shop() {
                   />
                 ) : (
                   <Button
-                    label={`${c.cost} ◈`}
+                    label={`${c.cost}`}
+                    icon="bit"
                     disabled={bits < c.cost}
                     onPress={() => update((p) => buyCosmetic(p, c.id))}
                     style={styles.smallBtn}
@@ -176,6 +183,7 @@ const styles = StyleSheet.create({
   sectorTitle: { fontSize: 16, fontWeight: '800' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   rowText: { color: colors.text, fontSize: 16 },
+  openRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   open: { color: colors.good, fontWeight: '900' },
   smallBtn: { minHeight: 40, paddingVertical: 4, paddingHorizontal: 14 },
   dot: { width: 22, height: 22, borderRadius: 11 },

@@ -390,7 +390,7 @@ export function ShardTile({
   font: SkFont;
 }) {
   const face = shard.taken ? '#34475A' : color;
-  const text = shard.taken ? `✓ ${shard.hint}` : shard.hint;
+  const text = shard.hint;
   const w = font.getTextWidth(text) + 20;
   const h = 26;
   const up = SHARD_DEPTH + 36;

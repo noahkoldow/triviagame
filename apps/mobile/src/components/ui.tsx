@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { colors, radius, shade } from '../theme';
+import { Icon, type IconName } from './Icon';
 
 export function tap(kind: 'light' | 'success' | 'error' = 'light') {
   if (kind === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -27,6 +28,7 @@ export function Button({
   disabled,
   style,
   sub,
+  icon,
 }: {
   label: string;
   onPress: () => void;
@@ -34,6 +36,8 @@ export function Button({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   sub?: string;
+  /** Small icon after the label, e.g. the price currency. */
+  icon?: IconName;
 }) {
   const bg =
     variant === 'primary'
@@ -67,7 +71,10 @@ export function Button({
         style,
       ]}
     >
-      <Text style={[styles.btnLabel, { color: disabled ? colors.dim : fg }]}>{label.toUpperCase()}</Text>
+      <View style={styles.btnRow}>
+        <Text style={[styles.btnLabel, { color: disabled ? colors.dim : fg }]}>{label.toUpperCase()}</Text>
+        {icon ? <Icon name={icon} size={18} muted={disabled} /> : null}
+      </View>
       {sub ? <Text style={[styles.btnSub, { color: disabled ? colors.dim : fg }]}>{sub}</Text> : null}
     </Pressable>
   );
@@ -117,7 +124,7 @@ export function BackBar({ title, onBack }: { title: string; onBack: () => void }
         hitSlop={10}
         style={({ pressed }) => [styles.backBtn, pressed && { transform: [{ translateY: 2 }], borderBottomWidth: 2 }]}
       >
-        <Text style={styles.backGlyph}>✕</Text>
+        <Icon name="close" size={18} color={colors.dim} />
       </Pressable>
       <Text style={styles.barTitle} accessibilityRole="header">
         {title}
@@ -127,9 +134,10 @@ export function BackBar({ title, onBack }: { title: string; onBack: () => void }
 }
 
 /** Rounded stat chip, e.g. for balances and rewards. */
-export function Chip({ label, color }: { label: string; color: string }) {
+export function Chip({ label, color, icon }: { label: string; color: string; icon?: IconName }) {
   return (
     <View style={[styles.chip, { borderColor: color }]}>
+      {icon ? <Icon name={icon} size={18} /> : null}
       <Text style={[styles.chipText, { color }]}>{label}</Text>
     </View>
   );
@@ -154,6 +162,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  btnRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   btnLabel: { fontSize: 15, fontWeight: '900', letterSpacing: 0.9 },
   btnSub: { fontSize: 11, fontWeight: '700', opacity: 0.85, marginTop: 1 },
   card: {
@@ -186,6 +195,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.panel,
   },
   chipText: { fontSize: 16, fontWeight: '900' },

@@ -19,8 +19,9 @@ import {
   type Reward,
 } from '@nexus/shared';
 import { Bolt } from '../../src/components/Bolt';
+import { Icon } from '../../src/components/Icon';
 import { Morph } from '../../src/components/Morph';
-import { Button, Card, H1, P, Pill, tap } from '../../src/components/ui';
+import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { ads } from '../../src/services/ads';
 import { pool } from '../../src/services/content';
 import { clearHint, getHint, setDebrisReturn, setHint, setRecentlySpawned } from '../../src/state/session';
@@ -219,7 +220,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         hitSlop={12}
         style={styles.close}
       >
-        <Text style={styles.closeGlyph}>✕</Text>
+        <Icon name="close" size={20} color={colors.dim} />
       </Pressable>
       <View style={styles.headerPills}>
         <Pill label={areaById(q.area).de} color={color} />
@@ -235,9 +236,12 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <View style={styles.qTop}>
             <Bolt size={64} mood="think" />
-            <Text style={styles.lock}>
-              🔒 Cache versiegelt · {cache.length} Fragment{cache.length === 1 ? '' : 'e'}
-            </Text>
+            <View style={styles.lockRow}>
+              <Icon name="lock" size={20} />
+              <Text style={styles.lock}>
+                Cache versiegelt · {cache.length} Fragment{cache.length === 1 ? '' : 'e'}
+              </Text>
+            </View>
           </View>
           <Card>
             <Text style={styles.stem}>{q.stem}</Text>
@@ -317,7 +321,8 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
           <View style={{ gap: 8, marginTop: 4 }}>
             <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />
             <Button
-              label="⚡ Blitz: Cache öffnen"
+              label="Blitz: Cache öffnen"
+              icon="bolt"
               variant="ghost"
               sub={
                 energy > 0
@@ -374,14 +379,10 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
             </Card>
             {r.reward ? (
               <View style={styles.rewards}>
-                <Text style={styles.rewardChip}>+{r.reward.xp} XP</Text>
-                <Text style={[styles.rewardChip, { color: colors.bit }]}>+{r.reward.bits} ◈</Text>
-                {r.prepared ? <Text style={[styles.rewardChip, { color: colors.primary }]}>Gut vorbereitet</Text> : null}
-                {r.reward.gems > 0 ? (
-                  <Text style={[styles.rewardChip, { color: colors.gem }]}>
-                    +{r.reward.gems} 💎
-                  </Text>
-                ) : null}
+                <Chip label={`+${r.reward.xp} XP`} color={colors.accent} />
+                <Chip icon="bit" label={`+${r.reward.bits}`} color={colors.bit} />
+                {r.prepared ? <Chip icon="check" label="Gut vorbereitet" color={colors.primary} /> : null}
+                {r.reward.gems > 0 ? <Chip icon="gem" label={`+${r.reward.gems}`} color={colors.gem} /> : null}
               </View>
             ) : null}
             {!review && r.attempts === 2 ? (
@@ -418,14 +419,12 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                 {spawnedNodes.map((n) => {
                   const nq = pool.get(n.questionId);
                   return (
-                    <Text key={n.id} style={styles.pathLine}>
-                      {n.kind === 'deepen'
-                        ? '↓ Vertiefung'
-                        : n.kind === 'bridge'
-                          ? '↔ Brücke'
-                          : '◆ Trümmerfeld'}{' '}
-                      · {areaById(nq.area).de}
-                    </Text>
+                    <View key={n.id} style={styles.pathRow}>
+                      <Icon name={n.kind === 'deepen' ? 'down' : n.kind === 'bridge' ? 'link' : 'shard'} size={18} color={colors.accent} />
+                      <Text style={styles.pathLine}>
+                        {n.kind === 'deepen' ? 'Vertiefung' : n.kind === 'bridge' ? 'Brücke' : 'Trümmerfeld'} · {areaById(nq.area).de}
+                      </Text>
+                    </View>
                   );
                 })}
               </Card>
@@ -546,6 +545,8 @@ const styles = StyleSheet.create({
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
   fragText: { color: colors.text, fontSize: 18, lineHeight: 26 },
   qTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  pathRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lock: { color: colors.dim, fontWeight: '700' },
   stem: { color: colors.text, fontSize: 21, fontWeight: '800', lineHeight: 29 },
   option: {

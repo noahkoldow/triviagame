@@ -12,6 +12,7 @@ import {
 import { pool } from '../services/content';
 import { useGame } from '../state/store';
 import { colors } from '../theme';
+import { Icon, type IconName } from './Icon';
 import { tap } from './ui';
 
 /** Solid surface with a thick bottom edge: the look of all floating map UI. */
@@ -45,29 +46,42 @@ export function MapHud() {
           <View style={[styles.levelFill, { width: `${Math.round((lv.into / lv.next) * 100)}%` }]} />
         </View>
       </View>
-      <Stat icon="🔥" value={`${streak}`} color="#FF9600" />
+      <Stat icon="flame" value={`${streak}`} color="#FF9600" />
       <Stat
-        icon="⚡"
-        value={wait === null ? `${energy}/${MAX_ENERGY}` : `${energy}/${MAX_ENERGY} · ${Math.ceil(wait / 60000)}m`}
+        icon="bolt"
+        value={wait === null ? `${energy}/${MAX_ENERGY}` : `${energy}/${MAX_ENERGY}`}
         color="#FFC800"
         label={`Energie ${energy} von ${MAX_ENERGY}`}
       />
-      <View style={styles.stat} accessible accessibilityLabel={`Integrität ${integrity} von ${MAX_INTEGRITY}`}>
-        <Text style={[styles.statValue, { color: colors.bad, letterSpacing: 1 }]}>
-          {'❤'.repeat(integrity)}
-          <Text style={{ color: colors.line }}>{'❤'.repeat(MAX_INTEGRITY - integrity)}</Text>
-        </Text>
-      </View>
-      <Stat icon="◈" value={`${bits}`} color={colors.bit} />
-      <Stat icon="💎" value={`${gems}`} color={colors.gem} />
+      <Stat
+        icon="heart"
+        value={`${integrity}`}
+        muted={integrity === 0}
+        color={integrity === 0 ? colors.dim : colors.bad}
+        label={`Integrität ${integrity} von ${MAX_INTEGRITY}`}
+      />
+      <Stat icon="bit" value={`${bits}`} color={colors.bit} />
+      <Stat icon="gem" value={`${gems}`} color={colors.gem} />
     </View>
   );
 }
 
-function Stat({ icon, value, color, label }: { icon: string; value: string; color?: string; label?: string }) {
+function Stat({
+  icon,
+  value,
+  color,
+  label,
+  muted,
+}: {
+  icon: IconName;
+  value: string;
+  color?: string;
+  label?: string;
+  muted?: boolean;
+}) {
   return (
     <View style={styles.stat} accessible accessibilityLabel={label ?? value}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <Icon name={icon} size={17} muted={muted} />
       <Text style={[styles.statValue, color ? { color } : null]}>{value}</Text>
     </View>
   );
@@ -109,7 +123,7 @@ export function CacheBar({ onSlot }: { onSlot: (entry: CacheEntry) => void }) {
   );
 }
 
-export function Dock({ items }: { items: { label: string; icon: string; onPress: () => void; tint?: string }[] }) {
+export function Dock({ items }: { items: { label: string; icon: IconName; onPress: () => void; tint?: string }[] }) {
   return (
     <View style={[styles.dock, glass]}>
       {items.map((it) => (
@@ -123,7 +137,7 @@ export function Dock({ items }: { items: { label: string; icon: string; onPress:
           accessibilityLabel={it.label}
           style={({ pressed }) => [styles.dockItem, pressed && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
         >
-          <Text style={styles.dockIcon}>{it.icon}</Text>
+          <Icon name={it.icon} size={26} />
           <Text style={[styles.dockLabel, it.tint ? { color: it.tint } : null]}>{it.label}</Text>
         </Pressable>
       ))}
@@ -135,7 +149,7 @@ const styles = StyleSheet.create({
   hud: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 22,
