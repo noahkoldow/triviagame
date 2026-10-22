@@ -217,7 +217,7 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
     fragments.push({ id: `f${i + 1}`, kind, hint, text, ...(files && files.length ? { files } : {}) });
   });
   const keys = fragments.filter((f) => f.kind === 'key').length;
-  if (keys < 1 || keys > 3) errors.push('1 to 3 key fragments are needed (the cache holds three)');
+  if (keys < 1 || keys > 3) errors.push('1 to 3 key fragments are needed');
   if (!fragments.some((f) => f.kind === 'decoy')) errors.push('at least one decoy fragment is needed');
 
   // type specific; `secrets` are the strings that topic, intro and hints must not give away

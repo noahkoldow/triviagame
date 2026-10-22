@@ -6,7 +6,6 @@ import {
   BOSS_PASS,
   BOSS_QUESTIONS,
   BOSS_REWARD,
-  CACHE_SLOTS,
   DEBRIS_COST,
   HEAL_COST,
   areaById,
@@ -15,7 +14,7 @@ import {
   cacheAdd,
   cacheDrop,
   cacheFragments,
-  cacheSwap,
+  fragmentFiles,
   chooseNode,
   debrisOffsets,
   dueReviews,
@@ -31,6 +30,7 @@ import {
 import { Bolt } from '../src/components/Bolt';
 import { Icon } from '../src/components/Icon';
 import { CacheBar, Dock, MapHud, glass } from '../src/components/MapUi';
+import { CacheExplorer } from '../src/components/CacheExplorer';
 import { Dialog, Window } from '../src/components/Win';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
@@ -50,7 +50,6 @@ export default function Home() {
   const outposts = network.outposts ?? [];
   const firewalls = network.firewalls ?? [];
   const integrity = useGame((p) => p.integrity);
-  const spent = useGame((p) => p.spent);
   const name = useGame((p) => p.profile.name);
   const [size, setSize] = useState({ width: 360, height: 640 });
   const [highlight, setHighlight] = useState<string[]>([]);
@@ -59,7 +58,7 @@ export default function Home() {
   const [sel, setSel] = useState<string | null>(null);
   const [debrisId, setDebrisId] = useState<string | null>(null);
   const [shardId, setShardId] = useState<string | null>(null);
-  const [cacheView, setCacheView] = useState<CacheEntry | null>(null);
+  const [explorerOpen, setExplorerOpen] = useState(false);
   const [tip, setTip] = useState(true);
   const [unstable, setUnstable] = useState(false);
   const [outpostId, setOutpostId] = useState<string | null>(null);
@@ -113,11 +112,9 @@ export default function Home() {
   const field = useMemo(
     () =>
       debrisQ && debrisNode
-        ? buildField(debrisQ, debrisNode.attempts).filter(
-            (f) => !spent.some((s) => s.questionId === debrisQ.id && s.fragmentId === f.id),
-          )
+        ? buildField(debrisQ, debrisNode.attempts)
         : [],
-    [debrisQ, debrisNode, spent],
+    [debrisQ, debrisNode],
   );
   const shards = useMemo<Shard[]>(() => {
     if (!debrisQ || !debrisNode) return [];
@@ -136,7 +133,10 @@ export default function Home() {
   const shardEntry: CacheEntry | null =
     shard && debrisQ ? { questionId: debrisQ.id, fragmentId: shard.id } : null;
   const inCache = !!shardEntry && cache.some((c) => c.questionId === shardEntry.questionId && c.fragmentId === shardEntry.fragmentId);
-  const cached = useMemo(() => cacheFragments(getState(), pool), [cache]);
+  const cachedFolders = useMemo(
+    () => cacheFragments(getState(), pool).map((f) => ({ name: f.hint, files: fragmentFiles(f) })),
+    [cache],
+  );
 
   const outpost = outpostId ? outposts.find((o) => o.id === outpostId && !o.connected) : undefined;
   const outpostSteps = outpost
@@ -273,14 +273,14 @@ export default function Home() {
                 <Button label="Zurück" variant="ghost" style={{ flex: 1 }} onPress={() => setDebrisId(null)} />
                 <Button
                   label={debrisNode.state === 'damaged' ? 'Reparieren' : 'Frage starten'}
-                  sub="Cache wird versiegelt"
+                  sub="Cache dabei, Öffnen kostet Energie"
                   style={{ flex: 2 }}
                   onPress={startQuestion}
                 />
               </View>
             </Window>
           ) : null}
-          <CacheBar onSlot={setCacheView} />
+          <CacheBar onOpen={() => setExplorerOpen(true)} />
           {!debrisNode ? (
             <Dock
               items={[
@@ -302,11 +302,9 @@ export default function Home() {
               <>
                 {inCache ? (
                   <>
-                    <Text style={styles.cardSub}>
-                      Liegt im Cache. Was darin steht, siehst du erst in der Frage (Blitz).
-                    </Text>
+                    <Text style={styles.cardSub}>Liegt in deinem Cache.</Text>
                     <Button
-                      label="Wegwerfen (endgültig)"
+                      label="Aus dem Cache nehmen"
                       variant="ghost"
                       onPress={() => {
                         update((p) => cacheDrop(p, shardEntry));
@@ -317,32 +315,16 @@ export default function Home() {
                 ) : (
                   <>
                     <Text style={styles.cardSub}>
-                      Den Inhalt kennst du erst in der Frage. Entscheide nach dem Etikett.
+                      Nimm es mit, wenn es dir nützen könnte. Der Cache hat keine Obergrenze, aber in der Frage kostet das
+                      Öffnen Energie, je größer er ist.
                     </Text>
-                    {cache.length < CACHE_SLOTS ? (
-                      <Button
-                        label="Mitnehmen"
-                        onPress={() => {
-                          update((p) => cacheAdd(p, shardEntry));
-                          setShardId(null);
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <Text style={styles.cardSub}>Cache voll. Tausche gegen eines, das dann endgültig weg ist:</Text>
-                        {cached.map((c) => (
-                          <Button
-                            key={`${c.questionId}:${c.id}`}
-                            label={c.hint}
-                            variant="ghost"
-                            onPress={() => {
-                              update((p) => cacheSwap(p, { questionId: c.questionId, fragmentId: c.id }, shardEntry));
-                              setShardId(null);
-                            }}
-                          />
-                        ))}
-                      </>
-                    )}
+                    <Button
+                      label="Mitnehmen"
+                      onPress={() => {
+                        update((p) => cacheAdd(p, shardEntry));
+                        setShardId(null);
+                      }}
+                    />
                   </>
                 )}
                 <Button label="Liegen lassen" variant="ghost" onPress={() => setShardId(null)} />
@@ -352,82 +334,12 @@ export default function Home() {
         </Pressable>
       </Modal>
 
-      {/* a fragment already in the cache: read or drop it */}
-      <Modal transparent animationType="fade" visible={!!cacheView} onRequestClose={() => setCacheView(null)}>
-        <Pressable style={styles.center} onPress={() => setCacheView(null)}>
-          <Dialog title="Cache" icon="folder" onClose={() => setCacheView(null)}>
-            {cacheView
-              ? (() => {
-                  const f = pool.byId.get(cacheView.questionId)?.fragments.find((x) => x.id === cacheView.fragmentId);
-                  return (
-                    <>
-                      <Text style={styles.topic}>{f?.hint}</Text>
-                      <Text style={styles.cardSub}>Den Inhalt siehst du erst in der Frage (Blitz).</Text>
-                      <Button
-                        label="Wegwerfen (endgültig)"
-                        variant="ghost"
-                        onPress={() => {
-                          update((p) => cacheDrop(p, cacheView));
-                          setCacheView(null);
-                        }}
-                      />
-                      <Button label="Schließen" onPress={() => setCacheView(null)} />
-                    </>
-                  );
-                })()
-              : null}
-          </Dialog>
-        </Pressable>
-      </Modal>
-
-      {/* the same choices as on the map, as a list (also for screen readers) */}
-      <Modal transparent animationType="fade" visible={listOpen} onRequestClose={() => setListOpen(false)}>
-        <Pressable style={styles.center} onPress={() => setListOpen(false)}>
-          <Dialog title="Knoten" icon="shard" onClose={() => setListOpen(false)}>
-            <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={{ gap: 8 }}>
-              {nodes
-                .filter((n) => !n.locked && (n.state === 'open' || n.state === 'damaged'))
-                .sort((a, b) => (a.state === b.state ? 0 : a.state === 'damaged' ? -1 : 1))
-                .map((n) => (
-                  <Button
-                    key={n.id}
-                    variant="ghost"
-                    label={`${areaById(pool.get(n.questionId).area).de}: ${n.state === 'damaged' ? 'Reparatur' : de.kinds[n.kind]}`}
-                    onPress={() => {
-                      setListOpen(false);
-                      onSelect(n.id);
-                    }}
-                  />
-                ))}
-              {firewalls
-                .filter((f) => !f.broken)
-                .map((f) => (
-                  <Button
-                    key={f.id}
-                    variant="ghost"
-                    label={`Firewall: ${de.sectors[f.a]} × ${de.sectors[f.b]}`}
-                    onPress={() => {
-                      setListOpen(false);
-                      setFirewallId(f.id);
-                    }}
-                  />
-                ))}
-              {outposts
-                .filter((o) => !o.connected)
-                .map((o) => (
-                  <Button
-                    key={o.id}
-                    variant="ghost"
-                    label={`Gestörter Bereich: ${areaById(o.area).de}`}
-                    onPress={() => {
-                      setListOpen(false);
-                      setOutpostId(o.id);
-                    }}
-                  />
-                ))}
-            </ScrollView>
-            <Button label="Schließen" onPress={() => setListOpen(false)} />
-          </Dialog>
+      {/* the cache: free to open on the map */}
+      <Modal transparent animationType="fade" visible={explorerOpen} onRequestClose={() => setExplorerOpen(false)}>
+        <Pressable style={styles.center} onPress={() => setExplorerOpen(false)}>
+          <Pressable onPress={() => undefined}>
+            <CacheExplorer folders={cachedFolders} onClose={() => setExplorerOpen(false)} />
+          </Pressable>
         </Pressable>
       </Modal>
 

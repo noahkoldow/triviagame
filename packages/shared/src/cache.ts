@@ -4,13 +4,11 @@ import { seededRng } from './rng';
 import type { Fragment } from './types';
 
 /**
- * The cache is the player's small working memory: it holds fragments picked up
- * from debris fields on the map. It is limited to three. On the map only the labels
- * of the fragments are shown (so they can be swapped or thrown away); what they
- * say can only be read inside a question, by spending energy (⚡, see `spendRewind`).
+ * The cache is the player's folder of collected fragments. It has no size limit: you can pick up
+ * as much as you like. You pay for it in energy (⚡) whenever you open it, and the price grows
+ * with its size (`cacheOpenCost`). It can be opened at any time, on the map and inside a question;
+ * the search inside it is free.
  */
-export const CACHE_SLOTS = 3;
-
 export interface CacheEntry {
   questionId: string;
   fragmentId: string;
@@ -23,26 +21,21 @@ export function cacheHas(p: PlayerState, e: CacheEntry): boolean {
   return p.cache.some((c) => same(c, e));
 }
 
-export function isSpent(p: PlayerState, e: CacheEntry): boolean {
-  return p.spent.some((c) => same(c, e));
-}
-
-/** Adds a fragment. Returns null when the cache is full, the fragment is already in it or was thrown away. */
+/** Adds a fragment. Returns null when it is already in the cache. */
 export function cacheAdd(p: PlayerState, e: CacheEntry): PlayerState | null {
-  if (cacheHas(p, e) || isSpent(p, e) || p.cache.length >= CACHE_SLOTS) return null;
+  if (cacheHas(p, e)) return null;
   return { ...p, cache: [...p.cache, e] };
 }
 
-/** Replaces `out` with `incoming`. The fragment that goes out is lost for this attempt. */
-export function cacheSwap(p: PlayerState, out: CacheEntry, incoming: CacheEntry): PlayerState | null {
-  if (!cacheHas(p, out) || cacheHas(p, incoming) || isSpent(p, incoming)) return null;
-  return { ...p, cache: p.cache.map((c) => (same(c, out) ? incoming : c)), spent: [...p.spent, out] };
-}
-
-/** Throws a fragment away. It does not come back during this attempt. */
+/** Takes a fragment out again (it still lies on the ground and can be picked up again). */
 export function cacheDrop(p: PlayerState, e: CacheEntry): PlayerState {
   if (!cacheHas(p, e)) return p;
-  return { ...p, cache: p.cache.filter((c) => !same(c, e)), spent: [...p.spent, e] };
+  return { ...p, cache: p.cache.filter((c) => !same(c, e)) };
+}
+
+/** Energy it costs to open a cache with this many folders: one per three folders, at most 5. */
+export function cacheOpenCost(folders: number): number {
+  return Math.min(5, Math.max(1, Math.ceil(folders / 3)));
 }
 
 /** Resolves the cache entries to fragments (entries of unknown questions are skipped). */

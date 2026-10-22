@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
-  CACHE_SLOTS,
   MAX_ENERGY,
   MAX_INTEGRITY,
   levelFromXp,
   msToNextEnergy,
-  sectorOfArea,
-  type CacheEntry,
 } from '@nexus/shared';
-import { pool } from '../services/content';
 import { useGame } from '../state/store';
 import { colors } from '../theme';
 import { Icon, type IconName } from './Icon';
@@ -90,43 +86,30 @@ function Stat({
 }
 
 /**
- * The cache on the map: a toolbar with folders. Limited to CACHE_SLOTS; the names
- * can be swapped or thrown away, what is inside is only readable in a question.
+ * The cache on the map: one bar that opens it. On the map it is free to open and to search;
+ * inside a question the same cache costs energy, more the bigger it is.
  */
-export function CacheBar({ onSlot }: { onSlot: (entry: CacheEntry) => void }) {
-  const cache = useGame((p) => p.cache);
+export function CacheBar({ onOpen }: { onOpen: () => void }) {
+  const count = useGame((p) => p.cache.length);
   return (
-    <View style={[styles.cache, raised]} accessibilityLabel={`Cache: ${cache.length} von ${CACHE_SLOTS} belegt`}>
+    <Pressable
+      onPress={() => {
+        tap();
+        onOpen();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={count === 0 ? 'Cache öffnen, leer' : `Cache öffnen, ${count} Ordner`}
+      style={({ pressed }) => [styles.cache, raised, pressed && pressedIn]}
+    >
+      <Icon name={count > 0 ? 'folder' : 'folder-empty'} size={22} />
       <Text style={styles.cacheTitle}>Cache</Text>
-      {Array.from({ length: CACHE_SLOTS }).map((_, i) => {
-        const e = cache[i];
-        const q = e ? pool.byId.get(e.questionId) : undefined;
-        const f = q?.fragments.find((x) => x.id === e?.fragmentId);
-        const color = q ? colors.sector[sectorOfArea(q.area)] : colors.dim;
-        return (
-          <Pressable
-            key={i}
-            disabled={!e}
-            onPress={() => {
-              tap();
-              if (e) onSlot(e);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={f ? `Cache-Platz ${i + 1}: ${f.hint}` : `Cache-Platz ${i + 1} leer`}
-            style={({ pressed }) => [styles.slot, sunken, pressed && { opacity: 0.8 }]}
-          >
-            <View style={styles.slotRow}>
-              <Icon name={f ? 'folder' : 'folder-empty'} size={f ? 20 : 18} />
-              {f ? (
-                <Text style={[styles.slotText, { color }]} numberOfLines={1}>
-                  {f.hint}
-                </Text>
-              ) : null}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
+      <View style={[styles.cacheCount, sunken]}>
+        <Text style={styles.cacheCountText} maxFontSizeMultiplier={1.3}>
+          {count === 0 ? 'leer' : `${count} Ordner`}
+        </Text>
+      </View>
+      <Text style={styles.cacheOpen}>Öffnen</Text>
+    </Pressable>
   );
 }
 
@@ -160,11 +143,11 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 1, flex: 1 },
   segment: { flex: 1, height: 9, backgroundColor: '#1A2430' },
   statValue: { color: colors.text, fontWeight: '900', fontSize: 13 },
-  cache: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 3 },
-  cacheTitle: { color: WIN.text, fontSize: 12, fontWeight: '800', marginHorizontal: 4 },
-  slot: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1 },
-  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '100%' },
-  slotText: { fontSize: 12, fontWeight: '800' },
+  cache: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, minHeight: 44 },
+  cacheTitle: { color: WIN.text, fontSize: 13, fontWeight: '800' },
+  cacheCount: { flex: 1, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1 },
+  cacheCountText: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  cacheOpen: { color: WIN.text, fontSize: 13, fontWeight: '700' },
   dock: { flexDirection: 'row', gap: 4, padding: 3 },
   dockItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, minHeight: 44 },
   dockLabel: { color: WIN.text, fontSize: 13, fontWeight: '700' },

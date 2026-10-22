@@ -6,6 +6,7 @@ import {
   answerText,
   areaById,
   cacheFragments,
+  cacheOpenCost,
   fragmentFiles,
   decideAds,
   isCorrect,
@@ -88,6 +89,8 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   const [adBusy, setAdBusy] = useState(false);
 
   const cachedFragments = cacheFragments(getState(), pool);
+  /** Energy it costs to open the cache now: more folders, higher price. */
+  const openCost = cacheOpenCost(cache.length);
 
   const check = (): boolean => (answer ? isCorrect(q, answer) : false);
   const canSubmit = answer !== null;
@@ -179,7 +182,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   };
 
   const rewind = () => {
-    if (!update((p) => spendRewind(p))) return;
+    if (!update((p) => spendRewind(p, Date.now(), cacheOpenCost(p.cache.length)))) return;
     setRewinds(rewinds + 1);
     setRewindOpen(true);
   };
@@ -215,7 +218,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
             <View style={styles.lockRow}>
               <Icon name="lock" size={20} />
               <Text style={styles.lock}>
-                Cache versiegelt · {cache.length} Fragment{cache.length === 1 ? '' : 'e'}
+                Cache dabei · {cache.length} Ordner
               </Text>
             </View>
           </View>
@@ -237,11 +240,11 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
               icon="bolt"
               variant="ghost"
               sub={
-                energy > 0
-                  ? `Durchsuche deine Ordner. Kostet 1 Energie (du hast ${energy}), die Suche selbst ist frei.`
-                  : 'Keine Energie. Lösche Knoten, um sie aufzuladen'
+                energy >= openCost
+                  ? `Durchsuche deine Ordner. Kostet ${openCost} Energie (du hast ${energy}), die Suche selbst ist frei.`
+                  : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
               }
-              disabled={energy <= 0 || cache.length === 0}
+              disabled={energy < openCost || cache.length === 0}
               onPress={rewind}
             />
           </View>

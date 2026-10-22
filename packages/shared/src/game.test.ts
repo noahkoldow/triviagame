@@ -12,19 +12,17 @@ import {
   unlockArea,
   spendRewind,
   buyCosmetic,
-  CACHE_SLOTS,
+  cacheOpenCost,
   ENERGY_REGEN_MS,
   HEAL_COST,
   MAX_ENERGY,
   MAX_INTEGRITY,
   canStartNode,
   healIntegrity,
-  isSpent,
   msToNextEnergy,
   regenEnergy,
   cacheAdd,
   cacheDrop,
-  cacheSwap,
   debrisOffsets,
   type PlayerState,
 } from './index';
@@ -107,20 +105,31 @@ describe('player flow', () => {
 describe('cache', () => {
   const e = (f: string, q = 'sci-light') => ({ questionId: q, fragmentId: f });
 
-  it('holds at most CACHE_SLOTS fragments and rejects duplicates', () => {
+  it('has no size limit and rejects duplicates', () => {
     let p = initialPlayer(pool);
-    for (let i = 0; i < CACHE_SLOTS; i++) p = cacheAdd(p, e(`f${i}`))!;
-    expect(p.cache).toHaveLength(CACHE_SLOTS);
-    expect(cacheAdd(p, e('extra'))).toBeNull();
+    for (let i = 0; i < 25; i++) p = cacheAdd(p, e(`f${i}`))!;
+    expect(p.cache).toHaveLength(25);
     expect(cacheAdd(p, e('f0'))).toBeNull();
   });
 
-  it('swaps and drops entries', () => {
+  it('takes folders out again, and they can be picked up once more', () => {
     let p = cacheAdd(initialPlayer(pool), e('a'))!;
-    p = cacheSwap(p, e('a'), e('b'))!;
-    expect(p.cache).toEqual([e('b')]);
-    expect(cacheSwap(p, e('zzz'), e('c'))).toBeNull();
-    expect(cacheDrop(p, e('b')).cache).toEqual([]);
+    p = cacheDrop(p, e('a'));
+    expect(p.cache).toEqual([]);
+    expect(cacheAdd(p, e('a'))).not.toBeNull();
+    expect(cacheDrop(p, e('never-added'))).toBe(p);
+  });
+
+  it('opening costs more the bigger the cache is', () => {
+    expect([1, 2, 3, 4, 6, 7, 9, 10, 15, 16, 40].map(cacheOpenCost)).toEqual([1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 5]);
+    expect(cacheOpenCost(0)).toBe(1);
+  });
+
+  it('pays the energy it costs, or refuses', () => {
+    const p = initialPlayer(pool);
+    expect(spendRewind(p, 0, 3)!.energy).toBe(p.energy - 3);
+    expect(spendRewind({ ...p, energy: 2 }, 0, 3)).toBeNull();
+    expect(spendRewind({ ...p, energy: 3 }, 0, 3)!.energy).toBe(0);
   });
 
   it('is emptied after an attempt', () => {
@@ -129,9 +138,11 @@ describe('cache', () => {
     expect(recordCorrect(p, pool, 'n0', '2026-10-01', 0).player.cache).toEqual([]);
   });
 
-  it('always fits the key fragments of every question (fairness)', () => {
+  it('every question has one to three key fragments', () => {
     for (const q of MOCK_QUESTIONS) {
-      expect(q.fragments.filter((f) => f.kind === 'key').length).toBeLessThanOrEqual(CACHE_SLOTS);
+      const keys = q.fragments.filter((f) => f.kind === 'key').length;
+      expect(keys, q.id).toBeGreaterThanOrEqual(1);
+      expect(keys, q.id).toBeLessThanOrEqual(3);
     }
   });
 
@@ -144,19 +155,6 @@ describe('cache', () => {
 
 describe('consequences', () => {
   const e = (f: string, q = 'sci-light') => ({ questionId: q, fragmentId: f });
-
-  it('a thrown away fragment is gone for this attempt', () => {
-    let p = cacheAdd(initialPlayer(pool), e('a'))!;
-    p = cacheDrop(p, e('a'));
-    expect(isSpent(p, e('a'))).toBe(true);
-    expect(cacheAdd(p, e('a'))).toBeNull();
-    // swapping out also spends the old one
-    let q = cacheAdd(initialPlayer(pool), e('x'))!;
-    q = cacheSwap(q, e('x'), e('y'))!;
-    expect(isSpent(q, e('x'))).toBe(true);
-    // a new attempt gives everything back
-    expect(recordWrong(q, pool, 'n0').spent).toEqual([]);
-  });
 
   it('pays a bonus only when all key fragments were carried', () => {
     const q = pool.get('sci-light');

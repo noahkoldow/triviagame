@@ -54,8 +54,6 @@ export interface PlayerState {
   unlockedAreas: string[];
   /** Fragments carried from debris fields; see `cache.ts`. Emptied after every attempt. */
   cache: CacheEntry[];
-  /** Fragments thrown away during this attempt; they are gone until it ends. */
-  spent: CacheEntry[];
   /** fragmentId → day first collected */
   codex: Record<string, string>;
   ownedCosmetics: string[];
@@ -96,7 +94,6 @@ export function initialPlayer(
     streak: { count: 0, lastDay: null, freezes: 2 },
     unlockedAreas: initialUnlockedAreas(),
     cache: [],
-    spent: [],
     codex: {},
     ownedCosmetics: ['cyan'],
     activeCosmetic: 'cyan',
@@ -208,7 +205,6 @@ export function recordWrong(p: PlayerState, pool: Pool, nodeId: string): PlayerS
     },
     integrity: Math.max(0, p.integrity - 1),
     cache: [],
-    spent: [],
     skill: {
       ...p.skill,
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false),
@@ -293,7 +289,6 @@ export function recordCorrect(
     },
     interest: recordResult(p.interest, q.area, true),
     cache: [],
-    spent: [],
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
@@ -337,7 +332,6 @@ export function recordReviewResult(
     player: {
       ...reached.player,
       cache: [],
-      spent: [],
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
       skill: {
@@ -373,11 +367,11 @@ export function msToNextEnergy(p: PlayerState, now: number): number | null {
   return Math.max(0, p.energyAt + ENERGY_REGEN_MS - now);
 }
 
-/** Opens the sealed cache during a question: costs one energy. */
-export function spendRewind(p: PlayerState, now: number = Date.now()): PlayerState | null {
+/** Opens the cache: costs energy (one by default; the app passes `cacheOpenCost` of the cache). */
+export function spendRewind(p: PlayerState, now: number = Date.now(), cost = 1): PlayerState | null {
   const r = regenEnergy(p, now);
-  if (r.energy <= 0) return null;
-  return { ...r, energy: r.energy - 1, energyAt: r.energyAt ?? now };
+  if (r.energy < cost) return null;
+  return { ...r, energy: r.energy - cost, energyAt: r.energyAt ?? now };
 }
 
 /** At integrity 0 the network is unstable: new nodes stay closed, repairs are always allowed. */
