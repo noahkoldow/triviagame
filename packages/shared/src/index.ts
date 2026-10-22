@@ -17,3 +17,4 @@ export * from './hex';
 export * from './outposts';
 export * from './footprint';
 export * from './boss';
+export * from './ai';

@@ -1,21 +1,22 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BOSS_PASS,
   BOSS_QUESTIONS,
   areaById,
   bossQuestions,
+  isCorrect,
   recordBoss,
   sectorOfArea,
-  variantOptions,
+  type Answer,
   type BossOutcome,
-  type ChoiceQuestion,
 } from '@nexus/shared';
 import { Morph } from '../../src/components/Morph';
+import { QuestionView } from '../../src/components/QuestionView';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
-import { WIN, Window, sunken } from '../../src/components/Win';
+import { WIN, Window } from '../../src/components/Win';
 import { pool } from '../../src/services/content';
 import { setRecentlySpawned } from '../../src/state/session';
 import { getState, update, useGame } from '../../src/state/store';
@@ -59,19 +60,18 @@ function Fight({ fwId }: { fwId: string }) {
     [fwId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const [i, setI] = useState(0);
-  const [choice, setChoice] = useState<number | null>(null);
+  const [answer, setAnswer] = useState<Answer | null>(null);
   const [checked, setChecked] = useState(false);
   const [right, setRight] = useState(0);
   const [marks, setMarks] = useState<boolean[]>([]);
   const [outcome, setOutcome] = useState<BossOutcome | null>(null);
 
-  const q = questions[i] as ChoiceQuestion | undefined;
-  const opts = useMemo(() => (q ? variantOptions(q, attempt) : null), [q, attempt]);
+  const q = questions[i];
   const sector = q ? sectorOfArea(q.area) : fw.a;
 
   const check = () => {
-    if (choice === null || !opts) return;
-    const ok = choice === opts.answer;
+    if (!q || !answer) return;
+    const ok = isCorrect(q, answer);
     tap(ok ? 'success' : 'error');
     setChecked(true);
     setMarks([...marks, ok]);
@@ -81,7 +81,7 @@ function Fight({ fwId }: { fwId: string }) {
   const next = () => {
     if (i + 1 < questions.length) {
       setI(i + 1);
-      setChoice(null);
+      setAnswer(null);
       setChecked(false);
       return;
     }
@@ -133,7 +133,7 @@ function Fight({ fwId }: { fwId: string }) {
     );
   }
 
-  if (!q || !opts) {
+  if (!q) {
     return (
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
@@ -177,32 +177,7 @@ function Fight({ fwId }: { fwId: string }) {
             {q.stem}
           </Text>
 
-          {opts.options.map((o, k) => {
-            const state = checked ? (k === opts.answer ? 'right' : k === choice ? 'wrong' : 'plain') : k === choice ? 'selected' : 'plain';
-            return (
-              <Pressable
-                key={`${i}-${k}`}
-                disabled={checked}
-                onPress={() => {
-                  tap();
-                  setChoice(k);
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: choice === k }}
-                style={[
-                  styles.option,
-                  sunken,
-                  state === 'selected' && { backgroundColor: WIN.titleA },
-                  state === 'right' && { backgroundColor: '#1F5A12' },
-                  state === 'wrong' && { backgroundColor: '#6A1B1B' },
-                ]}
-              >
-                <Text style={styles.optionText} maxFontSizeMultiplier={1.4}>
-                  {o}
-                </Text>
-              </Pressable>
-            );
-          })}
+          <QuestionView key={`${i}-${attempt}`} q={q} variant={attempt} reveal={checked} onChange={setAnswer} />
 
           {checked ? (
             <Card>
@@ -211,7 +186,7 @@ function Fight({ fwId }: { fwId: string }) {
           ) : null}
 
           {!checked ? (
-            <Button label="Antworten" disabled={choice === null} onPress={check} />
+            <Button label="Antworten" disabled={answer === null} onPress={check} />
           ) : (
             <Button label={isLast ? 'Ergebnis' : 'Weiter >'} onPress={next} />
           )}
@@ -228,6 +203,4 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 3 },
   segment: { flex: 1, height: 12, backgroundColor: '#1A2430' },
   stem: { color: colors.text, fontSize: 20, fontWeight: '800', lineHeight: 28 },
-  option: { padding: 14, minHeight: 52, justifyContent: 'center' },
-  optionText: { color: colors.text, fontSize: 16, fontWeight: '700' },
 });

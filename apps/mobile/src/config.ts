@@ -6,6 +6,12 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
  */
 export const IS_PROTOTYPE = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
+/**
+ * Our own backend endpoint (a Cloud Function) that asks the AI model for questions. It holds the API key
+ * and chooses the model; the app never sees either. Empty = no AI, the built-in questions are used.
+ */
+export const AI_ENDPOINT = '';
+
 /** Required for the App Store listing: a public URL of the privacy policy. Fill in before submitting. */
 export const PRIVACY_URL = '';
 /** Support contact shown in the privacy notice. Fill in before submitting. */

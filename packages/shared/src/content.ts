@@ -51,6 +51,23 @@ const TOPICS: Record<string, string> = {
   'his-wall': 'Deutsche Teilung',
   'his-states': 'Föderalismus',
   'his-euro': 'Europäische Währung',
+  'tf-sound': 'Schall',
+  'tf-spider': 'Spinnentiere',
+  'tf-piano': 'Das Klavier',
+  'tf-olympia': 'Antike Olympische Spiele',
+  'tf-salt': 'Kochsalz',
+  'tf-nile': 'Der Nil',
+  'mt-units': 'Physikalische Einheiten',
+  'mt-classes': 'Tierklassen',
+  'mt-instruments': 'Instrumentengruppen',
+  'mt-gods': 'Griechische Götter',
+  'mt-capitals': 'Hauptstädte',
+  'mt-words': 'Sprachen erkennen',
+  'cl-lightsound': 'Licht und Schall',
+  'cl-photo': 'Gasaustausch der Pflanzen',
+  'cl-music': 'Musik zählen',
+  'cl-rome': 'Römische Technik',
+  'cl-price': 'Angebot und Nachfrage',
 };
 
 const INTROS: Record<string, string> = {
@@ -86,6 +103,23 @@ const INTROS: Record<string, string> = {
   'his-wall': 'Jahrzehntelang trennte eine Mauer eine Stadt, dann überschlugen sich die Ereignisse.',
   'his-states': 'Deutschland ist ein Bundesstaat: Die Länder haben eigene Rechte und Regierungen.',
   'his-euro': 'Eine gemeinsame Währung sollte Europa enger zusammenrücken lassen.',
+  'tf-sound': 'Wir hören Musik, Stimmen und Knalle: Aber was braucht Schall eigentlich, um zu uns zu kommen?',
+  'tf-spider': 'Acht Beine, Netze und ein schlechter Ruf: Zu welcher Tiergruppe gehören Spinnen wirklich?',
+  'tf-piano': 'Das Klavier gilt als Königin der Instrumente und hat eine feste, bekannte Größe.',
+  'tf-olympia': 'Die ersten Olympischen Spiele waren ein religiöses Fest für die Götter Griechenlands.',
+  'tf-salt': 'Salz steckt im Meer, auf dem Tisch und in jedem Körper. Woraus besteht es chemisch?',
+  'tf-nile': 'Der Nil ist die Lebensader Ägyptens und fließt durch viele Länder Afrikas.',
+  'mt-units': 'Messen heißt vergleichen: Jede Größe hat ihre eigene Einheit, und man muss sie nur richtig verbinden.',
+  'mt-classes': 'Vom Meer bis in die Luft: Tiere lassen sich in Klassen einteilen, je nach Körperbau und Lebensweise.',
+  'mt-instruments': 'Orchester sind nach Instrumentengruppen geordnet. Wer gehört zu wem?',
+  'mt-gods': 'Die Götter der Griechen hatten jeweils einen eigenen Bereich, über den sie wachten.',
+  'mt-capitals': 'Jedes Land hat eine Hauptstadt, in der Regierung und Politik sitzen.',
+  'mt-words': 'Ein einziges Wort verrät oft, welche Sprache gesprochen wird. Kennst du die Begrüßungen?',
+  'cl-lightsound': 'Licht ist schnell, Schall ist langsam: Das erklärt, warum man erst den Blitz und dann den Donner bemerkt.',
+  'cl-photo': 'Pflanzen atmen anders als wir: Sie tauschen Gase mit der Luft aus und bauen daraus ihre Nahrung.',
+  'cl-music': 'Musik lebt von Zahlen: von der Anzahl der Töne bis zur Besetzung eines Ensembles.',
+  'cl-rome': 'Die Römer waren großartige Ingenieure und verbreiteten ihre Sprache über ganz Europa.',
+  'cl-price': 'Märkte folgen einer einfachen Regel: Wenn etwas gefragter wird, verändert sich sein Preis.',
 };
 
 function base(c: Common) {
@@ -112,6 +146,15 @@ function estimate(c: Common & { answer: number; tol: number; unit: string }): Qu
 }
 function order(c: Common & { items: string[] }): Question {
   return { ...base(c), type: 'order', items: c.items };
+}
+function truefalse(c: Common & { answer: boolean }): Question {
+  return { ...base(c), type: 'truefalse', answer: c.answer };
+}
+function match(c: Common & { pairs: [string, string][] }): Question {
+  return { ...base(c), type: 'match', pairs: c.pairs };
+}
+function cloze(c: Common & { text: string; answers: string[]; bank: string[] }): Question {
+  return { ...base(c), type: 'cloze', text: c.text, answers: c.answers, bank: c.bank };
 }
 
 /**
@@ -642,6 +685,7 @@ export const MOCK_QUESTIONS: Question[] = [
         'Englisch hat etwa 380 Millionen Muttersprachler, aber sehr viele Zweitsprachler.',
       ],
       ['context', 'Spanisch', 'Spanisch zählt rund 480 Millionen Muttersprachler.'],
+      ['decoy', 'Vielfalt', 'Auf der Erde werden rund 7.000 verschiedene Sprachen gesprochen.'],
     ],
     why: 'Bei den Muttersprachlern liegt Mandarin vorn; Englisch ist die meistgelernte Zweitsprache.',
     bridge: ['nat-rainforest'],
@@ -727,6 +771,7 @@ export const MOCK_QUESTIONS: Question[] = [
       ['key', 'Olympia', 'Erste antike Olympische Spiele: 776 v. Chr.'],
       ['key', 'Alexander', 'Alexander der Große starb 323 v. Chr. in Babylon.'],
       ['context', 'Westrom', 'Ende des Weströmischen Reiches: 476 n. Chr.'],
+      ['decoy', 'Weltwunder', 'Die Cheops-Pyramide ist das einzige noch erhaltene der sieben antiken Weltwunder.'],
     ],
     why: '2560 v. Chr. → 776 v. Chr. → 323 v. Chr. → 476 n. Chr.',
   }),
@@ -794,6 +839,276 @@ export const MOCK_QUESTIONS: Question[] = [
       ['decoy', 'Maastricht', 'Der Vertrag von Maastricht wurde 1992 unterzeichnet.'],
     ],
     why: 'Der Euro wurde 1999 als Buchgeld eingeführt, das Bargeld folgte 2002.',
+  }),
+
+  // ───────────── Neue Fragetypen: Stimmt / Stimmt nicht ─────────────
+  truefalse({
+    id: 'tf-sound',
+    area: 'physics',
+    d: 1,
+    stem: 'Stimmt das? Schall breitet sich auch im luftleeren Raum aus.',
+    answer: false,
+    f: [
+      ['key', 'Medium', 'Schall braucht Materie wie Luft, Wasser oder Festkörper, um sich auszubreiten.'],
+      ['context', 'Weltraum', 'Im Weltraum ist fast nichts, deshalb hört man dort keinen Knall.'],
+      ['context', 'Wellen', 'Schall entsteht, wenn Teilchen schwingen und ihre Nachbarn anstoßen.'],
+      ['decoy', 'Mond', 'Der Mond ist rund 384.000 km von der Erde entfernt.'],
+    ],
+    why: 'Schall ist die Schwingung von Materie. Ohne Teilchen, die schwingen können, gibt es keinen Schall, anders als bei Licht.',
+  }),
+  truefalse({
+    id: 'tf-spider',
+    area: 'animals',
+    d: 1,
+    stem: 'Stimmt das? Spinnen sind Insekten.',
+    answer: false,
+    f: [
+      ['key', 'Beine', 'Insekten haben sechs Beine, Spinnen haben acht.'],
+      ['context', 'Körper', 'Insekten haben drei Körperabschnitte, Spinnen nur zwei.'],
+      ['decoy', 'Netz', 'Nicht alle Spinnen bauen Netze zum Fangen von Beute.'],
+    ],
+    why: 'Spinnen gehören zu den Spinnentieren: acht Beine, zwei Körperabschnitte und keine Fühler.',
+  }),
+  truefalse({
+    id: 'tf-piano',
+    area: 'music',
+    d: 1,
+    stem: 'Stimmt das? Ein Standard-Klavier hat 88 Tasten.',
+    answer: true,
+    f: [
+      ['key', 'Tasten', 'Ein Klavier hat 52 weiße und 36 schwarze Tasten.'],
+      ['context', 'Bereich', 'Die Tasten umfassen gut sieben Oktaven.'],
+      ['decoy', 'Pedale', 'Ein Flügel hat meist drei Pedale.'],
+    ],
+    why: '52 weiße plus 36 schwarze Tasten ergeben 88.',
+  }),
+  truefalse({
+    id: 'tf-olympia',
+    area: 'antiquity',
+    d: 2,
+    stem: 'Stimmt das? Die Olympischen Spiele der Antike fanden in Athen statt.',
+    answer: false,
+    f: [
+      ['key', 'Ort', 'Die antiken Spiele wurden in Olympia auf der Peloponnes ausgetragen.'],
+      ['context', 'Zeit', 'Sie begannen 776 v. Chr. und fanden alle vier Jahre statt.'],
+      ['decoy', 'Athen', 'Athen war eine mächtige Stadt und gilt als Wiege der Demokratie.'],
+    ],
+    why: 'Die Spiele hatten ihren Namen vom Ort: Olympia. Athen richtete erst die ersten Spiele der Neuzeit 1896 aus.',
+  }),
+  truefalse({
+    id: 'tf-salt',
+    area: 'chemistry',
+    d: 2,
+    stem: 'Stimmt das? Kochsalz besteht aus Natrium und Chlor.',
+    answer: true,
+    f: [
+      ['key', 'Formel', 'Kochsalz hat die chemische Formel NaCl: Natrium und Chlor.'],
+      ['context', 'Ionen', 'Im Salzkristall sind Natrium- und Chlorid-Ionen in einem Gitter angeordnet.'],
+      ['decoy', 'Meer', 'Meerwasser enthält im Schnitt etwa 3,5 Prozent Salz.'],
+    ],
+    why: 'NaCl: Na steht für Natrium, Cl für Chlor. Zusammen bilden sie das Salz, das wir täglich nutzen.',
+  }),
+  truefalse({
+    id: 'tf-nile',
+    area: 'geography',
+    d: 2,
+    stem: 'Stimmt das? Der Nil mündet ins Mittelmeer.',
+    answer: true,
+    f: [
+      ['key', 'Mündung', 'Der Nil fließt nach Norden und mündet in einem Delta ins Mittelmeer.'],
+      ['context', 'Länge', 'Mit rund 6.600 Kilometern gehört er zu den längsten Flüssen der Erde.'],
+      ['decoy', 'Sphinx', 'Die Sphinx von Gizeh steht am Rand der Wüste bei Kairo.'],
+    ],
+    why: 'Der Nil fließt durch Ostafrika nach Norden und endet im Nildelta am Mittelmeer.',
+  }),
+
+  // ───────────── Neue Fragetypen: Zuordnen ─────────────
+  match({
+    id: 'mt-units',
+    area: 'physics',
+    d: 1,
+    stem: 'Verbinde jede Einheit mit der Größe, die sie misst.',
+    pairs: [
+      ['Meter', 'Länge'],
+      ['Sekunde', 'Zeit'],
+      ['Kilogramm', 'Masse'],
+      ['Ampere', 'Stromstärke'],
+    ],
+    f: [
+      ['key', 'Länge, Zeit', 'Der Meter misst die Länge, die Sekunde die Zeit.'],
+      ['key', 'Masse, Strom', 'Das Kilogramm ist die Einheit der Masse, das Ampere die der Stromstärke.'],
+      ['decoy', 'Newton', 'Newton ist die Einheit der Kraft.'],
+    ],
+    why: 'Meter (Länge), Sekunde (Zeit), Kilogramm (Masse) und Ampere (Stromstärke) sind vier Basiseinheiten.',
+  }),
+  match({
+    id: 'mt-classes',
+    area: 'animals',
+    d: 1,
+    stem: 'Verbinde jedes Tier mit seiner Tierklasse.',
+    pairs: [
+      ['Delfin', 'Säugetier'],
+      ['Frosch', 'Amphib'],
+      ['Adler', 'Vogel'],
+      ['Hai', 'Fisch'],
+    ],
+    f: [
+      ['key', 'Delfin', 'Delfine atmen Luft und säugen ihre Jungen: Säugetiere.'],
+      ['key', 'Frosch', 'Frösche legen Laich ins Wasser und leben später an Land: Amphibien.'],
+      ['context', 'Hai', 'Haie atmen mit Kiemen: Fische.'],
+      ['decoy', 'Wal', 'Der Blauwal ist das größte Tier der Erde.'],
+    ],
+    why: 'Der Delfin ist trotz seiner Form ein Säugetier, der Hai ein Fisch, der Frosch ein Amphib und der Adler ein Vogel.',
+  }),
+  match({
+    id: 'mt-instruments',
+    area: 'music',
+    d: 2,
+    stem: 'Verbinde jedes Instrument mit seiner Instrumentengruppe.',
+    pairs: [
+      ['Geige', 'Streichinstrument'],
+      ['Trompete', 'Blechblasinstrument'],
+      ['Flöte', 'Holzblasinstrument'],
+      ['Pauke', 'Schlaginstrument'],
+    ],
+    f: [
+      ['key', 'Streicher', 'Streichinstrumente werden mit einem Bogen gestrichen, etwa Geige und Cello.'],
+      ['key', 'Blasinstrumente', 'Trompete und Posaune zählen zum Blech, Flöte und Klarinette zum Holz.'],
+      ['context', 'Schlagwerk', 'Pauken und Trommeln gehören zum Schlagwerk.'],
+      ['decoy', 'Orgel', 'Die Orgel gilt als größtes Musikinstrument.'],
+    ],
+    why: 'Die Flöte zählt zu den Holzblasinstrumenten, auch wenn sie heute oft aus Metall ist, weil der Ton an einer Kante entsteht.',
+  }),
+  match({
+    id: 'mt-gods',
+    area: 'antiquity',
+    d: 2,
+    stem: 'Verbinde jeden griechischen Gott mit seinem Bereich.',
+    pairs: [
+      ['Zeus', 'Götterkönig'],
+      ['Poseidon', 'Meer'],
+      ['Athene', 'Weisheit'],
+      ['Ares', 'Krieg'],
+    ],
+    f: [
+      ['key', 'Zeus, Poseidon', 'Zeus herrschte als König der Götter, Poseidon über das Meer.'],
+      ['key', 'Athene, Ares', 'Athene war die Göttin der Weisheit, Ares der Gott des Krieges.'],
+      ['decoy', 'Olymp', 'Der Olymp ist der höchste Berg Griechenlands.'],
+    ],
+    why: 'Zeus (Götterkönig), Poseidon (Meer), Athene (Weisheit) und Ares (Krieg) waren Götter des Olymps.',
+  }),
+  match({
+    id: 'mt-capitals',
+    area: 'geography',
+    d: 1,
+    stem: 'Verbinde jedes Land mit seiner Hauptstadt.',
+    pairs: [
+      ['Frankreich', 'Paris'],
+      ['Italien', 'Rom'],
+      ['Spanien', 'Madrid'],
+      ['Polen', 'Warschau'],
+    ],
+    f: [
+      ['key', 'Westeuropa', 'Paris ist die Hauptstadt Frankreichs, Madrid die Spaniens.'],
+      ['key', 'Süd und Ost', 'Rom ist die Hauptstadt Italiens, Warschau die Polens.'],
+      ['decoy', 'Berlin', 'Berlin ist die Hauptstadt Deutschlands.'],
+    ],
+    why: 'Paris, Rom, Madrid und Warschau sind die Hauptstädte von Frankreich, Italien, Spanien und Polen.',
+  }),
+  match({
+    id: 'mt-words',
+    area: 'language',
+    d: 1,
+    stem: 'Verbinde jedes Wort mit der Sprache, aus der es stammt.',
+    pairs: [
+      ['Merci', 'Französisch'],
+      ['Gracias', 'Spanisch'],
+      ['Danke', 'Deutsch'],
+      ['Grazie', 'Italienisch'],
+    ],
+    f: [
+      ['key', 'Dank', 'Alle vier Wörter bedeuten "danke".'],
+      ['context', 'Romanisch', 'Französisch, Spanisch und Italienisch gehören zu den romanischen Sprachen.'],
+      ['decoy', 'Latein', 'Aus dem Lateinischen entstanden die romanischen Sprachen.'],
+    ],
+    why: 'Merci ist französisch, Gracias spanisch, Grazie italienisch und Danke deutsch.',
+  }),
+
+  // ───────────── Neue Fragetypen: Lückentext ─────────────
+  cloze({
+    id: 'cl-lightsound',
+    area: 'physics',
+    d: 2,
+    stem: 'Ergänze die Zahlen.',
+    text: 'Licht legt in einer Sekunde etwa {0} Kilometer zurück, Schall in Luft nur etwa {1} Meter.',
+    answers: ['300.000', '340'],
+    bank: ['300.000', '340', '30.000', '3.400'],
+    f: [
+      ['key', 'Licht', 'Licht ist mit rund 300.000 Kilometern pro Sekunde das Schnellste, was es gibt.'],
+      ['key', 'Schall', 'Schall in Luft schafft etwa 340 Meter pro Sekunde.'],
+      ['decoy', 'Gewitter', 'Bei einem Gewitter sieht man den Blitz zuerst.'],
+    ],
+    why: 'Licht: etwa 300.000 km/s. Schall in Luft: etwa 340 m/s, deshalb folgt der Donner dem Blitz.',
+  }),
+  cloze({
+    id: 'cl-photo',
+    area: 'biology',
+    d: 1,
+    stem: 'Setze die fehlenden Wörter ein.',
+    text: 'Bei der Photosynthese nehmen Pflanzen {0} auf und geben {1} ab.',
+    answers: ['Kohlendioxid', 'Sauerstoff'],
+    bank: ['Kohlendioxid', 'Sauerstoff', 'Stickstoff', 'Wasserstoff'],
+    f: [
+      ['key', 'Aufnahme', 'Pflanzen nehmen Kohlendioxid aus der Luft auf.'],
+      ['key', 'Abgabe', 'Als Abfallprodukt entsteht Sauerstoff, den sie abgeben.'],
+      ['decoy', 'Stickstoff', 'Rund 78 Prozent der Luft bestehen aus Stickstoff.'],
+    ],
+    why: 'Pflanzen nehmen Kohlendioxid auf, bauen daraus mit Licht Zucker und geben Sauerstoff ab.',
+  }),
+  cloze({
+    id: 'cl-music',
+    area: 'music',
+    d: 1,
+    stem: 'Ergänze die Zahlen als Wort.',
+    text: 'Ein Dreiklang besteht aus {0} Tönen, ein Streichquartett aus {1} Spielern.',
+    answers: ['drei', 'vier'],
+    bank: ['drei', 'vier', 'fünf', 'zwei'],
+    f: [
+      ['key', 'Dreiklang', 'Ein Dreiklang setzt sich aus drei Tönen zusammen.'],
+      ['key', 'Quartett', 'Quartett bedeutet vier: zwei Geigen, Bratsche und Cello.'],
+      ['decoy', 'Oktave', 'Eine Oktave umfasst acht Stufen der Tonleiter.'],
+    ],
+    why: 'Drei Töne bilden einen Dreiklang, vier Spielende ein Streichquartett.',
+  }),
+  cloze({
+    id: 'cl-rome',
+    area: 'antiquity',
+    d: 2,
+    stem: 'Setze die fehlenden Wörter ein.',
+    text: 'Die Römer leiteten Wasser über {0} in ihre Städte, und ihre Sprache war {1}.',
+    answers: ['Aquädukte', 'Latein'],
+    bank: ['Aquädukte', 'Latein', 'Pyramiden', 'Griechisch'],
+    f: [
+      ['key', 'Wasser', 'Aquädukte sind Brücken, über die Wasser in die Städte floss.'],
+      ['key', 'Sprache', 'Latein war die Sprache der Römer und wurde im Reich weit verbreitet.'],
+      ['decoy', 'Pyramiden', 'Pyramiden bauten die Ägypter als Grabmäler.'],
+    ],
+    why: 'Die Römer bauten Aquädukte für das Wasser und sprachen Latein.',
+  }),
+  cloze({
+    id: 'cl-price',
+    area: 'economy',
+    d: 2,
+    stem: 'Setze das richtige Wort ein.',
+    text: 'Steigt die Nachfrage und das Angebot bleibt gleich, dann {0} der Preis.',
+    answers: ['steigt'],
+    bank: ['steigt', 'sinkt', 'bleibt'],
+    f: [
+      ['key', 'Nachfrage', 'Wollen mehr Menschen ein Gut, steigt sein Preis, wenn es nicht mehr davon gibt.'],
+      ['context', 'Angebot', 'Wird ein Gut häufiger angeboten, sinkt sein Preis eher.'],
+      ['decoy', 'Gold', 'Gold gilt seit langem als Wertanlage.'],
+    ],
+    why: 'Mehr Nachfrage bei gleichem Angebot macht ein Gut knapper, und der Preis steigt.',
   }),
 ];
 

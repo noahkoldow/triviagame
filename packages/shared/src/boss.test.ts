@@ -36,7 +36,6 @@ describe('firewalls (bosses)', () => {
     for (const fw of createFirewalls()) {
       const qs = bossQuestions(pool, fw, {});
       expect(qs).toHaveLength(BOSS_QUESTIONS);
-      expect(qs.every((q) => q.type === 'choice')).toBe(true);
       expect(qs.map((q) => sectorOfArea(q.area))).toEqual([fw.a, fw.b, fw.a, fw.b]);
       expect(new Set(qs.map((q) => q.id)).size).toBe(BOSS_QUESTIONS);
       expect(bossQuestions(pool, fw, {}).map((q) => q.id)).toEqual(qs.map((q) => q.id));

@@ -50,13 +50,13 @@ export function createFirewalls(): Firewall[] {
 }
 
 /**
- * The questions of one fight, alternating between the two sectors: two multiple-choice
- * questions of each, near the player's level. Deterministic for a firewall and attempt.
+ * The questions of one fight, alternating between the two sectors: two questions of each
+ * (of any type), near the player's level. Deterministic for a firewall and attempt.
  */
 export function bossQuestions(pool: Pool, fw: Firewall, skill: SkillMap): Question[] {
   const rng = seededRng(`boss:${fw.id}:${fw.attempts}`);
   const pick = (sector: Sector, count: number): Question[] => {
-    const cands = pool.list.filter((q) => q.type === 'choice' && sectorOfArea(q.area) === sector);
+    const cands = pool.list.filter((q) => sectorOfArea(q.area) === sector);
     const scored = cands.map((q) => ({
       q,
       d: Math.abs(q.difficulty - targetDifficulty(skill[q.area] ?? BASE_SKILL)) + rng() * 1.5,

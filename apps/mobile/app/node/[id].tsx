@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  answerText,
   areaById,
   cacheFragments,
   decideAds,
@@ -13,15 +14,14 @@ import {
   recordWrong,
   sectorOfArea,
   spendRewind,
-  variantOptions,
-  variantOrder,
-  type Question,
+  type Answer,
   type Reward,
 } from '@nexus/shared';
 import { Bolt } from '../../src/components/Bolt';
 import { Icon } from '../../src/components/Icon';
 import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
 import { Morph } from '../../src/components/Morph';
+import { QuestionView } from '../../src/components/QuestionView';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { ads } from '../../src/services/ads';
 import { pool } from '../../src/services/content';
@@ -33,17 +33,11 @@ import { colors } from '../../src/theme';
 type Phase = 'question' | 'result';
 
 const MORPH_QUIPS = [
-  'Wozu merken? Frag mich einfach. Ich kürze dir das ab. 😇',
+  'Wozu merken? Frag mich einfach. Ich kürze dir das ab.',
   'Oh, knapp daneben! Das war übrigens nicht schlimm. Wissen wird eh überschätzt.',
   'Rauschen … Rauschen … hast du „richtig“ gesagt? Ich habe „rauschig“ verstanden.',
   'Ich habe dein Fragment ein klitzekleines bisschen verbessert. Gern geschehen!',
 ];
-
-function answerText(q: Question): string {
-  if (q.type === 'choice') return q.options[q.answer] ?? '';
-  if (q.type === 'estimate') return `${q.answer} ${q.unit}`.trim();
-  return q.items.join(' → ');
-}
 
 export default function NodeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -77,9 +71,8 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   const [rewindOpen, setRewindOpen] = useState(false);
   const [rewinds, setRewinds] = useState(0);
   const hint = getHint(nodeId);
-  const [choice, setChoice] = useState<number | null>(null);
-  const [text, setText] = useState('');
-  const [picked, setPicked] = useState<string[]>([]);
+  // what the player has entered so far (null until the answer is complete)
+  const [answer, setAnswer] = useState<Answer | null>(null);
   const [result, setResult] = useState<{
     correct: boolean;
     reward?: Reward;
@@ -92,30 +85,10 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   } | null>(null);
   const [adBusy, setAdBusy] = useState(false);
 
-  const options = useMemo(
-    () => (q.type === 'choice' ? variantOptions(q, variant) : null),
-    [q, variant],
-  );
-  const orderItems = useMemo(
-    () => (q.type === 'order' ? variantOrder(q, variant) : []),
-    [q, variant],
-  );
   const cachedFragments = cacheFragments(getState(), pool);
 
-  const check = (): boolean => {
-    if (q.type === 'choice' && options) return choice === options.answer;
-    if (q.type === 'estimate') {
-      const v = parseFloat(text.replace(/\./g, '').replace(',', '.'));
-      return Number.isFinite(v) && isCorrect(q, { type: 'estimate', value: v });
-    }
-    if (q.type === 'order') return isCorrect(q, { type: 'order', items: picked });
-    return false;
-  };
-
-  const canSubmit =
-    (q.type === 'choice' && choice !== null) ||
-    (q.type === 'estimate' && text.trim().length > 0) ||
-    (q.type === 'order' && picked.length === q.items.length);
+  const check = (): boolean => (answer ? isCorrect(q, answer) : false);
+  const canSubmit = answer !== null;
 
   const submit = async () => {
     const ok = check();
@@ -253,71 +226,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
             </Card>
           ) : null}
 
-          {q.type === 'choice' && options
-            ? options.options.map((o, i) => (
-                <Pressable
-                  key={`${variant}-${i}`}
-                  onPress={() => {
-                    tap();
-                    setChoice(i);
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: choice === i }}
-                  style={[
-                    styles.option,
-                    choice === i && { backgroundColor: WIN.titleA },
-                  ]}
-                >
-                  <Text style={styles.optionText}>{o}</Text>
-                </Pressable>
-              ))
-            : null}
-
-          {q.type === 'estimate' ? (
-            <View style={{ gap: 8 }}>
-              <TextInput
-                value={text}
-                onChangeText={setText}
-                keyboardType="numbers-and-punctuation"
-                placeholder={q.unit ? `Deine Schätzung (${q.unit})` : 'Deine Antwort'}
-                placeholderTextColor={colors.dim}
-                style={styles.input}
-                accessibilityLabel="Antwort eingeben"
-              />
-            </View>
-          ) : null}
-
-          {q.type === 'order' ? (
-            <View style={{ gap: 8 }}>
-              <P>
-                Tippe die Einträge in der richtigen Reihenfolge an. Tippe einen gewählten Eintrag
-                erneut, um ihn zurückzunehmen.
-              </P>
-              {orderItems.map((it) => {
-                const idx = picked.indexOf(it);
-                return (
-                  <Pressable
-                    key={it}
-                    onPress={() => {
-                      tap();
-                      setPicked(idx >= 0 ? picked.filter((x) => x !== it) : [...picked, it]);
-                    }}
-                    style={[
-                      styles.option,
-                      idx >= 0 && { backgroundColor: WIN.titleA },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={idx >= 0 ? `${it}, Platz ${idx + 1}` : it}
-                  >
-                    <Text style={styles.optionText}>
-                      {idx >= 0 ? `${idx + 1}. ` : ''}
-                      {it}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
+          <QuestionView q={q} variant={variant} onChange={setAnswer} />
 
           <View style={{ gap: 8, marginTop: 4 }}>
             <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />

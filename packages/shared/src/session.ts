@@ -53,6 +53,22 @@ export function variantOptions(
   return { options: idx.map((i) => q.options[i]!), answer: idx.indexOf(q.answer) };
 }
 
+/** The right-hand column of a matching question, shuffled per attempt; never already in order. */
+export function variantMatch(q: Extract<Question, { type: 'match' }>, variant: number): string[] {
+  const rights = q.pairs.map((p) => p[1]);
+  const rng = seededRng(`mat:${q.id}:${variant}`);
+  for (let i = 0; i < 8; i++) {
+    const s = shuffle(rights, rng);
+    if (s.some((r, k) => r !== rights[k])) return s;
+  }
+  return [...rights].reverse();
+}
+
+/** The word bank of a cloze question, shuffled per attempt. */
+export function variantBank(q: Extract<Question, { type: 'cloze' }>, variant: number): string[] {
+  return shuffle(q.bank, seededRng(`bank:${q.id}:${variant}`));
+}
+
 /** Order questions are shown shuffled; never in the solved order. */
 export function variantOrder(q: Extract<Question, { type: 'order' }>, variant: number): string[] {
   const rng = seededRng(`ord:${q.id}:${variant}`);

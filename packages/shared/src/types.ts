@@ -10,7 +10,7 @@ export interface Fragment {
   kind: FragmentKind;
 }
 
-export type QuestionType = 'choice' | 'estimate' | 'order';
+export type QuestionType = 'choice' | 'estimate' | 'order' | 'truefalse' | 'match' | 'cloze';
 
 interface QuestionBase {
   id: string;
@@ -52,12 +52,45 @@ export interface OrderQuestion extends QuestionBase {
   items: string[];
 }
 
-export type Question = ChoiceQuestion | EstimateQuestion | OrderQuestion;
+/** A statement that is either true or false; the statement is the `stem`. */
+export interface TrueFalseQuestion extends QuestionBase {
+  type: 'truefalse';
+  answer: boolean;
+}
+
+/** Pairs to connect: each left item belongs to exactly one right item. */
+export interface MatchQuestion extends QuestionBase {
+  type: 'match';
+  pairs: [string, string][];
+}
+
+/**
+ * A sentence with gaps. `text` marks them as {0}, {1}, …; `answers` are the right words in order;
+ * `bank` holds all words to choose from, the wrong ones included.
+ */
+export interface ClozeQuestion extends QuestionBase {
+  type: 'cloze';
+  text: string;
+  answers: string[];
+  bank: string[];
+}
+
+export type Question =
+  | ChoiceQuestion
+  | EstimateQuestion
+  | OrderQuestion
+  | TrueFalseQuestion
+  | MatchQuestion
+  | ClozeQuestion;
 
 export type Answer =
   | { type: 'choice'; index: number }
   | { type: 'estimate'; value: number }
-  | { type: 'order'; items: string[] };
+  | { type: 'order'; items: string[] }
+  | { type: 'truefalse'; value: boolean }
+  /** left item → the right item the player connected it to */
+  | { type: 'match'; pairs: Record<string, string> }
+  | { type: 'cloze'; words: string[] };
 
 export type NodeKind = 'root' | 'deepen' | 'bridge' | 'debris';
 export type NodeState = 'open' | 'solved' | 'damaged';
