@@ -182,6 +182,11 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   };
 
   const rewind = () => {
+    // paid once per question: reopening after closing is free
+    if (rewinds > 0) {
+      setRewindOpen(true);
+      return;
+    }
     if (!update((p) => spendRewind(p, Date.now(), cacheOpenCost(p.cache.length)))) return;
     setRewinds(rewinds + 1);
     setRewindOpen(true);
@@ -236,15 +241,17 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
           <View style={{ gap: 8, marginTop: 4 }}>
             <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />
             <Button
-              label="Blitz: Cache öffnen"
+              label={rewinds > 0 ? 'Cache wieder öffnen' : 'Blitz: Cache öffnen'}
               icon="bolt"
               variant="ghost"
               sub={
-                energy >= openCost
+                rewinds > 0
+                  ? 'Schon bezahlt: in dieser Frage frei zugänglich.'
+                  : energy >= openCost
                   ? `Durchsuche deine Ordner. Kostet ${openCost} Energie (du hast ${energy}), die Suche selbst ist frei.`
                   : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
               }
-              disabled={energy < openCost || cache.length === 0}
+              disabled={cache.length === 0 || (rewinds === 0 && energy < openCost)}
               onPress={rewind}
             />
           </View>
