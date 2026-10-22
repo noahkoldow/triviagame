@@ -11,3 +11,4 @@ export * from './monetization';
 export * from './layout';
 export * from './network';
 export * from './content';
+export * from './game';
