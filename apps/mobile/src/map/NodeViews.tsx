@@ -212,8 +212,6 @@ export function NodeTile({
       </Group>
       <Group transform={[{ translateY: -NODE_DEPTH }]}>
         <Solid parts={NODE} face={face} edge={edge} />
-        <Path path={NODE_INNER} style="stroke" strokeWidth={2} strokeJoin="round" color="#FFFFFF" opacity={0.18} />
-        {open ? <Path path={NODE_RING} style="stroke" strokeWidth={3.5} strokeJoin="round" color="#FFFFFF" /> : null}
         {highlighted || open ? (
           <Group transform={ringT} opacity={ringO}>
             <Path path={NODE_RING} style="stroke" strokeWidth={3} strokeJoin="round" color={highlighted ? info.color : '#FFFFFF'} />
@@ -257,17 +255,68 @@ export function SiteTile({ x, y, color }: { x: number; y: number; color: string 
   );
 }
 
-/** The core: a big chip with concentric hexagons. */
+/** The core as a chip: package with pins on all four sides, a die, and a notch. */
+const CHIP_W = 56; // half width of the package (world units)
+const CHIP_H = CHIP_W * SQUASH;
+const CHIP_DEPTH = 16;
+const PINS = [-42, -28, -14, 0, 14, 28, 42];
+const pinsH = (() => {
+  const p = Skia.PathBuilder.Make();
+  for (const x of PINS) {
+    p.moveTo(x - 3, -CHIP_H - 9);
+    p.lineTo(x + 3, -CHIP_H - 9);
+    p.lineTo(x + 3, -CHIP_H);
+    p.lineTo(x - 3, -CHIP_H);
+    p.close();
+    p.moveTo(x - 3, CHIP_H);
+    p.lineTo(x + 3, CHIP_H);
+    p.lineTo(x + 3, CHIP_H + 9);
+    p.lineTo(x - 3, CHIP_H + 9);
+    p.close();
+  }
+  return p.detach();
+})();
+const pinsV = (() => {
+  const p = Skia.PathBuilder.Make();
+  for (const y of PINS.map((v) => v * SQUASH)) {
+    p.moveTo(-CHIP_W - 9, y - 2);
+    p.lineTo(-CHIP_W, y - 2);
+    p.lineTo(-CHIP_W, y + 2);
+    p.lineTo(-CHIP_W - 9, y + 2);
+    p.close();
+    p.moveTo(CHIP_W, y - 2);
+    p.lineTo(CHIP_W + 9, y - 2);
+    p.lineTo(CHIP_W + 9, y + 2);
+    p.lineTo(CHIP_W, y + 2);
+    p.close();
+  }
+  return p.detach();
+})();
+
 export function CoreTile() {
+  const metal = '#A9B8C6';
   return (
     <Group>
-      <Group transform={[{ translateY: 4 }]} opacity={0.5}>
-        <Path path={CORE.top} color="#02060C" />
+      <RoundedRect x={-CHIP_W - 14} y={-CHIP_H - 10} width={CHIP_W * 2 + 28} height={CHIP_H * 2 + CHIP_DEPTH + 22} r={10} color="#02060C" opacity={0.35} />
+      {/* pins on the board */}
+      <Path path={pinsH} color={metal} />
+      <Group transform={[{ translateY: -CHIP_DEPTH / 2 }]}>
+        <Path path={pinsV} color={metal} />
       </Group>
-      <Group transform={[{ translateY: -CORE_DEPTH }]}>
-        <Solid parts={CORE} face={colors.accent} edge={shade(colors.accent, 0.45)} />
-        <Path path={CORE_MID} color="#FFFFFF" opacity={0.2} />
-        <Path path={CORE_IN} color="#FFFFFF" />
+      {/* package: front wall, top face */}
+      <RoundedRect x={-CHIP_W} y={-CHIP_H + CHIP_DEPTH} width={CHIP_W * 2} height={CHIP_H * 2} r={5} color="#0C151E" />
+      <Group transform={[{ translateY: -0 }]}>
+        <RoundedRect x={-CHIP_W} y={-CHIP_H} width={CHIP_W * 2} height={CHIP_H * 2} r={5} color="#0C151E" />
+      </Group>
+      <Group transform={[{ translateY: -CHIP_DEPTH }]}>
+        <RoundedRect x={-CHIP_W} y={-CHIP_H} width={CHIP_W * 2} height={CHIP_H * 2} r={5} color="#223140" />
+        <RoundedRect x={-CHIP_W} y={-CHIP_H} width={CHIP_W * 2} height={CHIP_H * 2} r={5} style="stroke" strokeWidth={1.5} color="#4B6075" />
+        {/* die */}
+        <RoundedRect x={-30} y={-30 * SQUASH} width={60} height={60 * SQUASH} r={3} color="#0A121B" />
+        <RoundedRect x={-30} y={-30 * SQUASH} width={60} height={60 * SQUASH} r={3} style="stroke" strokeWidth={1.5} color={colors.accent} opacity={0.9} />
+        <RoundedRect x={-11} y={-11 * SQUASH} width={22} height={22 * SQUASH} r={2} color={colors.accent} />
+        {/* pin-1 notch */}
+        <Path path={unitPath((p) => p.addCircle(-CHIP_W + 9, -CHIP_H + 7, 2.6))} color="#6C8197" />
       </Group>
     </Group>
   );
@@ -292,18 +341,18 @@ export function OutpostTile({
   const face = mix(color, '#3A2A48', 0.55);
   const lw = font.getTextWidth(label);
   // chromatic glitch: two offset copies that jump in steps
-  const shiftA = useDerivedValue(() => [{ translateX: -2 - (Math.floor(glitch.value * 30) % 5) }, { translateY: -1 }]);
-  const shiftB = useDerivedValue(() => [{ translateX: 2 + (Math.floor(glitch.value * 30 + 2) % 5) }, { translateY: 1 }]);
+  const shiftA = useDerivedValue(() => [{ translateX: -1 - (Math.floor(glitch.value * 14) % 3) }]);
+  const shiftB = useDerivedValue(() => [{ translateX: 1 + (Math.floor(glitch.value * 14 + 2) % 3) }]);
   return (
     <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
       <Group transform={[{ translateY: 3 }]} opacity={0.5}>
         <Path path={NODE.top} color="#02060C" />
       </Group>
       <Group transform={[{ translateY: -NODE_DEPTH }]}>
-        <Group transform={shiftA} opacity={0.55}>
+        <Group transform={shiftA} opacity={0.4}>
           <Path path={NODE.top} color="#FF4B8B" />
         </Group>
-        <Group transform={shiftB} opacity={0.55}>
+        <Group transform={shiftB} opacity={0.4}>
           <Path path={NODE.top} color="#1CB0F6" />
         </Group>
         <Solid parts={NODE} face={face} edge={shade(face, 0.4)} />

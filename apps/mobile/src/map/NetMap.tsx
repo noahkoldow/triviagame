@@ -96,12 +96,12 @@ export function NetMap({
   const cy = useSharedValue(0);
   const zoom = useSharedValue(0.9);
   const pulse = useSharedValue(0);
-  /** Runs 0 → 1 over 3 s; the noise reads it in steps, so it flickers instead of gliding. */
+  /** Runs 0 → 1 over 8 s; the noise reads it in a few steps, so it ticks slowly instead of gliding. */
   const glitch = useSharedValue(0);
 
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, true);
-    glitch.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
+    glitch.value = withRepeat(withTiming(1, { duration: 8000, easing: Easing.linear }), -1);
   }, [pulse, glitch]);
 
   const strand = useMemo(() => (showStrand ? buildStrand() : []), [showStrand]);
@@ -316,14 +316,14 @@ export function NetMap({
   // MORPH's noise: three groups of cells that blink and shift at different steps
   const step = (g: number) => {
     'worklet';
-    return Math.floor(g * 30);
+    return Math.floor(g * 16);
   };
-  const noiseA = useDerivedValue(() => (((step(glitch.value) * 37 + 11) % 7) / 7) * 0.75);
-  const noiseB = useDerivedValue(() => (((step(glitch.value) * 53 + 5) % 5) / 5) * 0.75);
-  const noiseC = useDerivedValue(() => (((step(glitch.value) * 29 + 3) % 6) / 6) * 0.7);
-  const shiftA = useDerivedValue(() => [{ translateX: ((step(glitch.value) * 17) % 7) - 3 }]);
-  const shiftB = useDerivedValue(() => [{ translateX: 3 - ((step(glitch.value) * 13) % 7) }]);
-  const shiftC = useDerivedValue(() => [{ translateY: ((step(glitch.value) * 11) % 5) - 2 }]);
+  const noiseA = useDerivedValue(() => (((step(glitch.value) * 37 + 11) % 7) / 7) * 0.4);
+  const noiseB = useDerivedValue(() => (((step(glitch.value) * 53 + 5) % 5) / 5) * 0.4);
+  const noiseC = useDerivedValue(() => (((step(glitch.value) * 29 + 3) % 6) / 6) * 0.35);
+  const shiftA = useDerivedValue(() => [{ translateX: ((step(glitch.value) * 17) % 3) - 1 }]);
+  const shiftB = useDerivedValue(() => [{ translateX: 1 - ((step(glitch.value) * 13) % 3) }]);
+  const shiftC = useDerivedValue(() => [{ translateY: ((step(glitch.value) * 11) % 3) - 1 }]);
 
   const transform = useDerivedValue(() => cameraTransform(cx.value, cy.value, zoom.value, width, height));
 
@@ -364,9 +364,9 @@ export function NetMap({
           ) : null}
 
           {/* the circuit board: strong around the core, thinning out */}
-          {scene.circuit.map((c) => (
+          {scene.circuit.map((c, i) => (
             <Path
-              key={`${c.color}-${c.width}`}
+              key={`c${i}`}
               path={c.path}
               style="stroke"
               strokeWidth={c.width}
@@ -391,10 +391,7 @@ export function NetMap({
           {/* circuit traces on top of the lit trace tiles */}
           {scene.traces.map((t) => (
             <Group key={t.color}>
-              <Path path={t.path} style="stroke" strokeWidth={6} strokeCap="round" strokeJoin="round" color={t.color} opacity={0.9} />
-              <Path path={t.path} style="stroke" strokeWidth={2} strokeCap="round" color="#FFFFFF" opacity={0.75}>
-                <DashPathEffect intervals={[2, 12]} />
-              </Path>
+              <Path path={t.path} style="stroke" strokeWidth={4} strokeCap="round" strokeJoin="round" color={t.color} opacity={0.7} />
             </Group>
           ))}
 

@@ -67,8 +67,8 @@ export function siteCells(state: Site['state']): number {
 }
 export const CORE_CELLS = 5;
 
-const BAND_ALPHA = ['', '3A', '26', '16', '0B'];
-const GHOST_BANDS = 4;
+const BAND_ALPHA = ['', '26', '10'];
+const GHOST_BANDS = 2;
 const PCB = '#0A2A33';
 
 /** Land colour of a sector: a dark, slightly tinted chip surface. */
@@ -180,7 +180,7 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     const w = hexToWorld(c.hex);
     const k = computerness(w.x, w.y);
     const n = hashString(`lvl:${hexKey(c.hex)}`) % 100;
-    let level = c.flat ? 0 : n < 62 ? 0 : n < 90 ? 1 : 2;
+    let level = c.flat ? 0 : n < 80 ? 0 : n < 96 ? 1 : 2;
     if (k > 0.55) level = 0;
     else if (k > 0.3) level = Math.min(level, 1);
     levelOf.set(hexKey(c.hex), level);
@@ -225,79 +225,42 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   }
   const traces = [...byColor.entries()].map(([color, b]) => ({ color, path: b.detach() }));
 
-  // 7. circuit-board drawing, in the colour of the topic, dense near the core
-  const lines = new Map<string, { color: string; band: number; b: PB }>();
-  const line = (color: string, band: number) => {
-    const key = `${color}|${band}`;
-    let e = lines.get(key);
-    if (!e) {
-      e = { color, band, b: Skia.PathBuilder.Make() };
-      lines.set(key, e);
+  // 7. the board around the chip: a few clean buses, one toward each topic, fading out
+  const circuit: Circuit[] = [];
+  const DIRS: { sector: Sector; dx: number; dy: number }[] = [
+    { sector: 'science', dx: 0, dy: -1 },
+    { sector: 'nature', dx: 1, dy: 0 },
+    { sector: 'culture', dx: 0, dy: 1 },
+    { sector: 'history', dx: -1, dy: 0 },
+  ];
+  for (const d of DIRS) {
+    const px = -d.dy; // perpendicular
+    const py = d.dx;
+    const col = mix(colors.sector[d.sector], '#FFFFFF', 0.25);
+    // pin offsets across the chip side, and a bend that spreads the lines apart
+    const lanes = [-16, 0, 16];
+    const at = (along: number, across: number): [number, number] => [
+      d.dx * along + px * across,
+      (d.dy * along + py * across) * SQUASH,
+    ];
+    const segs: [number, number][][] = [[], [], []];
+    const ends: [number, number][] = [];
+    for (const lane of lanes) {
+      const pts: [number, number][] = [at(66, lane), at(125, lane), at(160, lane * 2), at(235, lane * 2)];
+      for (let i = 0; i < 3; i++) segs[i]!.push(pts[i]!, pts[i + 1]!);
+      ends.push(pts[3]!);
     }
-    return e.b;
-  };
-  for (const c of cells.values()) {
-    if (c.trace) continue;
-    const w = hexToWorld(c.hex);
-    const k = computerness(w.x, w.y);
-    if (k < 0.08) continue;
-    const h = hashString(`circ:${hexKey(c.hex)}`);
-    if (h % 100 >= Math.round(30 + k * 60)) continue;
-    const tint = c.sector === 'core' ? '#5BD5FF' : mix(colors.sector[c.sector], '#FFFFFF', 0.3);
-    const band = k > 0.62 ? 2 : k > 0.32 ? 1 : 0;
-    const b = line(tint, band);
-    const x0 = w.x;
-    const y0 = w.y * SQUASH;
-    // a run to a neighbouring cell that is also land (60° bends, like routed traces)
-    const dir = hexNeighbors(c.hex)[(h >>> 3) % 6]!;
-    if (cells.has(hexKey(dir))) {
-      const n = hexToWorld(dir);
-      b.moveTo(x0, y0);
-      b.lineTo(n.x, n.y * SQUASH);
-    }
-    b.addCircle(x0, y0, 2.4); // pad
-    // now and then a small chip package
-    if (h % 11 === 0 && k > 0.35) {
-      const cw = 11;
-      const ch = 6;
-      b.moveTo(x0 - cw, y0 - ch);
-      b.lineTo(x0 + cw, y0 - ch);
-      b.lineTo(x0 + cw, y0 + ch);
-      b.lineTo(x0 - cw, y0 + ch);
-      b.close();
+    const opac = [0.8, 0.5, 0.25];
+    for (let i = 0; i < 3; i++) {
+      const bld = Skia.PathBuilder.Make();
+      for (let j = 0; j < segs[i]!.length; j += 2) {
+        bld.moveTo(segs[i]![j]![0], segs[i]![j]![1]);
+        bld.lineTo(segs[i]![j + 1]![0], segs[i]![j + 1]![1]);
+      }
+      if (i === 2) for (const e of ends) bld.addCircle(e[0], e[1], 3);
+      circuit.push({ color: col, opacity: opac[i]!, width: 2, path: bld.detach() });
     }
   }
-  // the die around the core: hexagonal rings and spokes
-  const core = line('#5BD5FF', 2);
-  const ring = (k: number) => {
-    const r = k * HEX_R * Math.sqrt(3);
-    for (let i = 0; i < 6; i++) {
-      const a = (i * Math.PI) / 3;
-      const x = Math.cos(a) * r;
-      const y = Math.sin(a) * r * SQUASH;
-      if (i === 0) core.moveTo(x, y);
-      else core.lineTo(x, y);
-    }
-    core.close();
-  };
-  ring(2);
-  ring(3.5);
-  ring(5);
-  for (let i = 0; i < 6; i++) {
-    const a = (i * Math.PI) / 3;
-    const r0 = 2 * HEX_R * Math.sqrt(3);
-    const r1 = 5 * HEX_R * Math.sqrt(3);
-    core.moveTo(Math.cos(a) * r0, Math.sin(a) * r0 * SQUASH);
-    core.lineTo(Math.cos(a) * r1, Math.sin(a) * r1 * SQUASH);
-    core.addCircle(Math.cos(a) * r1, Math.sin(a) * r1 * SQUASH, 3.4);
-  }
-  const OPACITY = [0.26, 0.5, 0.85];
-  const circuit = [...lines.values()].map((e) => ({
-    color: e.color,
-    opacity: OPACITY[e.band]!,
-    width: 1.5 + e.band * 0.5,
-    path: e.b.detach(),
-  }));
 
   // 8. noise: the cells around disturbed places, in three independently blinking groups
   const noiseB = [Skia.PathBuilder.Make(), Skia.PathBuilder.Make(), Skia.PathBuilder.Make()];
@@ -305,7 +268,7 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     if (!site.noise) continue;
     const c0 = worldToHex(site.x, site.y);
     for (const cell of cells.values()) {
-      if (cell.trace || hexDistance(cell.hex, c0) > 2) continue;
+      if (cell.trace || hexDistance(cell.hex, c0) > 1) continue;
       const w = hexToWorld(cell.hex);
       const g = hashString(`noise:${hexKey(cell.hex)}`) % 3;
       hexPoly(noiseB[g]!, w.x, w.y, LIFT[levelOf.get(hexKey(cell.hex)) ?? 0]!, HEX_R * 0.9);

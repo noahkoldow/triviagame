@@ -71,8 +71,8 @@ export function makeHexAtlas(): HexAtlas | null {
     const top = poly(c);
     fill.setColor(Skia.Color('#FFFFFF'));
     canvas.drawPath(top, fill);
-    stroke.setStrokeWidth(1.4);
-    stroke.setColor(Skia.Color('#C9CED3'));
+    stroke.setStrokeWidth(1);
+    stroke.setColor(Skia.Color('#DDE1E5'));
     canvas.drawPath(top, stroke);
     canvas.restore();
   }

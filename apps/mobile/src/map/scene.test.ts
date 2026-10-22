@@ -18,6 +18,7 @@ vi.mock('@shopify/react-native-skia', () => {
   };
   return { Skia: { PathBuilder: { Make: builder } }, PaintStyle: { Fill: 0, Stroke: 1 } };
 });
+vi.mock('react-native-reanimated', () => ({ useDerivedValue: (f: () => unknown) => ({ value: f() }) }));
 
 import {
   MOCK_QUESTIONS,
@@ -62,6 +63,13 @@ function sitesAndEdges(p: ReturnType<typeof initialPlayer>): { sites: Site[]; ed
 }
 
 describe('map scene', () => {
+  it('loads the node and chip drawings (module-level paths)', async () => {
+    const v = await import('./NodeViews');
+    expect(typeof v.CoreTile).toBe('function');
+    expect(typeof v.NodeTile).toBe('function');
+    expect(typeof v.OutpostTile).toBe('function');
+  });
+
   it('builds for a fresh game with outposts', () => {
     const { sites, edges } = sitesAndEdges(initialPlayer(pool));
     const s = buildHexScene(sites, edges);
