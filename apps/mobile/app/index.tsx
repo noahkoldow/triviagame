@@ -200,6 +200,7 @@ export default function Home() {
           tap();
           setShardId(id);
         }}
+        onDismiss={() => setDebrisId(null)}
         onSelect={onSelect}
       />
 

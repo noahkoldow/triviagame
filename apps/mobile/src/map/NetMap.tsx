@@ -73,6 +73,8 @@ interface Props {
   /** Debris field of the node the player is currently scavenging. */
   debris?: { nodeId: string; center: { x: number; y: number }; color: string; shards: Shard[] };
   onShard?: (fragmentId: string) => void;
+  /** The player moved the map or tapped the empty ground while a node was scavenged: same as "Zurück". */
+  onDismiss?: () => void;
   onSelect: (id: string) => void;
 }
 
@@ -93,6 +95,7 @@ export function NetMap({
   onOutpost,
   debris,
   onShard,
+  onDismiss,
   onSelect,
 }: Props) {
   const cx = useSharedValue(0);
@@ -210,6 +213,10 @@ export function NetMap({
   onSelectRef.current = onSelect;
   const onShardRef = useRef(onShard);
   onShardRef.current = onShard;
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+  const scavengingRef = useRef(false);
+  scavengingRef.current = !!debris;
   const onOutpostRef = useRef(onOutpost);
   onOutpostRef.current = onOutpost;
   const openOutposts = useMemo(
@@ -261,6 +268,7 @@ export function NetMap({
           if (!moved && Math.abs(g.dx) + Math.abs(g.dy) > 8) {
             moved = true;
             dim.value = withTiming(0, { duration: 200 });
+            if (scavengingRef.current) onDismissRef.current?.();
           }
           const t = e.nativeEvent.touches;
           if (t.length >= 2) {
@@ -272,7 +280,10 @@ export function NetMap({
             setCam(cam.current.cx, cam.current.cy, s);
             base = { cx: cam.current.cx, cy: cam.current.cy };
             gBase = { dx: g.dx, dy: g.dy };
-            if (!moved) dim.value = withTiming(0, { duration: 200 });
+            if (!moved) {
+              dim.value = withTiming(0, { duration: 200 });
+              if (scavengingRef.current) onDismissRef.current?.();
+            }
             moved = true;
           } else {
             pinch = null;
@@ -319,6 +330,7 @@ export function NetMap({
             }
           }
           if (best && bd <= Math.max(36, NODE_R * s + 8)) onSelectRef.current(best.id);
+          else if (scavengingRef.current) onDismissRef.current?.();
         },
       });
     })(),
