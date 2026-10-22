@@ -249,7 +249,7 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     const x0 = w.x;
     const y0 = w.y * SQUASH;
     // a run to a neighbouring cell that is also land (60° bends, like routed traces)
-    const dir = hexNeighbors(c.hex)[(h >> 3) % 6]!;
+    const dir = hexNeighbors(c.hex)[(h >>> 3) % 6]!;
     if (cells.has(hexKey(dir))) {
       const n = hexToWorld(dir);
       b.moveTo(x0, y0);
