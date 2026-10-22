@@ -28,6 +28,7 @@ import {
 import { Bolt } from '../src/components/Bolt';
 import { Icon } from '../src/components/Icon';
 import { CacheBar, Dock, MapHud, glass } from '../src/components/MapUi';
+import { Dialog, Window } from '../src/components/Win';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
 import type { Shard } from '../src/map/NodeViews';
@@ -249,13 +250,11 @@ export default function Home() {
       <SafeAreaView edges={['bottom']} style={styles.bottom} pointerEvents="box-none">
         <View style={styles.stack} pointerEvents="box-none">
           {debrisNode && debrisQ ? (
-            <View style={[styles.debris, glass, { borderColor: debrisColor + '88' }]}>
+            <Window title={debrisQ.topic} icon="folder" onClose={() => setDebrisId(null)}>
               <View style={styles.row}>
                 <Pill label={areaById(debrisQ.area).de} color={debrisColor} />
                 <Pill label={de.difficulty[debrisQ.difficulty]!} color={colors.warn} />
               </View>
-              <Text style={styles.topicLabel}>THEMA</Text>
-              <Text style={styles.topic}>{debrisQ.topic}</Text>
               {debrisQ.intro ? <Text style={styles.debrisText}>{debrisQ.intro}</Text> : null}
               {hint ? <Text style={styles.debrisHint}>Bolt: {hint}</Text> : null}
               <View style={styles.row}>
@@ -267,7 +266,7 @@ export default function Home() {
                   onPress={startQuestion}
                 />
               </View>
-            </View>
+            </Window>
           ) : null}
           <CacheBar onSlot={setCacheView} />
           {!debrisNode ? (
@@ -285,10 +284,9 @@ export default function Home() {
       {/* a piece of debris */}
       <Modal transparent animationType="fade" visible={!!shard} onRequestClose={() => setShardId(null)}>
         <Pressable style={styles.center} onPress={() => setShardId(null)}>
-          <Pressable style={[styles.card, { borderColor: debrisColor + '99' }]} onPress={() => undefined}>
+          <Dialog title={shard?.hint ?? 'Trümmerteil'} icon="folder" onClose={() => setShardId(null)}>
             {shard && shardEntry && debrisQ ? (
               <>
-                <Text style={[styles.cardLabel, { color: debrisColor }]}>{shard.hint.toUpperCase()}</Text>
                 {inCache ? (
                   <>
                     <Text style={styles.cardSub}>
@@ -337,20 +335,19 @@ export default function Home() {
                 <Button label="Liegen lassen" variant="ghost" onPress={() => setShardId(null)} />
               </>
             ) : null}
-          </Pressable>
+          </Dialog>
         </Pressable>
       </Modal>
 
       {/* a fragment already in the cache: read or drop it */}
       <Modal transparent animationType="fade" visible={!!cacheView} onRequestClose={() => setCacheView(null)}>
         <Pressable style={styles.center} onPress={() => setCacheView(null)}>
-          <Pressable style={styles.card} onPress={() => undefined}>
+          <Dialog title="Cache" icon="folder" onClose={() => setCacheView(null)}>
             {cacheView
               ? (() => {
                   const f = pool.byId.get(cacheView.questionId)?.fragments.find((x) => x.id === cacheView.fragmentId);
                   return (
                     <>
-                      <Text style={styles.cardLabel}>IM CACHE</Text>
                       <Text style={styles.topic}>{f?.hint}</Text>
                       <Text style={styles.cardSub}>Den Inhalt siehst du erst in der Frage (Blitz).</Text>
                       <Button
@@ -366,19 +363,16 @@ export default function Home() {
                   );
                 })()
               : null}
-          </Pressable>
+          </Dialog>
         </Pressable>
       </Modal>
 
       {/* a disturbed outpost */}
       <Modal transparent animationType="fade" visible={!!outpost} onRequestClose={() => setOutpostId(null)}>
         <Pressable style={styles.center} onPress={() => setOutpostId(null)}>
-          <Pressable style={styles.card} onPress={() => undefined}>
+          <Dialog title="Gestörter Bereich" icon="warn" onClose={() => setOutpostId(null)}>
             {outpost ? (
               <>
-                <Text style={[styles.cardLabel, { color: colors.sector[sectorOfArea(outpost.area)] }]}>
-                  GESTÖRTER BEREICH
-                </Text>
                 <Text style={styles.topic}>{areaById(outpost.area).de}</Text>
                 <Text style={styles.fragText}>
                   Dieser Bereich ist noch vom Rauschen verzerrt. Wachse in seine Richtung: Die Fragen auf dem Weg
@@ -400,15 +394,14 @@ export default function Home() {
                 <Button label="Schließen" onPress={() => setOutpostId(null)} />
               </>
             ) : null}
-          </Pressable>
+          </Dialog>
         </Pressable>
       </Modal>
 
       {/* integrity 0: the network is unstable */}
       <Modal transparent animationType="fade" visible={unstable} onRequestClose={() => setUnstable(false)}>
         <Pressable style={styles.center} onPress={() => setUnstable(false)}>
-          <Pressable style={styles.card} onPress={() => undefined}>
-            <Text style={[styles.cardLabel, { color: colors.bad }]}>NETZ INSTABIL</Text>
+          <Dialog title="Netz instabil" icon="warn" onClose={() => setUnstable(false)}>
             <Text style={styles.fragText}>
               Zu viele Störungen: Neue Knoten bleiben gesperrt. Repariere beschädigte Knoten, denn jede gelungene
               Reparatur gibt 1 Integrität zurück.
@@ -434,21 +427,20 @@ export default function Home() {
               }}
             />
             <Button label="Schließen" onPress={() => setUnstable(false)} />
-          </Pressable>
+          </Dialog>
         </Pressable>
       </Modal>
 
       {/* locked debris field or an already restored node */}
       <Modal transparent animationType="slide" visible={!!selected} onRequestClose={() => setSel(null)}>
         <Pressable style={styles.backdrop} onPress={() => setSel(null)}>
-          <Pressable style={styles.sheet} onPress={() => undefined}>
+          <Dialog title={selQ ? areaById(selQ.area).de : ''} icon="folder" onClose={() => setSel(null)}>
             {selected && selQ ? (
               <>
                 <View style={styles.row}>
                   <Pill label={de.sectors[sectorOfArea(selQ.area)]} color={colors.sector[sectorOfArea(selQ.area)]} />
                   <Pill label={de.kinds[selected.kind]} color={colors.dim} />
                 </View>
-                <Text style={styles.sheetTitle}>{areaById(selQ.area).de}</Text>
                 {selected.locked ? (
                   <>
                     <Text style={styles.sheetText}>
@@ -480,7 +472,7 @@ export default function Home() {
                 <Button label="Schließen" variant="ghost" onPress={() => setSel(null)} />
               </>
             ) : null}
-          </Pressable>
+          </Dialog>
         </Pressable>
       </Modal>
     </View>
@@ -532,7 +524,7 @@ const styles = StyleSheet.create({
   cardLabel: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
   cardSub: { color: colors.dim, fontSize: 14 },
   fragText: { color: colors.text, fontSize: 18, lineHeight: 26 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', padding: 12 },
   sheet: {
     backgroundColor: colors.panel,
     padding: 20,

@@ -3,6 +3,7 @@ import { Modal, StyleSheet, Text, View } from 'react-native';
 import { subscribeMockAds, type MockAdRequest } from '../services/ads';
 import { colors, radius } from '../theme';
 import { Button } from './ui';
+import { Window } from './Win';
 
 /** Stand-in for AdMob in Expo Go. */
 export function AdOverlay() {
@@ -22,7 +23,7 @@ export function AdOverlay() {
   return (
     <Modal transparent animationType="fade" visible onRequestClose={() => req.resolve(false)}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <Window title="Werbung (Test)" icon="warn">
           <Text style={styles.badge}>TESTWERBUNG · {rewarded ? 'Belohnung' : 'Anzeige'}</Text>
           <Text style={styles.title}>{rewarded ? 'Reparatur-Funk' : 'Kurze Unterbrechung'}</Text>
           <Text style={styles.body}>
@@ -42,7 +43,7 @@ export function AdOverlay() {
               style={{ marginTop: 8 }}
             />
           ) : null}
-        </View>
+        </Window>
       </View>
     </Modal>
   );

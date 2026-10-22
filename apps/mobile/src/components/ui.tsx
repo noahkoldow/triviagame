@@ -8,8 +8,9 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { colors, radius, shade } from '../theme';
+import { colors } from '../theme';
 import { Icon, type IconName } from './Icon';
+import { WIN, pressedIn, raised, sunken, TitleBar } from './Win';
 
 export function tap(kind: 'light' | 'success' | 'error' = 'light') {
   if (kind === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -21,6 +22,10 @@ export function tap(kind: 'light' | 'success' | 'error' = 'light') {
     ).catch(() => {});
 }
 
+/**
+ * A grey button with a raised bevel that is pushed in while pressed. The main
+ * action is the "default button": bold, with a black frame around it.
+ */
 export function Button({
   label,
   onPress,
@@ -39,17 +44,14 @@ export function Button({
   /** Small icon after the label, e.g. the price currency. */
   icon?: IconName;
 }) {
-  const bg =
-    variant === 'primary'
-      ? colors.primary
-      : variant === 'danger'
-        ? colors.bad
-        : variant === 'gem'
-          ? colors.gem
-          : colors.panel;
-  const edge = variant === 'ghost' ? colors.line : shade(bg, 0.32);
-  const fg = variant === 'ghost' ? colors.accent : '#FFFFFF';
-  return (
+  const fg = disabled
+    ? WIN.shadow
+    : variant === 'danger'
+      ? '#B00020'
+      : variant === 'gem'
+        ? '#5B1E96'
+        : WIN.text;
+  const button = (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -58,28 +60,28 @@ export function Button({
         tap();
         onPress();
       }}
-      style={({ pressed }) => [
-        styles.btn,
-        {
-          backgroundColor: disabled ? colors.line : bg,
-          borderBottomColor: disabled ? shade(colors.line) : edge,
-          borderColor: variant === 'ghost' ? colors.line : bg,
-        },
-        // pressed: the thick edge shrinks, so the button looks pushed in
-        pressed && { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
-        disabled && { opacity: 0.7 },
-        style,
-      ]}
+      style={({ pressed }) => [styles.btn, raised, pressed && !disabled && pressedIn]}
     >
-      <View style={styles.btnRow}>
-        <Text style={[styles.btnLabel, { color: disabled ? colors.dim : fg }]}>{label.toUpperCase()}</Text>
-        {icon ? <Icon name={icon} size={18} muted={disabled} /> : null}
-      </View>
-      {sub ? <Text style={[styles.btnSub, { color: disabled ? colors.dim : fg }]}>{sub}</Text> : null}
+      {({ pressed }) => (
+        <View style={pressed && !disabled ? { transform: [{ translateX: 1 }, { translateY: 1 }] } : null}>
+          <View style={styles.btnRow}>
+            <Text style={[styles.btnLabel, { color: fg }, variant === 'primary' && styles.btnDefault]}>{label}</Text>
+            {icon ? <Icon name={icon} size={16} muted={disabled} /> : null}
+          </View>
+          {sub ? <Text style={[styles.btnSub, { color: disabled ? WIN.shadow : WIN.dark }]}>{sub}</Text> : null}
+        </View>
+      )}
     </Pressable>
+  );
+  // the default button gets a black frame, like in the old dialogs
+  return variant === 'primary' && !disabled ? (
+    <View style={[styles.defaultFrame, style]}>{button}</View>
+  ) : (
+    <View style={style}>{button}</View>
   );
 }
 
+/** A sunken dark panel, like a console area inside a window. */
 export function Card({
   children,
   style,
@@ -87,7 +89,7 @@ export function Card({
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  return <View style={[styles.card, sunken, style]}>{children}</View>;
 }
 
 export function H1({
@@ -110,33 +112,25 @@ export function P({
   return <Text style={[styles.p, style]}>{children}</Text>;
 }
 
-/** Top bar of the secondary screens: round back button and a title. */
+/** Top bar of the secondary screens: a window title bar with a close button. */
 export function BackBar({ title, onBack }: { title: string; onBack: () => void }) {
   return (
-    <View style={styles.bar}>
-      <Pressable
-        onPress={() => {
+    <View style={[styles.bar, raised]}>
+      <TitleBar
+        title={title}
+        onClose={() => {
           tap();
           onBack();
         }}
-        accessibilityRole="button"
-        accessibilityLabel="Zurück"
-        hitSlop={10}
-        style={({ pressed }) => [styles.backBtn, pressed && { transform: [{ translateY: 2 }], borderBottomWidth: 2 }]}
-      >
-        <Icon name="close" size={18} color={colors.dim} />
-      </Pressable>
-      <Text style={styles.barTitle} accessibilityRole="header">
-        {title}
-      </Text>
+      />
     </View>
   );
 }
 
-/** Rounded stat chip, e.g. for balances and rewards. */
+/** A status pane, e.g. for balances and rewards: sunken, with the value in colour. */
 export function Chip({ label, color, icon }: { label: string; color: string; icon?: IconName }) {
   return (
-    <View style={[styles.chip, { borderColor: color }]}>
+    <View style={[styles.chip, sunken]}>
       {icon ? <Icon name={icon} size={18} /> : null}
       <Text style={[styles.chipText, { color }]}>{label}</Text>
     </View>
@@ -145,7 +139,7 @@ export function Chip({ label, color, icon }: { label: string; color: string; ico
 
 export function Pill({ label, color }: { label: string; color: string }) {
   return (
-    <View style={[styles.pill, { borderColor: color }]}>
+    <View style={[styles.pill, sunken, { borderWidth: 1 }]}>
       <Text style={[styles.pillText, { color }]}>{label}</Text>
     </View>
   );
@@ -153,54 +147,29 @@ export function Pill({ label, color }: { label: string; color: string }) {
 
 const styles = StyleSheet.create({
   btn: {
-    minHeight: 50,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  btnLabel: { fontSize: 15, fontWeight: '900', letterSpacing: 0.9 },
-  btnSub: { fontSize: 11, fontWeight: '700', opacity: 0.85, marginTop: 1 },
-  card: {
-    backgroundColor: colors.panel,
-    borderRadius: radius.lg,
-    padding: 16,
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    borderColor: colors.line,
-  },
-  h1: { color: colors.text, fontSize: 26, fontWeight: '900' },
-  p: { color: colors.dim, fontSize: 15, lineHeight: 22 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backGlyph: { color: colors.dim, fontSize: 18, fontWeight: '900' },
-  barTitle: { color: colors.text, fontSize: 24, fontWeight: '900', flex: 1 },
-  chip: {
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    minHeight: 34,
+    paddingHorizontal: 14,
     paddingVertical: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  defaultFrame: { borderWidth: 1, borderColor: WIN.black, padding: 0 },
+  btnRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  btnLabel: { fontSize: 14, fontWeight: '600' },
+  btnDefault: { fontWeight: '900' },
+  btnSub: { fontSize: 11, textAlign: 'center', marginTop: 1 },
+  card: { padding: 14 },
+  h1: { color: colors.text, fontSize: 24, fontWeight: '900' },
+  p: { color: colors.dim, fontSize: 15, lineHeight: 22 },
+  bar: { padding: 3 },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.panel,
   },
   chipText: { fontSize: 16, fontWeight: '900' },
-  pill: { borderWidth: 2, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 3 },
-  pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
+  pill: { paddingHorizontal: 8, paddingVertical: 2 },
+  pillText: { fontSize: 12, fontWeight: '800' },
 });

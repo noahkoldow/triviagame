@@ -14,14 +14,12 @@ import { useGame } from '../state/store';
 import { colors } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { tap } from './ui';
+import { WIN, pressedIn, raised, sunken } from './Win';
 
-/** Solid surface with a thick bottom edge: the look of all floating map UI. */
-export const glass = {
-  backgroundColor: colors.panel,
-  borderWidth: 2,
-  borderBottomWidth: 5,
-  borderColor: colors.line,
-} as const;
+/** A sunken dark panel for floating hints on the map (text stays light). */
+export const glass = { ...sunken } as const;
+
+const SEGMENTS = 10;
 
 export function MapHud() {
   const xp = useGame((p) => p.xp);
@@ -38,12 +36,16 @@ export function MapHud() {
   const wait = msToNextEnergy({ energy, energyAt } as Parameters<typeof msToNextEnergy>[0], now);
   const streak = useGame((p) => p.streak.count);
   const lv = levelFromXp(xp);
+  const filled = Math.round((lv.into / lv.next) * SEGMENTS);
   return (
-    <View style={[styles.hud, glass]} accessibilityRole="summary">
-      <View style={styles.level}>
-        <Text style={styles.levelNum}>{lv.level}</Text>
-        <View style={styles.levelBar}>
-          <View style={[styles.levelFill, { width: `${Math.round((lv.into / lv.next) * 100)}%` }]} />
+    <View style={[styles.bar, raised]} accessibilityRole="summary">
+      {/* level with a segmented progress bar, like a copy dialog */}
+      <View style={[styles.pane, sunken, { flex: 1, minWidth: 70 }]} accessible accessibilityLabel={`Level ${lv.level}`}>
+        <Text style={styles.level}>Lv {lv.level}</Text>
+        <View style={styles.segments}>
+          {Array.from({ length: SEGMENTS }).map((_, i) => (
+            <View key={i} style={[styles.segment, i < filled && { backgroundColor: '#000080' }]} />
+          ))}
         </View>
       </View>
       <Stat icon="flame" value={`${streak}`} color="#FF9600" />
@@ -80,27 +82,27 @@ function Stat({
   muted?: boolean;
 }) {
   return (
-    <View style={styles.stat} accessible accessibilityLabel={label ?? value}>
-      <Icon name={icon} size={17} muted={muted} />
+    <View style={[styles.pane, sunken]} accessible accessibilityLabel={label ?? value}>
+      <Icon name={icon} size={16} muted={muted} />
       <Text style={[styles.statValue, color ? { color } : null]}>{value}</Text>
     </View>
   );
 }
 
 /**
- * The cache on the map: always reachable, limited to CACHE_SLOTS, and its
- * contents can be swapped or dropped. (Inside a question it is sealed.)
+ * The cache on the map: a toolbar with folders. Limited to CACHE_SLOTS; the names
+ * can be swapped or thrown away, what is inside is only readable in a question.
  */
 export function CacheBar({ onSlot }: { onSlot: (entry: CacheEntry) => void }) {
   const cache = useGame((p) => p.cache);
   return (
-    <View style={[styles.cache, glass]} accessibilityLabel={`Cache: ${cache.length} von ${CACHE_SLOTS} belegt`}>
-      <Text style={styles.cacheTitle}>CACHE</Text>
+    <View style={[styles.cache, raised]} accessibilityLabel={`Cache: ${cache.length} von ${CACHE_SLOTS} belegt`}>
+      <Text style={styles.cacheTitle}>Cache</Text>
       {Array.from({ length: CACHE_SLOTS }).map((_, i) => {
         const e = cache[i];
         const q = e ? pool.byId.get(e.questionId) : undefined;
         const f = q?.fragments.find((x) => x.id === e?.fragmentId);
-        const color = q ? colors.sector[sectorOfArea(q.area)] : colors.line;
+        const color = q ? colors.sector[sectorOfArea(q.area)] : colors.dim;
         return (
           <Pressable
             key={i}
@@ -111,7 +113,7 @@ export function CacheBar({ onSlot }: { onSlot: (entry: CacheEntry) => void }) {
             }}
             accessibilityRole="button"
             accessibilityLabel={f ? `Cache-Platz ${i + 1}: ${f.hint}` : `Cache-Platz ${i + 1} leer`}
-            style={[styles.slot, f ? { borderColor: color, backgroundColor: color + '22' } : styles.slotEmpty]}
+            style={({ pressed }) => [styles.slot, sunken, pressed && { opacity: 0.8 }]}
           >
             <View style={styles.slotRow}>
               <Icon name={f ? 'folder' : 'folder-empty'} size={f ? 20 : 18} />
@@ -128,9 +130,10 @@ export function CacheBar({ onSlot }: { onSlot: (entry: CacheEntry) => void }) {
   );
 }
 
+/** The taskbar: grey, with raised buttons. */
 export function Dock({ items }: { items: { label: string; icon: IconName; onPress: () => void; tint?: string }[] }) {
   return (
-    <View style={[styles.dock, glass]}>
+    <View style={[styles.dock, raised]}>
       {items.map((it) => (
         <Pressable
           key={it.label}
@@ -140,10 +143,10 @@ export function Dock({ items }: { items: { label: string; icon: IconName; onPres
           }}
           accessibilityRole="button"
           accessibilityLabel={it.label}
-          style={({ pressed }) => [styles.dockItem, pressed && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+          style={({ pressed }) => [styles.dockItem, raised, pressed && pressedIn]}
         >
-          <Icon name={it.icon} size={26} />
-          <Text style={[styles.dockLabel, it.tint ? { color: it.tint } : null]}>{it.label}</Text>
+          <Icon name={it.icon} size={22} />
+          <Text style={styles.dockLabel}>{it.label}</Text>
         </Pressable>
       ))}
     </View>
@@ -151,45 +154,18 @@ export function Dock({ items }: { items: { label: string; icon: IconName; onPres
 }
 
 const styles = StyleSheet.create({
-  hud: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 22,
-  },
-  level: { flex: 1, minWidth: 52, gap: 4 },
-  levelNum: { color: colors.primary, fontWeight: '900', fontSize: 14, letterSpacing: 0.4 },
-  levelBar: { height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
-  levelFill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statIcon: { fontSize: 12 },
-  statValue: { color: colors.text, fontWeight: '900', fontSize: 14 },
-  cache: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 18,
-  },
-  cacheTitle: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginRight: 2 },
-  slot: {
-    flex: 1,
-    height: 36,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  slotEmpty: { borderColor: colors.line, borderStyle: 'dashed', borderBottomWidth: 2 },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 3 },
+  pane: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1 },
+  level: { color: colors.text, fontWeight: '900', fontSize: 12 },
+  segments: { flexDirection: 'row', gap: 1, flex: 1 },
+  segment: { flex: 1, height: 9, backgroundColor: '#1A2430' },
+  statValue: { color: colors.text, fontWeight: '900', fontSize: 13 },
+  cache: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 3 },
+  cacheTitle: { color: WIN.text, fontSize: 12, fontWeight: '800', marginHorizontal: 4 },
+  slot: { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1 },
   slotRow: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '100%' },
-  slotText: { color: colors.dim, fontSize: 12, fontWeight: '800' },
-  dock: { flexDirection: 'row', borderRadius: 24, padding: 5, gap: 4 },
-  dockItem: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 18, gap: 1 },
-  dockIcon: { fontSize: 20 },
-  dockLabel: { color: colors.text, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
+  slotText: { fontSize: 12, fontWeight: '800' },
+  dock: { flexDirection: 'row', gap: 4, padding: 3 },
+  dockItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
+  dockLabel: { color: WIN.text, fontSize: 13, fontWeight: '700' },
 });

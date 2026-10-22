@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bolt, type Mood } from '../src/components/Bolt';
 import { Morph } from '../src/components/Morph';
 import { Button, Card, H1, P } from '../src/components/ui';
+import { sunken } from '../src/components/Win';
 import { update } from '../src/state/store';
 import { colors } from '../src/theme';
 
@@ -159,12 +160,8 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', paddingVertical: 8 },
   speaker: { color: colors.accent, fontWeight: '900', marginBottom: 6, letterSpacing: 0.5 },
   input: {
-    backgroundColor: colors.panel,
-    borderColor: colors.line,
-    borderWidth: 2,
-    borderBottomWidth: 4,
+    ...sunken,
     color: colors.text,
-    borderRadius: 16,
     padding: 14,
     fontSize: 17,
     fontWeight: '700',
@@ -173,11 +170,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.panel,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: colors.line,
+    ...sunken,
     padding: 14,
   },
   consentTitle: { color: colors.text, fontWeight: '900', marginBottom: 2 },

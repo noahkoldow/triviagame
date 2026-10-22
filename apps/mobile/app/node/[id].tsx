@@ -20,6 +20,7 @@ import {
 } from '@nexus/shared';
 import { Bolt } from '../../src/components/Bolt';
 import { Icon } from '../../src/components/Icon';
+import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
 import { Morph } from '../../src/components/Morph';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { ads } from '../../src/services/ads';
@@ -218,9 +219,9 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         accessibilityRole="button"
         accessibilityLabel="Zurück zum Netz"
         hitSlop={12}
-        style={styles.close}
+        style={({ pressed }) => [styles.close, raised, pressed && pressedIn]}
       >
-        <Icon name="close" size={20} color={colors.dim} />
+        <Icon name="close" size={14} color={WIN.black} />
       </Pressable>
       <View style={styles.headerPills}>
         <Pill label={areaById(q.area).de} color={color} />
@@ -264,7 +265,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                   accessibilityState={{ selected: choice === i }}
                   style={[
                     styles.option,
-                    choice === i && { borderColor: colors.accent, backgroundColor: colors.accent + '26' },
+                    choice === i && { backgroundColor: WIN.titleA },
                   ]}
                 >
                   <Text style={styles.optionText}>{o}</Text>
@@ -303,7 +304,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                     }}
                     style={[
                       styles.option,
-                      idx >= 0 && { borderColor: colors.accent, backgroundColor: colors.accent + '26' },
+                      idx >= 0 && { backgroundColor: WIN.titleA },
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={idx >= 0 ? `${it}, Platz ${idx + 1}` : it}
@@ -494,17 +495,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   headerPills: { flexDirection: 'row', gap: 6 },
-  close: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  close: { width: 34, height: 30, alignItems: 'center', justifyContent: 'center' },
   closeGlyph: { color: colors.dim, fontSize: 18, fontWeight: '900' },
   body: { padding: 16, gap: 14 },
   cacheRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
@@ -550,23 +541,15 @@ const styles = StyleSheet.create({
   lock: { color: colors.dim, fontWeight: '700' },
   stem: { color: colors.text, fontSize: 21, fontWeight: '800', lineHeight: 29 },
   option: {
-    backgroundColor: colors.panel,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    borderColor: colors.line,
+    ...sunken,
     padding: 14,
     minHeight: 56,
     justifyContent: 'center',
   },
   optionText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   input: {
-    backgroundColor: colors.panel,
-    borderColor: colors.line,
-    borderWidth: 2,
-    borderBottomWidth: 4,
+    ...sunken,
     color: colors.text,
-    borderRadius: 16,
     padding: 14,
     fontSize: 18,
   },
