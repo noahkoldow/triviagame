@@ -23,6 +23,8 @@ import {
 } from 'react-native-reanimated';
 import {
   areaById,
+  areasOfSector,
+  type Firewall,
   type Outpost,
   sectorOfArea,
   snapToHex,
@@ -48,6 +50,7 @@ import {
   NODE_DEPTH,
   NODE_R,
   NodeTile,
+  FirewallTile,
   OutpostTile,
   ShardTile,
   SiteTile,
@@ -72,6 +75,9 @@ interface Props {
   /** Disturbed areas still to be connected. */
   outposts?: Outpost[];
   onOutpost?: (id: string) => void;
+  /** Bosses on the borders between sectors. */
+  firewalls?: Firewall[];
+  onFirewall?: (id: string) => void;
   /** Debris field of the node the player is currently scavenging. */
   debris?: { nodeId: string; center: { x: number; y: number }; color: string; shards: Shard[] };
   onShard?: (fragmentId: string) => void;
@@ -95,6 +101,8 @@ function NetMapBase({
   showStrand = false,
   outposts = [],
   onOutpost,
+  firewalls = [],
+  onFirewall,
   debris,
   onShard,
   onDismiss,
@@ -172,8 +180,15 @@ function NetMapBase({
         state: 'locked',
         noise: true,
       }));
-    return [...real, ...far, ...strand];
-  }, [placed, pool, strand, outposts]);
+    const walls = firewalls.map<Site>((f) => ({
+      id: f.id,
+      ...snapToHex(f.x, f.y),
+      area: areasOfSector(f.a)[0]!.id,
+      sector: f.a,
+      state: 'locked',
+    }));
+    return [...real, ...far, ...walls, ...strand];
+  }, [placed, pool, strand, outposts, firewalls]);
 
   const edges = useMemo<TraceEdge[]>(() => {
     const out: TraceEdge[] = [];
@@ -245,6 +260,11 @@ function NetMapBase({
   );
   const outpostsRef = useRef(openOutposts);
   outpostsRef.current = openOutposts;
+  const onFirewallRef = useRef(onFirewall);
+  onFirewallRef.current = onFirewall;
+  const wallPlaces = useMemo(() => firewalls.map((f) => ({ id: f.id, ...snapToHex(f.x, f.y) })), [firewalls]);
+  const wallsRef = useRef(wallPlaces);
+  wallsRef.current = wallPlaces;
   const shardsRef = useRef<Shard[]>([]);
   shardsRef.current = debris?.shards ?? [];
 
@@ -344,6 +364,13 @@ function NetMapBase({
               return;
             }
           }
+          for (const f of wallsRef.current) {
+            const p = project(x, y, s, w, h, f.x, f.y, NODE_DEPTH + 6);
+            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(36, NODE_R * s + 8)) {
+              onFirewallRef.current?.(f.id);
+              return;
+            }
+          }
           let best: NetNode | null = null;
           let bd = Infinity;
           for (const n of nodesRef.current) {
@@ -408,7 +435,18 @@ function NetMapBase({
 
   // things standing on the map, back to front
   const stack = useMemo(() => {
-    const list: { y: number; node?: NetNode; shard?: Shard; site?: Site; outpost?: { id: string; x: number; y: number; area: string } }[] = [
+    const list: {
+      y: number;
+      node?: NetNode;
+      shard?: Shard;
+      site?: Site;
+      outpost?: { id: string; x: number; y: number; area: string };
+      wall?: { id: string; x: number; y: number; broken: boolean; a: string; b: string };
+    }[] = [
+      ...firewalls.map((f) => {
+        const p = snapToHex(f.x, f.y);
+        return { y: p.y, wall: { id: f.id, x: p.x, y: p.y, broken: f.broken, a: f.a, b: f.b } };
+      }),
       ...outposts
         .filter((o) => !o.connected)
         .map((o) => ({ ...o, ...snapToHex(o.x, o.y) }))
@@ -417,7 +455,7 @@ function NetMapBase({
       ...strand.map((s) => ({ y: s.y, site: s })),
     ];
     return list.sort((a, b) => a.y - b.y);
-  }, [placed, strand, debris?.nodeId, outposts]);
+  }, [placed, strand, debris?.nodeId, outposts, firewalls]);
 
   const focusStack = useMemo(() => {
     const list: { y: number; node?: NetNode; shard?: Shard }[] = [
@@ -487,7 +525,9 @@ function NetMapBase({
 
           <CoreTile />
           {stack.map((b) =>
-            b.outpost ? (
+            b.wall ? (
+              <FirewallTile key={`w-${b.wall.id}`} x={b.wall.x} y={b.wall.y} broken={b.wall.broken} label="Firewall" font={font} />
+            ) : b.outpost ? (
               <OutpostTile
                 key={`o-${b.outpost.id}`}
                 x={b.outpost.x}

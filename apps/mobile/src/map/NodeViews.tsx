@@ -385,6 +385,60 @@ function OutpostTileBase({
   );
 }
 
+const brickPath = unitPath((p) => {
+  const brick = (x0: number, y0: number, x1: number, y1: number) => {
+    p.moveTo(x0, y0);
+    p.lineTo(x1, y0);
+    p.lineTo(x1, y1);
+    p.lineTo(x0, y1);
+    p.close();
+  };
+  brick(-0.95, -0.85, -0.05, -0.4);
+  brick(0.05, -0.85, 0.95, -0.4);
+  brick(-0.95, -0.3, -0.5, 0.15);
+  brick(-0.4, -0.3, 0.5, 0.15);
+  brick(0.6, -0.3, 0.95, 0.15);
+  brick(-0.95, 0.25, -0.05, 0.7);
+  brick(0.05, 0.25, 0.95, 0.7);
+});
+
+/** A firewall: a brick-red hexagon wall on the border of two sectors; green and open once broken. */
+function FirewallTileBase({
+  x,
+  y,
+  broken,
+  label,
+  font,
+}: {
+  x: number;
+  y: number;
+  broken: boolean;
+  label: string;
+  font: SkFont;
+}) {
+  const face = broken ? colors.primary : '#E0452B';
+  const lw = font.getTextWidth(label);
+  return (
+    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
+      <Group transform={[{ translateY: 3 }]} opacity={0.5}>
+        <Path path={NODE.top} color="#02060C" />
+      </Group>
+      <Group transform={[{ translateY: -NODE_DEPTH - 6 }]}>
+        <Solid parts={NODE} face={face} edge={shade(face, 0.42)} />
+        <Group transform={[{ translateY: -2 }, { scale: NODE_R * 0.36 }]}>
+          {broken ? (
+            <Path path={checkPath} style="stroke" strokeWidth={0.36} strokeCap="round" strokeJoin="round" color="#FFFFFF" />
+          ) : (
+            <Path path={brickPath} color="#FFFFFF" />
+          )}
+        </Group>
+      </Group>
+      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
+      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color={broken ? '#CFF5A8' : '#FFD2C8'} />
+    </Group>
+  );
+}
+
 export interface Shard {
   id: string;
   x: number;
@@ -435,3 +489,5 @@ export const SiteTile = memo(SiteTileBase);
 export const CoreTile = memo(CoreTileBase);
 export const OutpostTile = memo(OutpostTileBase);
 export const ShardTile = memo(ShardTileBase);
+
+export const FirewallTile = memo(FirewallTileBase);

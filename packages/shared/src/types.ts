@@ -91,6 +91,8 @@ export interface NetworkState {
   nodes: Record<string, NetNode>;
   /** Disturbed topic areas scattered on the map; see `outposts.ts`. */
   outposts?: import('./outposts').Outpost[];
+  /** Bosses on the borders between sectors; see `boss.ts`. */
+  firewalls?: import('./boss').Firewall[];
   /** Question ids already used by a node (solved or open). */
   usedQuestions: string[];
 }

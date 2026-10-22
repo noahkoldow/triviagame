@@ -37,6 +37,7 @@ export async function hydrate(): Promise<void> {
         network: saved.network?.nodes
           ? {
               ...saved.network,
+              firewalls: saved.network.firewalls ?? base.network.firewalls,
               // saves from before outposts: areas that were already bought count as connected
               outposts:
                 saved.network.outposts ??

@@ -1,3 +1,4 @@
+import { BOSS_PASS, BOSS_REWARD, type BossOutcome } from './boss';
 import type { CacheEntry } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
@@ -24,6 +25,7 @@ import { seededRng } from './rng';
 import { BASE_SKILL, updateSkill, type SkillMap } from './skill';
 import { isDue } from './srs';
 import { ROOT_QUESTIONS } from './content';
+import { sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Sector } from './types';
 
 export interface PlayerProfile {
@@ -111,6 +113,56 @@ export function ctxFor(p: PlayerState, pool: Pool, seed: string): SpawnContext {
     interest: p.interest,
     rng: seededRng(seed),
   };
+}
+
+/**
+ * The result of a firewall fight. With enough right answers the firewall breaks: a reward,
+ * and a new zone opens (the nearest disturbed outpost of each of the two sectors is connected).
+ * Otherwise the network loses one integrity and the next fight draws new questions.
+ */
+export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, correct: number): BossOutcome {
+  const fw = p.network.firewalls?.find((f) => f.id === firewallId);
+  if (!fw || fw.broken) return { player: p, passed: false, spawned: [], areas: [] };
+  const passed = correct >= BOSS_PASS;
+  const firewalls = p.network.firewalls!.map((f) =>
+    f.id === firewallId ? { ...f, broken: passed, attempts: passed ? f.attempts : f.attempts + 1 } : f,
+  );
+  let player: PlayerState = { ...p, network: { ...p.network, firewalls } };
+  if (!passed) {
+    return {
+      player: { ...player, integrity: Math.max(0, p.integrity - 1), stats: { ...p.stats, wrong: p.stats.wrong + 1 } },
+      passed: false,
+      spawned: [],
+      areas: [],
+    };
+  }
+  player = {
+    ...player,
+    xp: p.xp + BOSS_REWARD.xp,
+    bits: p.bits + BOSS_REWARD.bits,
+    gems: p.gems + BOSS_REWARD.gems,
+  };
+  const spawned: string[] = [];
+  const areas: string[] = [];
+  for (const sector of [fw.a, fw.b]) {
+    let best: { id: string; area: string } | undefined;
+    let bd = Infinity;
+    for (const o of player.network.outposts ?? []) {
+      if (o.connected || sectorOfArea(o.area) !== sector) continue;
+      const d = Math.hypot(o.x - fw.x, o.y - fw.y);
+      if (d < bd) {
+        bd = d;
+        best = o;
+      }
+    }
+    if (!best) continue;
+    const unlocked = player.unlockedAreas.includes(best.area) ? player.unlockedAreas : [...player.unlockedAreas, best.area];
+    const c = connectOutpost(player.network, best.id, undefined, ctxFor({ ...player, unlockedAreas: unlocked }, pool, `boss:${firewallId}:${best.id}`));
+    player = { ...player, network: c.state, unlockedAreas: unlocked };
+    areas.push(best.area);
+    if (c.node) spawned.push(c.node.id);
+  }
+  return { player, passed: true, spawned, areas };
 }
 
 /** Connects every outpost that the new nodes reached and opens its area. */

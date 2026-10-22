@@ -1,3 +1,4 @@
+import { createFirewalls } from './boss';
 import { initialUnlockedAreas } from './monetization';
 import { pickArea, type InterestMap } from './interest';
 import { OUTPOST_REACH, areaDistance, createOutposts, steerTarget } from './outposts';
@@ -38,7 +39,12 @@ export function createNetwork(pool: Pool, roots: Record<Sector, string>): Networ
     };
     used.push(q.id);
   });
-  return { nodes, usedQuestions: used, outposts: createOutposts(initialUnlockedAreas()) };
+  return {
+    nodes,
+    usedQuestions: used,
+    outposts: createOutposts(initialUnlockedAreas()),
+    firewalls: createFirewalls(),
+  };
 }
 
 export interface SpawnContext {

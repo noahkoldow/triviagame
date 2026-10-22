@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  BOSS_PASS,
+  BOSS_QUESTIONS,
+  BOSS_REWARD,
   CACHE_SLOTS,
   DEBRIS_COST,
   HEAL_COST,
@@ -45,6 +48,7 @@ export default function Home() {
   const cache = useGame((p) => p.cache);
   const gems = useGame((p) => p.gems);
   const outposts = network.outposts ?? [];
+  const firewalls = network.firewalls ?? [];
   const integrity = useGame((p) => p.integrity);
   const spent = useGame((p) => p.spent);
   const name = useGame((p) => p.profile.name);
@@ -60,6 +64,7 @@ export default function Home() {
   const [unstable, setUnstable] = useState(false);
   const [outpostId, setOutpostId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [firewallId, setFirewallId] = useState<string | null>(null);
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
   const due = dueReviews(getState(), today());
@@ -147,6 +152,7 @@ export default function Home() {
       )
     : 0;
   const outpostCost = outpost ? areaCost(outpost.area) : 0;
+  const firewall = firewallId ? firewalls.find((f) => f.id === firewallId) : undefined;
 
   const debrisProp = useMemo(
     () =>
@@ -197,6 +203,11 @@ export default function Home() {
         focusZoom={debrisId ? 1.15 : undefined}
         focusLift={debrisId ? 0.25 : 0}
         outposts={outposts}
+        firewalls={firewalls}
+        onFirewall={(id) => {
+          tap();
+          setFirewallId(id);
+        }}
         onOutpost={(id) => {
           tap();
           setOutpostId(id);
@@ -388,6 +399,19 @@ export default function Home() {
                     }}
                   />
                 ))}
+              {firewalls
+                .filter((f) => !f.broken)
+                .map((f) => (
+                  <Button
+                    key={f.id}
+                    variant="ghost"
+                    label={`Firewall: ${de.sectors[f.a]} × ${de.sectors[f.b]}`}
+                    onPress={() => {
+                      setListOpen(false);
+                      setFirewallId(f.id);
+                    }}
+                  />
+                ))}
               {outposts
                 .filter((o) => !o.connected)
                 .map((o) => (
@@ -403,6 +427,45 @@ export default function Home() {
                 ))}
             </ScrollView>
             <Button label="Schließen" onPress={() => setListOpen(false)} />
+          </Dialog>
+        </Pressable>
+      </Modal>
+
+      {/* a firewall (boss) */}
+      <Modal transparent animationType="fade" visible={!!firewall} onRequestClose={() => setFirewallId(null)}>
+        <Pressable style={styles.center} onPress={() => setFirewallId(null)}>
+          <Dialog title="Firewall" icon="warn" onClose={() => setFirewallId(null)}>
+            {firewall ? (
+              <>
+                <Text style={styles.topic}>
+                  {de.sectors[firewall.a]} × {de.sectors[firewall.b]}
+                </Text>
+                {firewall.broken ? (
+                  <Text style={styles.fragText}>Diese Firewall ist gebrochen. Dahinter liegt die neue Zone.</Text>
+                ) : (
+                  <>
+                    <Text style={styles.fragText}>
+                      MORPH hat hier eine Firewall errichtet. Um sie zu brechen, beantwortest du {BOSS_QUESTIONS} Fragen, je
+                      zur Hälfte aus beiden Sektoren. {BOSS_PASS} müssen stimmen. Es gibt keinen Cache, nur dein Wissen.
+                    </Text>
+                    <Text style={styles.cardSub}>
+                      Belohnung: {BOSS_REWARD.gems} Gems, {BOSS_REWARD.bits} Bits, {BOSS_REWARD.xp} XP und je ein Außenposten dieser beiden
+                      Sektoren wird verbunden.
+                    </Text>
+                    <Button
+                      label={integrity === 0 ? 'Netz instabil' : 'Angreifen'}
+                      disabled={integrity === 0}
+                      onPress={() => {
+                        const id = firewall.id;
+                        setFirewallId(null);
+                        router.push({ pathname: '/boss/[id]', params: { id } });
+                      }}
+                    />
+                  </>
+                )}
+                <Button label="Schließen" variant="ghost" onPress={() => setFirewallId(null)} />
+              </>
+            ) : null}
           </Dialog>
         </Pressable>
       </Modal>
