@@ -1,11 +1,14 @@
 import {
+  Atlas,
   Canvas,
   Circle,
+  DashPathEffect,
   Group,
   LinearGradient,
   matchFont,
   Path,
   Rect,
+  Skia,
   vec,
 } from '@shopify/react-native-skia';
 import { useEffect, useMemo, useRef } from 'react';
@@ -17,39 +20,37 @@ import {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { areaById, sectorOfArea, type NetNode, type Pool, type Sector } from '@nexus/shared';
+import {
+  areaById,
+  sectorOfArea,
+  snapToHex,
+  type NetNode,
+  type Pool,
+  type Sector,
+} from '@nexus/shared';
 import { colors, mix } from '../theme';
 import {
   MAX_ZOOM,
   MIN_ZOOM,
-  cameraMatrix,
+  SQUASH,
+  cameraTransform,
   clampCenter,
   dragToWorld,
-  projectBillboard,
+  project,
 } from './camera';
+import { LIFT, makeHexAtlas } from './hexAtlas';
+import { buildHexScene, ghostColor, type TraceEdge } from './hexmap';
 import {
-  CoreBeam,
-  CoreView,
-  EdgeView,
-  NodeBillboard,
-  NodeGround,
-  ShardBillboard,
-  ShardGround,
-  SiteBillboard,
-  nodeRadius,
-  orbHeight,
+  CoreTile,
+  NODE_DEPTH,
+  NODE_R,
+  NodeTile,
+  ShardTile,
+  SiteTile,
   type NodeInfo,
   type Shard,
 } from './NodeViews';
-import {
-  buildClouds,
-  buildLand,
-  buildProps,
-  buildStrand,
-  siteRadius,
-  type Disc,
-  type Site,
-} from './scenery';
+import { buildStrand, type Site } from './scenery';
 
 interface Props {
   nodes: NetNode[];
@@ -69,9 +70,6 @@ interface Props {
 }
 
 const SECTOR_COLOR = colors.sector;
-/** Number of stacked slices that make the cliff wall below the land. */
-const WALL_SLICES = 9;
-const SLICE = 4.5;
 
 export function NetMap({
   nodes,
@@ -89,23 +87,28 @@ export function NetMap({
 }: Props) {
   const cx = useSharedValue(0);
   const cy = useSharedValue(0);
-  const zoom = useSharedValue(0.7);
+  const zoom = useSharedValue(0.9);
   const pulse = useSharedValue(0);
-  const drift = useSharedValue(0);
 
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, true);
-    drift.value = withRepeat(withTiming(1, { duration: 50000, easing: Easing.linear }), -1, true);
-  }, [pulse, drift]);
+  }, [pulse]);
 
   const strand = useMemo(() => (showStrand ? buildStrand() : []), [showStrand]);
   const family = Platform.select({ ios: 'Helvetica', default: 'sans-serif' }) as string;
   const font = useMemo(() => matchFont({ fontFamily: family, fontSize: 13, fontWeight: '800' }), [family]);
-  const chipFont = useMemo(() => matchFont({ fontFamily: family, fontSize: 12, fontWeight: '800' }), [family]);
+  const atlas = useMemo(() => makeHexAtlas(), []);
+
+  // every node sits on a hexagon cell
+  const placed = useMemo(
+    () => nodes.map((n) => ({ ...n, pos: { ...n.pos, ...snapToHex(n.pos.x, n.pos.y) } })),
+    [nodes],
+  );
+  const byId = useMemo(() => Object.fromEntries(placed.map((n) => [n.id, n])), [placed]);
 
   const infos = useMemo(() => {
     const out: Record<string, NodeInfo> = {};
-    for (const n of nodes) {
+    for (const n of placed) {
       const q = pool.get(n.questionId);
       const sector = sectorOfArea(q.area);
       const color = SECTOR_COLOR[sector];
@@ -116,13 +119,10 @@ export function NetMap({
       out[n.id] = { node: n, color, ring, label: areaById(q.area).de, sector };
     }
     return out;
-  }, [nodes, pool]);
+  }, [placed, pool]);
 
-  const nodeList = useMemo(() => nodes.filter((n) => infos[n.id]), [nodes, infos]);
-
-  // places that get land and scenery
   const sites = useMemo<Site[]>(() => {
-    const real = nodeList.map<Site>((n) => {
+    const real = placed.map<Site>((n) => {
       const area = pool.get(n.questionId).area;
       return {
         id: n.id,
@@ -134,24 +134,52 @@ export function NetMap({
       };
     });
     return [...real, ...strand];
-  }, [nodeList, pool, strand]);
+  }, [placed, pool, strand]);
 
-  const land = useMemo(() => buildLand(sites), [sites]);
-  const props = useMemo(() => buildProps(sites), [sites]);
-  const discs = useMemo<Disc[]>(
-    () => [{ x: 0, y: 0, r: 330 }, ...sites.map((s) => ({ x: s.x, y: s.y, r: siteRadius(s) }))],
-    [sites],
-  );
-  // clouds far below the island, and mist drifting above the unexplored
-  const deepClouds = useMemo(() => buildClouds(discs, 70, 'deep', 380, 3400), [discs]);
-  const mist = useMemo(() => buildClouds(discs, 26, 'mist', 520, 2600), [discs]);
+  const edges = useMemo<TraceEdge[]>(() => {
+    const out: TraceEdge[] = [];
+    for (const n of placed) {
+      const info = infos[n.id]!;
+      const lit = !n.locked && n.state !== 'open';
+      const from = n.parentId ? byId[n.parentId]?.pos : { x: 0, y: 0 };
+      if (from) out.push({ from, to: n.pos, sector: info.sector, lit });
+    }
+    strand.forEach((s, i) => {
+      const from = i === 0 ? { x: 0, y: 0 } : strand[i - 1]!;
+      out.push({ from, to: s, sector: s.sector, lit: false });
+    });
+    return out;
+  }, [placed, infos, byId, strand]);
+
+  const scene = useMemo(() => buildHexScene(sites, edges), [sites, edges]);
+
+  // --- atlas instances (built once per scene; drawing them is one GPU call) ---
+  const tileDraw = useMemo(() => {
+    if (!atlas) return null;
+    return {
+      sprites: scene.tiles.map((t) => atlas.rects[t.level]!),
+      transforms: scene.tiles.map((t) =>
+        Skia.RSXform(1, 0, t.x - atlas.anchorX, t.y * SQUASH - LIFT[t.level]! - atlas.anchorY),
+      ),
+      colors: scene.tiles.map((t) => Skia.Color(t.color)),
+    };
+  }, [atlas, scene.tiles]);
+  const ghostDraw = useMemo(() => {
+    if (!atlas) return null;
+    const outline = atlas.rects[atlas.rects.length - 1]!;
+    return {
+      sprites: scene.ghosts.map(() => outline),
+      transforms: scene.ghosts.map((g) => Skia.RSXform(1, 0, g.x - atlas.anchorX, g.y * SQUASH - atlas.anchorY)),
+      colors: scene.ghosts.map((g) => Skia.Color(ghostColor(g.band))),
+    };
+  }, [atlas, scene.ghosts]);
 
   // --- camera -------------------------------------------------------------
-  const cam = useRef({ cx: 0, cy: 0, s: 0.7 });
+  const cam = useRef({ cx: 0, cy: 0, s: 0.9 });
   const sizeRef = useRef({ width, height });
   sizeRef.current = { width, height };
-  const nodesRef = useRef(nodeList);
-  nodesRef.current = nodeList;
+  const nodesRef = useRef(placed);
+  nodesRef.current = placed;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const onShardRef = useRef(onShard);
@@ -170,11 +198,11 @@ export function NetMap({
     if (!focusId) return;
     const n = nodesRef.current.find((x) => x.id === focusId);
     if (!n) return;
-    const s = focusZoom ?? Math.max(cam.current.s, 0.9);
+    const s = focusZoom ?? Math.max(cam.current.s, 1.1);
     cam.current = { cx: n.pos.x, cy: n.pos.y, s };
-    cx.value = withTiming(n.pos.x, { duration: 500 });
-    cy.value = withTiming(n.pos.y, { duration: 500 });
-    zoom.value = withTiming(s, { duration: 500 });
+    cx.value = withTiming(n.pos.x, { duration: 450 });
+    cy.value = withTiming(n.pos.y, { duration: 450 });
+    zoom.value = withTiming(s, { duration: 450 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey]);
 
@@ -222,7 +250,7 @@ export function NetMap({
           let sBest: Shard | null = null;
           let sd = Infinity;
           for (const sh of shardsRef.current) {
-            const p = projectBillboard(x, y, s, w, h, sh.x, sh.y, 40);
+            const p = project(x, y, s, w, h, sh.x, sh.y, 40);
             const d = Math.hypot(p.x - tx, p.y - ty);
             if (d < sd) {
               sd = d;
@@ -236,160 +264,93 @@ export function NetMap({
           let best: NetNode | null = null;
           let bd = Infinity;
           for (const n of nodesRef.current) {
-            const p = projectBillboard(x, y, s, w, h, n.pos.x, n.pos.y, orbHeight(n.pos.z));
+            const p = project(x, y, s, w, h, n.pos.x, n.pos.y, NODE_DEPTH);
             const d = Math.hypot(p.x - tx, p.y - ty);
             if (d < bd) {
               bd = d;
               best = n;
             }
           }
-          if (best && bd <= Math.max(36, nodeRadius(best.pos.z) * s + 16)) onSelectRef.current(best.id);
+          if (best && bd <= Math.max(36, NODE_R * s + 8)) onSelectRef.current(best.id);
         },
       });
     })(),
   ).current;
 
-  // --- layers: every layer is the same camera, lifted along the world's up axis,
-  // so the parallax between them comes from the perspective, not from a trick.
-  const ground = useDerivedValue(() => cameraMatrix(cx.value, cy.value, zoom.value, width, height));
-  const deep = useDerivedValue(() => cameraMatrix(cx.value, cy.value, zoom.value, width, height, -190));
-  const mistM = useDerivedValue(() =>
-    cameraMatrix(cx.value + (drift.value - 0.5) * 600, cy.value, zoom.value, width, height, 70),
-  );
+  const transform = useDerivedValue(() => cameraTransform(cx.value, cy.value, zoom.value, width, height));
 
-  const billboards = useMemo(() => {
-    const list: { y: number; node?: NetNode; site?: Site; shard?: Shard }[] = [
-      ...nodeList.map((n) => ({ y: n.pos.y, node: n })),
+  // things standing on the map, back to front
+  const stack = useMemo(() => {
+    const list: { y: number; node?: NetNode; shard?: Shard; site?: Site }[] = [
+      ...placed.map((n) => ({ y: n.pos.y, node: n })),
       ...strand.map((s) => ({ y: s.y, site: s })),
       ...(debris?.shards ?? []).map((sh) => ({ y: sh.y, shard: sh })),
     ];
     return list.sort((a, b) => a.y - b.y);
-  }, [nodeList, strand, debris]);
-
-  const edges = nodeList.filter((n) => n.parentId && infos[n.parentId]);
+  }, [placed, strand, debris]);
 
   return (
     <View
       style={{ width, height, backgroundColor: colors.bg }}
       {...responder.panHandlers}
       accessible
-      accessibilityLabel="Netzkarte in 3D. Ziehen zum Verschieben, zwei Finger zum Zoomen, Knoten antippen."
+      accessibilityLabel="Netzkarte. Ziehen zum Verschieben, zwei Finger zum Zoomen, Knoten antippen."
     >
       <Canvas style={{ width, height }} pointerEvents="none">
-        {/* sky: deep blue above, a bright glow at the horizon */}
         <Rect x={0} y={0} width={width} height={height}>
-          <LinearGradient
-            start={vec(0, 0)}
-            end={vec(0, height)}
-            colors={['#102A43', '#1D5A86', '#58B7E0', '#A9E3F5']}
-            positions={[0, 0.3, 0.55, 1]}
-          />
+          <LinearGradient start={vec(0, 0)} end={vec(0, height)} colors={['#050A14', '#0A1424', '#0C182B']} />
         </Rect>
 
-        {/* far clouds, deep below the island */}
-        <Group matrix={deep}>
-          <Path path={deepClouds.shade} color="#7DB6D8" />
-          <Path path={deepClouds.light} color="#E8F6FF" opacity={0.95} />
-        </Group>
-
-        <Group matrix={ground}>
-          {/* cliff: stacked slices of the land, each a little lower and darker */}
-          {Array.from({ length: WALL_SLICES }, (_, i) => WALL_SLICES - i).map((k) => (
-            <Group key={`w${k}`} transform={[{ translateZ: -k * SLICE }]}>
-              {land.walls.map((w) => (
-                <Path key={w.color} path={w.path} color={w.color} />
-              ))}
-            </Group>
-          ))}
-          {/* surface with a light rim */}
-          {land.rims.map((r) => (
-            <Path key={`r${r.color}`} path={r.path} color={r.color} />
-          ))}
-          {land.tops.map((t) => (
-            <Path key={`t${t.color}`} path={t.path} color={t.color} />
-          ))}
-          {/* the core's circuit rings */}
-          {[130, 215, 290].map((r) => (
-            <Circle key={r} cx={0} cy={0} r={r} style="stroke" strokeWidth={3} color="#4A606C" opacity={0.55} />
-          ))}
-
-          {edges.map((n) => {
-            const p = infos[n.parentId!]!;
-            const c = infos[n.id]!;
-            return (
-              <EdgeView
-                key={`e-${n.id}`}
-                id={n.id}
-                from={p.node.pos}
-                to={n.pos}
-                c1={p.color}
-                c2={c.color}
-                alpha={n.state === 'open' ? (p.node.state !== 'open' ? 1 : 0.55) : 1}
-                dashed={n.state === 'open' || !!n.locked}
-              />
-            );
-          })}
-          {nodeList
-            .filter((n) => !n.parentId)
-            .map((n) => (
-              <EdgeView key={`core-${n.id}`} id={`core-${n.id}`} from={{ x: 0, y: 0 }} to={n.pos} c1={colors.accent} c2={infos[n.id]!.color} alpha={1} dashed={false} />
-            ))}
-          {strand.map((s, i) => (
-            <EdgeView
-              key={`se-${s.id}`}
-              id={`se-${s.id}`}
-              from={i === 0 ? { x: 0, y: 0 } : strand[i - 1]!}
-              to={s}
-              c1={i === 0 ? colors.accent : SECTOR_COLOR[strand[i - 1]!.sector]}
-              c2={SECTOR_COLOR[s.sector]}
-              alpha={0.8}
-              dashed
-            />
-          ))}
-
-          {/* scenery: little upright objects, merged into a few paths */}
-          {props.map((p) => (
-            <Path key={p.key} path={p.path} color={p.color} opacity={p.opacity} />
-          ))}
-
-          <CoreView />
-          {debris ? (
-            <Group>
-              <Circle cx={debris.center.x} cy={debris.center.y} r={150} color={debris.color} opacity={0.14} />
-              <Circle cx={debris.center.x} cy={debris.center.y} r={150} style="stroke" strokeWidth={4} color="#FFFFFF" opacity={0.55} />
-              {debris.shards.map((sh) => (
-                <ShardGround key={`sg-${sh.id}`} shard={sh} color={debris.color} />
-              ))}
-            </Group>
+        <Group transform={transform}>
+          {/* fog: faint outlines fading outward */}
+          {atlas && ghostDraw ? (
+            <Atlas image={atlas.image} sprites={ghostDraw.sprites} transforms={ghostDraw.transforms} colors={ghostDraw.colors} colorBlendMode="modulate" />
           ) : null}
-          {nodeList.map((n) => (
-            <NodeGround key={`g-${n.id}`} info={infos[n.id]!} pulse={pulse} highlighted={highlight.includes(n.id)} />
+          {/* land: all hexagon tiles in one call */}
+          {atlas && tileDraw ? (
+            <Atlas image={atlas.image} sprites={tileDraw.sprites} transforms={tileDraw.transforms} colors={tileDraw.colors} colorBlendMode="modulate" />
+          ) : null}
+
+          {/* circuit traces on top of the lit trace tiles */}
+          {scene.traces.map((t) => (
+            <Group key={t.color}>
+              <Path path={t.path} style="stroke" strokeWidth={6} strokeCap="round" strokeJoin="round" color={t.color} opacity={0.9} />
+              <Path path={t.path} style="stroke" strokeWidth={2} strokeCap="round" color="#FFFFFF" opacity={0.75}>
+                <DashPathEffect intervals={[2, 12]} />
+              </Path>
+            </Group>
           ))}
 
-          {/* upright things, far to near */}
-          <CoreBeam />
-          {billboards.map((b) =>
+          {debris ? (
+            <Circle cx={debris.center.x} cy={debris.center.y * SQUASH} r={120} style="stroke" strokeWidth={3} color={debris.color} opacity={0.6}>
+              <DashPathEffect intervals={[10, 9]} />
+            </Circle>
+          ) : null}
+
+          <CoreTile />
+          {stack.map((b) =>
             b.shard ? (
-              <ShardBillboard key={`sb-${b.shard.id}`} shard={b.shard} color={debris!.color} font={chipFont} />
+              <ShardTile key={`s-${b.shard.id}`} shard={b.shard} color={debris!.color} font={font} />
             ) : b.node ? (
-              <NodeBillboard key={`o-${b.node.id}`} info={infos[b.node.id]!} font={font} boldFont={font} />
+              <NodeTile
+                key={`n-${b.node.id}`}
+                info={infos[b.node.id]!}
+                pulse={pulse}
+                highlighted={highlight.includes(b.node.id)}
+                font={font}
+              />
             ) : (
-              <SiteBillboard key={`o-${b.site!.id}`} site={b.site!} color={SECTOR_COLOR[b.site!.sector]} font={chipFont} />
+              <SiteTile key={`p-${b.site!.id}`} x={b.site!.x} y={b.site!.y} color={SECTOR_COLOR[b.site!.sector]} />
             ),
           )}
         </Group>
 
-        {/* mist drifting over the unexplored: the fog */}
-        <Group matrix={mistM}>
-          <Path path={mist.light} color="#FFFFFF" opacity={0.42} />
-        </Group>
-
-        {/* atmosphere in screen space */}
-        <Rect x={0} y={0} width={width} height={height * 0.36}>
-          <LinearGradient start={vec(0, 0)} end={vec(0, height * 0.36)} colors={['#102A43E6', '#102A4300']} />
+        {/* soft edges of the screen */}
+        <Rect x={0} y={0} width={width} height={height * 0.3}>
+          <LinearGradient start={vec(0, 0)} end={vec(0, height * 0.3)} colors={['#050A14E6', '#050A1400']} />
         </Rect>
-        <Rect x={0} y={height * 0.8} width={width} height={height * 0.2}>
-          <LinearGradient start={vec(0, height * 0.8)} end={vec(0, height)} colors={['#13202400', '#132024DD']} />
+        <Rect x={0} y={height * 0.82} width={width} height={height * 0.18}>
+          <LinearGradient start={vec(0, height * 0.82)} end={vec(0, height)} colors={['#0C182B00', '#0C182BDD']} />
         </Rect>
       </Canvas>
     </View>

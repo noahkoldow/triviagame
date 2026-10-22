@@ -1,48 +1,29 @@
-import {
-  mapPoint3d,
-  multiply4,
-  processTransform3d,
-  scale as scale4,
-  type Matrix4,
-} from '@shopify/react-native-skia';
-
 /**
- * Tilted map camera. The world is a plane; it is scaled, tilted back by TILT
- * and viewed with perspective, so far regions shrink toward the horizon.
- * Everything is a worklet so it can run on the UI thread and in gesture code.
+ * Tilted map camera, oblique projection. The world is a plane viewed from
+ * above at an angle: y is squashed by `SQUASH`, heights lift things upward.
+ * All map geometry is built once in this "view space" (x, y·SQUASH − height),
+ * so panning and zooming is only a 2D translate + scale, which is cheap.
+ * Everything is a worklet so it can run on the UI thread.
  */
-export const TILT = 0.88; // rad, ~50°
-export const PERSPECTIVE = 3000;
+export const SQUASH = 0.62;
 /** Fraction of the screen height where the camera centre sits. */
-export const ANCHOR_Y = 0.64;
-export const MIN_ZOOM = 0.45;
-export const MAX_ZOOM = 1.5;
-/** The camera centre never leaves this radius (keeps all geometry in front of the camera). */
-export const WORLD_LIMIT = 2500;
+export const ANCHOR_Y = 0.55;
+export const MIN_ZOOM = 0.5;
+export const MAX_ZOOM = 2.2;
+/** The camera centre never leaves this radius. */
+export const WORLD_LIMIT = 2600;
 
-export function cameraMatrix(
-  cx: number,
-  cy: number,
-  s: number,
-  w: number,
-  h: number,
-  lift = 0,
-): Matrix4 {
+export function cameraTransform(cx: number, cy: number, s: number, w: number, h: number) {
   'worklet';
-  return processTransform3d([
-    { translateX: w / 2 },
-    { translateY: h * ANCHOR_Y },
-    { perspective: PERSPECTIVE },
-    { rotateX: TILT },
-    { matrix: scale4(s, s, s) },
-    { translateX: -cx },
-    { translateY: -cy },
-    { translateZ: lift },
-  ]);
+  return [
+    { translateX: w / 2 - cx * s },
+    { translateY: h * ANCHOR_Y - cy * SQUASH * s },
+    { scale: s },
+  ];
 }
 
-/** Screen position of a billboard standing `up` world units above ground point (x, y). */
-export function projectBillboard(
+/** Screen position of the point `up` world units above the ground point (x, y). */
+export function project(
   cx: number,
   cy: number,
   s: number,
@@ -50,21 +31,19 @@ export function projectBillboard(
   h: number,
   x: number,
   y: number,
-  up: number,
+  up = 0,
 ): { x: number; y: number } {
   'worklet';
-  const m = multiply4(
-    cameraMatrix(cx, cy, s, w, h),
-    processTransform3d([{ translateX: x }, { translateY: y }, { rotateX: -TILT }, { translateY: -up }]),
-  );
-  const p = mapPoint3d(m, [0, 0, 0]);
-  return { x: p[0], y: p[1] };
+  return {
+    x: w / 2 + (x - cx) * s,
+    y: h * ANCHOR_Y + (y * SQUASH - up - cy * SQUASH) * s,
+  };
 }
 
-/** Screen-space drag → world-space camera delta (approximation at the screen centre). */
+/** Screen-space drag → world-space camera delta. */
 export function dragToWorld(dx: number, dy: number, s: number): { x: number; y: number } {
   'worklet';
-  return { x: dx / s, y: dy / (s * Math.cos(TILT)) };
+  return { x: dx / s, y: dy / (s * SQUASH) };
 }
 
 export function clampCenter(x: number, y: number): { x: number; y: number } {

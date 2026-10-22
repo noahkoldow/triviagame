@@ -16,6 +16,12 @@ Spielbar in Expo Go (Mock-Daten):
 - Neues Karten-UI (HUD, Cache-Leiste, Dock). Interessen-Signal (`chooseNode`) ist jetzt verdrahtet.
 - **Ungeprüft auf Gerät:** Optik der Neigung, Nebel-Performance, Hit-Tests, Gesten.
 
+## Prototyp 0.3 (Hexagon-Chip-Karte)
+
+- Karte jetzt aus kleinen Hexagon-Kacheln im Chip-Look (D15); deutlich weniger Zeichenaufwand als die Perspektiv-Insel (D9–D14).
+- UI bleibt im Duolingo-Stil (dicke Kanten, kräftige Farben).
+- **Ungeprüft auf Gerät:** Performance und Optik der Karte.
+
 ## Verifiziert
 
 `pnpm typecheck`, `pnpm test`, `expo export --platform android` (Bundle baut). **Nicht** auf Gerät/Simulator gelaufen: Optik, Gesten und Haptik sind ungeprüft.

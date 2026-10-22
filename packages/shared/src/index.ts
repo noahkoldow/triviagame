@@ -13,3 +13,4 @@ export * from './network';
 export * from './content';
 export * from './game';
 export * from './cache';
+export * from './hex';

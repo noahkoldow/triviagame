@@ -15,6 +15,7 @@ import {
   debrisOffsets,
   dueReviews,
   openDebris,
+  snapToHex,
   sectorOfArea,
   type CacheEntry,
 } from '@nexus/shared';
@@ -85,10 +86,10 @@ export default function Home() {
   const shards = useMemo<Shard[]>(() => {
     if (!debrisQ || !debrisNode) return [];
     const offs = debrisOffsets(`${debrisNode.id}:${debrisNode.attempts}`, field.length);
+    const at = snapToHex(debrisNode.pos.x, debrisNode.pos.y);
     return field.map((f, i) => ({
       id: f.id,
-      x: debrisNode.pos.x + offs[i]!.x,
-      y: debrisNode.pos.y + offs[i]!.y,
+      ...snapToHex(at.x + offs[i]!.x, at.y + offs[i]!.y),
       rot: offs[i]!.rot,
       hint: f.hint,
       taken: cache.some((c) => c.questionId === debrisQ.id && c.fragmentId === f.id),
@@ -138,7 +139,7 @@ export default function Home() {
         focusZoom={debrisId ? 1.15 : undefined}
         debris={
           debrisNode
-            ? { center: { x: debrisNode.pos.x, y: debrisNode.pos.y }, color: debrisColor, shards }
+            ? { center: snapToHex(debrisNode.pos.x, debrisNode.pos.y), color: debrisColor, shards }
             : undefined
         }
         onShard={(id) => {

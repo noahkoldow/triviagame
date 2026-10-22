@@ -292,3 +292,32 @@ describe('network growth', () => {
     expect(r.spawned.length).toBeGreaterThan(0);
   });
 });
+
+import { HEX_R, hexDistance, hexLine, hexNeighbors, hexToWorld, snapToHex, worldToHex } from './hex';
+
+describe('hex grid', () => {
+  it('round-trips cells through world coordinates', () => {
+    for (const h of [{ q: 0, r: 0 }, { q: 3, r: -2 }, { q: -5, r: 4 }]) {
+      const w = hexToWorld(h);
+      expect(worldToHex(w.x, w.y)).toEqual(h);
+    }
+  });
+
+  it('snaps a point to a cell centre within one cell radius', () => {
+    const p = snapToHex(101, -57);
+    expect(Math.hypot(p.x - 101, p.y + 57)).toBeLessThanOrEqual(HEX_R);
+  });
+
+  it('has six neighbours at distance 1', () => {
+    const n = hexNeighbors({ q: 2, r: 2 });
+    expect(n).toHaveLength(6);
+    for (const c of n) expect(hexDistance({ q: 2, r: 2 }, c)).toBe(1);
+  });
+
+  it('draws a connected line of cells', () => {
+    const line = hexLine({ q: 0, r: 0 }, { q: 5, r: -3 });
+    expect(line[0]).toEqual({ q: 0, r: 0 });
+    expect(line[line.length - 1]).toEqual({ q: 5, r: -3 });
+    for (let i = 1; i < line.length; i++) expect(hexDistance(line[i - 1]!, line[i]!)).toBe(1);
+  });
+});
