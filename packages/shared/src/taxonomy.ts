@@ -11,10 +11,10 @@ export const SECTOR_ANGLE: Record<Sector, number> = {
 };
 
 export const SECTOR_COLOR: Record<Sector, string> = {
-  science: '#22D3EE',
-  nature: '#4ADE80',
-  culture: '#F472B6',
-  history: '#FBBF24',
+  science: '#1CB0F6',
+  nature: '#58CC02',
+  culture: '#CE82FF',
+  history: '#FFC800',
 };
 
 export interface Area {

@@ -8,7 +8,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { colors, radius } from '../theme';
+import { colors, radius, shade } from '../theme';
 
 export function tap(kind: 'light' | 'success' | 'error' = 'light') {
   if (kind === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -37,13 +37,14 @@ export function Button({
 }) {
   const bg =
     variant === 'primary'
-      ? colors.accent
+      ? colors.primary
       : variant === 'danger'
         ? colors.bad
         : variant === 'gem'
           ? colors.gem
-          : 'transparent';
-  const fg = variant === 'ghost' ? colors.text : '#04101A';
+          : colors.panel;
+  const edge = variant === 'ghost' ? colors.line : shade(bg, 0.32);
+  const fg = variant === 'ghost' ? colors.accent : '#FFFFFF';
   return (
     <Pressable
       accessibilityRole="button"
@@ -55,13 +56,19 @@ export function Button({
       }}
       style={({ pressed }) => [
         styles.btn,
-        { backgroundColor: bg, opacity: disabled ? 0.4 : pressed ? 0.8 : 1 },
-        variant === 'ghost' && { borderWidth: 1, borderColor: colors.line },
+        {
+          backgroundColor: disabled ? colors.line : bg,
+          borderBottomColor: disabled ? shade(colors.line) : edge,
+          borderColor: variant === 'ghost' ? colors.line : bg,
+        },
+        // pressed: the thick edge shrinks, so the button looks pushed in
+        pressed && { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+        disabled && { opacity: 0.7 },
         style,
       ]}
     >
-      <Text style={[styles.btnLabel, { color: fg }]}>{label}</Text>
-      {sub ? <Text style={[styles.btnSub, { color: fg }]}>{sub}</Text> : null}
+      <Text style={[styles.btnLabel, { color: disabled ? colors.dim : fg }]}>{label.toUpperCase()}</Text>
+      {sub ? <Text style={[styles.btnSub, { color: disabled ? colors.dim : fg }]}>{sub}</Text> : null}
     </Pressable>
   );
 }
@@ -106,24 +113,27 @@ export function Pill({ label, color }: { label: string; color: string }) {
 
 const styles = StyleSheet.create({
   btn: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: radius.md,
+    borderWidth: 2,
+    borderBottomWidth: 5,
     paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnLabel: { fontSize: 16, fontWeight: '700' },
-  btnSub: { fontSize: 12, opacity: 0.8, marginTop: 1 },
+  btnLabel: { fontSize: 15, fontWeight: '900', letterSpacing: 0.9 },
+  btnSub: { fontSize: 11, fontWeight: '700', opacity: 0.85, marginTop: 1 },
   card: {
     backgroundColor: colors.panel,
     borderRadius: radius.lg,
     padding: 16,
-    borderWidth: 1,
+    borderWidth: 2,
+    borderBottomWidth: 5,
     borderColor: colors.line,
   },
-  h1: { color: colors.text, fontSize: 26, fontWeight: '800' },
+  h1: { color: colors.text, fontSize: 26, fontWeight: '900' },
   p: { color: colors.dim, fontSize: 15, lineHeight: 22 },
-  pill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  pillText: { fontSize: 12, fontWeight: '700' },
+  pill: { borderWidth: 2, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 3 },
+  pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
 });

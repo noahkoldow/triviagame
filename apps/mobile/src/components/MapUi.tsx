@@ -12,16 +12,12 @@ import { useGame } from '../state/store';
 import { colors } from '../theme';
 import { tap } from './ui';
 
-/** Translucent surface used by all floating map UI. */
+/** Solid surface with a thick bottom edge: the look of all floating map UI. */
 export const glass = {
-  backgroundColor: 'rgba(10,16,32,0.74)',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.09)',
-  shadowColor: '#000',
-  shadowOpacity: 0.35,
-  shadowRadius: 14,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 6,
+  backgroundColor: colors.panel,
+  borderWidth: 2,
+  borderBottomWidth: 5,
+  borderColor: colors.line,
 } as const;
 
 export function MapHud() {
@@ -40,9 +36,9 @@ export function MapHud() {
           <View style={[styles.levelFill, { width: `${Math.round((lv.into / lv.next) * 100)}%` }]} />
         </View>
       </View>
-      <Stat icon="🔥" value={`${streak}`} />
-      <Stat icon="⚡" value={`${energy}/${MAX_ENERGY}`} label={`Energie ${energy} von ${MAX_ENERGY}`} />
-      <Stat icon="▣" value={`${integrity}/${MAX_INTEGRITY}`} color={integrity === 0 ? colors.bad : colors.good} label={`Integrität ${integrity} von ${MAX_INTEGRITY}`} />
+      <Stat icon="🔥" value={`${streak}`} color="#FF9600" />
+      <Stat icon="⚡" value={`${energy}/${MAX_ENERGY}`} color="#FFC800" label={`Energie ${energy} von ${MAX_ENERGY}`} />
+      <Stat icon="❤" value={`${integrity}/${MAX_INTEGRITY}`} color={integrity === 0 ? colors.dim : colors.bad} label={`Integrität ${integrity} von ${MAX_INTEGRITY}`} />
       <Stat icon="◈" value={`${bits}`} color={colors.bit} />
       <Stat icon="💎" value={`${gems}`} color={colors.gem} />
     </View>
@@ -126,12 +122,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   level: { flex: 1, minWidth: 52, gap: 4 },
-  levelNum: { color: colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 0.4 },
-  levelBar: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
-  levelFill: { height: 4, backgroundColor: colors.accent },
+  levelNum: { color: colors.primary, fontWeight: '900', fontSize: 14, letterSpacing: 0.4 },
+  levelBar: { height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
+  levelFill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statIcon: { fontSize: 12 },
-  statValue: { color: colors.text, fontWeight: '700', fontSize: 13 },
+  statValue: { color: colors.text, fontWeight: '900', fontSize: 14 },
   cache: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -140,20 +136,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 18,
   },
-  cacheTitle: { color: colors.dim, fontSize: 10, fontWeight: '800', letterSpacing: 1.4, marginRight: 2 },
+  cacheTitle: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginRight: 2 },
   slot: {
     flex: 1,
-    height: 34,
-    borderRadius: 11,
-    borderWidth: 1.2,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderBottomWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  slotEmpty: { borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed' },
-  slotText: { color: colors.dim, fontSize: 12, fontWeight: '700' },
-  dock: { flexDirection: 'row', borderRadius: 26, padding: 6, gap: 4 },
-  dockItem: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 20, gap: 2 },
+  slotEmpty: { borderColor: colors.line, borderStyle: 'dashed', borderBottomWidth: 2 },
+  slotText: { color: colors.dim, fontSize: 12, fontWeight: '800' },
+  dock: { flexDirection: 'row', borderRadius: 24, padding: 5, gap: 4 },
+  dockItem: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 18, gap: 1 },
   dockIcon: { fontSize: 20 },
-  dockLabel: { color: colors.text, fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  dockLabel: { color: colors.text, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
 });

@@ -1,20 +1,26 @@
 import { SECTOR_COLOR } from '@nexus/shared';
 
 export const colors = {
-  bg: '#070B16',
-  panel: '#101827',
-  panelHi: '#182236',
-  line: '#26324A',
-  text: '#E8EEF8',
-  dim: '#8A97B1',
-  accent: '#22D3EE',
-  good: '#4ADE80',
-  bad: '#F87171',
-  warn: '#FBBF24',
-  gem: '#A78BFA',
-  bit: '#38BDF8',
+  bg: '#131F24',
+  panel: '#1F2C33',
+  panelHi: '#2B3B44',
+  line: '#37464F',
+  text: '#F1F7FB',
+  dim: '#8FA3AD',
+  accent: '#1CB0F6',
+  primary: '#58CC02',
+  good: '#58CC02',
+  bad: '#FF4B4B',
+  warn: '#FF9600',
+  gem: '#CE82FF',
+  bit: '#1CB0F6',
   sector: SECTOR_COLOR,
 };
+
+/** Darker shade used for the thick "3D" bottom edge of buttons, cards and map objects. */
+export function shade(hex: string, amount = 0.28): string {
+  return mix(hex, "#000000", amount);
+}
 
 export const radius = { sm: 10, md: 16, lg: 24 };
 
