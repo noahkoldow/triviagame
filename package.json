@@ -2,7 +2,9 @@
   "name": "nexus",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "pnpm --filter @nexus/mobile start",
     "lint": "pnpm -r lint",

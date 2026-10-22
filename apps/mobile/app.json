@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Nexus",
+    "slug": "nexus",
+    "scheme": "nexus",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#070B16",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": false },
+    "ios": { "supportsTablet": false, "bundleIdentifier": "app.nexus.game" },
+    "android": { "package": "app.nexus.game" }
+  }
+}

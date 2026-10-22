@@ -120,8 +120,14 @@ describe('skill & rewards', () => {
   });
   it('schedules damaged nodes for review', () => {
     const n: NetNode = {
-      id: 'n', questionId: 'q', parentId: null, kind: 'root', state: 'solved',
-      pos: { x: 0, y: 0, z: 0 }, attempts: 3, box: 0,
+      id: 'n',
+      questionId: 'q',
+      parentId: null,
+      kind: 'root',
+      state: 'solved',
+      pos: { x: 0, y: 0, z: 0 },
+      attempts: 3,
+      box: 0,
     };
     let d = markDamaged(n, '2026-10-01');
     expect(d.state).toBe('damaged');
@@ -134,20 +140,34 @@ describe('skill & rewards', () => {
 
 describe('monetization', () => {
   const base = {
-    ageGroup: 'adult' as const, consent: true, adFree: false,
-    wrongSinceInterstitial: 0, lastInterstitialAt: null,
+    ageGroup: 'adult' as const,
+    consent: true,
+    adFree: false,
+    wrongSinceInterstitial: 0,
+    lastInterstitialAt: null,
   };
   const ctx = { now: 1_000_000_000, phase: 'afterWrong' as const, boss: false };
   it('offers rewarded after a wrong answer and interstitial only every third', () => {
-    expect(decideAds(base, ctx)).toEqual({ offerRewarded: true, showInterstitial: false, personalized: true });
+    expect(decideAds(base, ctx)).toEqual({
+      offerRewarded: true,
+      showInterstitial: false,
+      personalized: true,
+    });
     expect(decideAds({ ...base, wrongSinceInterstitial: 3 }, ctx).showInterstitial).toBe(true);
   });
   it('respects the minimum gap, premium, bosses and other phases', () => {
     const s = { ...base, wrongSinceInterstitial: 5, lastInterstitialAt: ctx.now - 60_000 };
     expect(decideAds(s, ctx).showInterstitial).toBe(false);
-    expect(decideAds({ ...s, lastInterstitialAt: null, adFree: true }, ctx).offerRewarded).toBe(false);
-    expect(decideAds({ ...base, wrongSinceInterstitial: 5 }, { ...ctx, boss: true }).showInterstitial).toBe(false);
-    expect(decideAds({ ...base, wrongSinceInterstitial: 5 }, { ...ctx, phase: 'other' }).showInterstitial).toBe(false);
+    expect(decideAds({ ...s, lastInterstitialAt: null, adFree: true }, ctx).offerRewarded).toBe(
+      false,
+    );
+    expect(
+      decideAds({ ...base, wrongSinceInterstitial: 5 }, { ...ctx, boss: true }).showInterstitial,
+    ).toBe(false);
+    expect(
+      decideAds({ ...base, wrongSinceInterstitial: 5 }, { ...ctx, phase: 'other' })
+        .showInterstitial,
+    ).toBe(false);
   });
   it('treats minors safely: rewarded only, never personalised', () => {
     const m = { ...base, ageGroup: 'minor' as const, consent: true, wrongSinceInterstitial: 9 };
@@ -210,7 +230,13 @@ describe('network growth', () => {
     const net = createNetwork(pool, { ...ROOT_QUESTIONS, science: 'sci-vaccine' });
     const th = polar(net.nodes['n0']!.pos).th;
     expect(th).toBeCloseTo(SECTOR_ANGLE.science, 5); // roots stay on axis
-    const r = completeNode(createNetwork(pool, { ...ROOT_QUESTIONS, science: 'sci-water' }), 'n0', 1, 't', ctxFor());
+    const r = completeNode(
+      createNetwork(pool, { ...ROOT_QUESTIONS, science: 'sci-water' }),
+      'n0',
+      1,
+      't',
+      ctxFor(),
+    );
     const vacc = r.spawned.find((n) => n.questionId === 'sci-vaccine');
     if (vacc) {
       const a = polar(vacc.pos).th;
@@ -221,7 +247,10 @@ describe('network growth', () => {
 
   it('never repeats a question and spaces nodes unevenly but without overlap', () => {
     let state: NetworkState = createNetwork(pool, ROOT_QUESTIONS);
-    const ctx = ctxFor(AREAS.map((a) => a.id), 'play');
+    const ctx = ctxFor(
+      AREAS.map((a) => a.id),
+      'play',
+    );
     let guard = 0;
     for (;;) {
       const open = Object.values(state.nodes).find((n) => n.state === 'open' && !n.locked);

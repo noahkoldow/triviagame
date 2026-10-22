@@ -53,7 +53,13 @@ describe('player flow', () => {
 
   it('halves rewards when integrity is empty', () => {
     const full = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0).reward;
-    const empty = recordCorrect({ ...initialPlayer(pool), integrity: 0 }, pool, 'n0', '2026-10-01', 0).reward;
+    const empty = recordCorrect(
+      { ...initialPlayer(pool), integrity: 0 },
+      pool,
+      'n0',
+      '2026-10-01',
+      0,
+    ).reward;
     expect(empty.xp).toBeLessThan(full.xp);
   });
 

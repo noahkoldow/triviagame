@@ -10,7 +10,7 @@ Status: Entwurf v0.2 · Sprache: Deutsch zuerst, Englisch danach · Plattform: i
 
 - **Nutzen:** Aufbau eines soliden, breiten Allgemeinwissens, mit Raum für Nischenwissen.
 - **Gefühl:** Entdecken und Wiederaufbauen statt Abfragen. Jeder Knoten ist ein kleines Erfolgserlebnis, das Netz wächst sichtbar.
-- **Kernidee:** Wissen wird nicht nur abgerufen, sondern *gesammelt und behalten* (Fragmente einsammeln → merken → anwenden).
+- **Kernidee:** Wissen wird nicht nur abgerufen, sondern _gesammelt und behalten_ (Fragmente einsammeln → merken → anwenden).
 - **Personalisierung:** Ein Gemini-Backend erzeugt Fragen und Fragmente; ein Interessenmodell steuert, was als Nächstes angeboten wird.
 
 ## 2. Setting und Story
@@ -29,16 +29,17 @@ Die Story ist bewusst leicht und humorvoll: Sie trägt Motivation und Charme, ni
 
 Vier Himmelsrichtungen um den Kern, jede mit eigener Farbe und eigenem Weltcharakter:
 
-| Sektor | Inhalt | Farbe | Endzustand der Optik |
-|---|---|---|---|
-| **Wissenschaft & Technik** | Physik, Chemie, Mathe, Informatik, Technik, Medizin | Cyan | Blaupausen → Labor → Sternenkarten und Moleküle |
-| **Natur & Welt** | Biologie, Geografie, Klima, Tiere, Reisen, Ernährung | Grün | Leiterbahnen → Wurzeln → Wald, Küsten, Gebirge |
-| **Geschichte & Gesellschaft** | Geschichte, Politik, Wirtschaft, Recht, Philosophie | Bernstein | Bahnen → Stein und Pergament → Karten und Ruinen |
-| **Kultur & Kunst** | Literatur, Musik, Kunst, Film, Sprache, Religion | Magenta | Neonstreifen → Farbe und Tinte → Noten, Bühnen, Skulpturen |
+| Sektor                        | Inhalt                                               | Farbe     | Endzustand der Optik                                       |
+| ----------------------------- | ---------------------------------------------------- | --------- | ---------------------------------------------------------- |
+| **Wissenschaft & Technik**    | Physik, Chemie, Mathe, Informatik, Technik, Medizin  | Cyan      | Blaupausen → Labor → Sternenkarten und Moleküle            |
+| **Natur & Welt**              | Biologie, Geografie, Klima, Tiere, Reisen, Ernährung | Grün      | Leiterbahnen → Wurzeln → Wald, Küsten, Gebirge             |
+| **Geschichte & Gesellschaft** | Geschichte, Politik, Wirtschaft, Recht, Philosophie  | Bernstein | Bahnen → Stein und Pergament → Karten und Ruinen           |
+| **Kultur & Kunst**            | Literatur, Musik, Kunst, Film, Sprache, Religion     | Magenta   | Neonstreifen → Farbe und Tinte → Noten, Bühnen, Skulpturen |
 
 Die Sektoren liegen im Ring (Wissenschaft – Natur – Kultur – Geschichte). **Es gibt keine harten Mittelzonen.** Eine Frage gehört zu einem **Hauptsektor** (dort liegt sie) und kann **Nebengewichte** zu anderen Sektoren haben (Medizin: Hauptsektor Wissenschaft, Nebengewicht Natur). Das Nebengewicht wirkt nur als **leichte Richtungsabweichung**: Der Knoten bleibt im Gebiet seines Hauptsektors, sitzt aber etwas näher an der Grenze zum Nachbarn und bekommt einen Hauch von dessen Optik (Farbstich, Material). Die Frage zählt für beide Sektoren, im Verhältnis der Gewichte (z. B. 80/20).
 
 **Platzierung (organisch statt Raster):**
+
 - Position = Sektorrichtung + Abstand zum Kern (Tiefe) + Versatz aus den Nebengewichten, dazu ein deterministisches Rauschen (Seed aus der Knoten-ID), damit das Netz bei jedem Start gleich aussieht.
 - Abstände zwischen Knoten sind **absichtlich ungleich**: Eine Vertiefung sitzt nahe beim Vorgänger, eine Brücke weiter weg; dazu zufällige Streuung. Nicht-überlappende Platzierung per einfacher Abstoßung (Relaxation), nie auf einem Gitter.
 - Bahnen sind leicht gekrümmt (Bézier), mit gelegentlichen Abzweigungen, die nirgends hinführen (Deko, Atmosphäre).
@@ -88,6 +89,7 @@ Ein Shader-Hintergrund (React Native Skia) mischt daraus Stilebenen:
 - Pro Sektor 3–4 Texturen/Ornament-Sets plus Partikel; der Rest ist prozedural. Das hält Assetgröße und Aufwand klein.
 
 **Leichte Dreidimensionalität:** Das Netz ist keine flache Karte, sondern hat Tiefe:
+
 - Knoten und Bahnen liegen auf mehreren Ebenen (Parallax je Ebene beim Verschieben, sanftes Neigen mit Gyroskop/Touch).
 - Der Kern liegt „unten“, äußere Bereiche steigen leicht auf; Knoten werfen weiche Schatten, Bahnen haben Glanzlichter.
 - Umsetzung bewusst leichtgewichtig: 2,5D mit Skia (Ebenen, Parallax, Pseudo-Perspektive per Transformationsmatrix und Schatten) statt voller 3D-Engine. Das läuft auch in Expo Go flüssig. Echtes 3D (three.js/expo-gl) bleibt optional für einzelne Elemente wie den Kern.
@@ -97,22 +99,26 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 ## 6. Gamification
 
 ### 6.1 Ressourcen
+
 - **Bits** (weiche Währung): für richtige Antworten, Streaks, Tagesaufgaben. Kosmetik und Rückspulen.
 - **Gems** (siehe 6.6): öffnen **Bereiche** (neue Teilgebiete eines Sektors) und **Trümmerfelder** (Bonus-Fundstätten mit seltenen Fragmenten). Verdienbar im Spiel, zusätzlich kaufbar.
 - **Energie:** begrenzt nur Rückspulen und Bonusspiele, **nie** das Spielen selbst. Keine Wartezeit-Bezahlschranke.
 
 ### 6.2 Fortschritt
+
 - **Integrität** (Lebensanzeige pro Lauf): sinkt bei Fehlern, regeneriert über Wiederholungen. Fällt sie auf null, gibt es einen kurzen Reparatur-Mini-Run statt Abbruch.
-- **Sektor-Mastery:** pro Sektor Stufen (1–5 Sterne) nach abgedeckten Unterthemen *und* Tiefe. Der Wissens-Fußabdruck zeigt Breite und Tiefe getrennt.
+- **Sektor-Mastery:** pro Sektor Stufen (1–5 Sterne) nach abgedeckten Unterthemen _und_ Tiefe. Der Wissens-Fußabdruck zeigt Breite und Tiefe getrennt.
 - **Kern-Level:** globales Level; schaltet neue Zonen, Fragetypen und Lore frei.
 - **Codex:** Sammelalbum aller gesammelten Fragmente (mit Quelle und Bild). Wird zum persönlichen Lexikon und Wiederholungsstoff.
 
 ### 6.3 Rhythmus
+
 - **Tages-Puls:** ein täglicher, kurzer Spezialknoten (5 Fragen) mit Streak. Streak-Schutz (zwei „Freeze“-Tage pro Monat), keine Strafen-Spirale.
 - **Wochen-Event:** thematische „Störungen“ des Rauschens, z. B. „Antike-Woche“; Knoten erscheinen themenübergreifend.
 - **Bosse („Firewalls“):** an den Sektorgrenzen. Mehrteilige Frage über zwei Sektoren, braucht Wissen aus beiden. Belohnung: Kern, neue Zone.
 
 ### 6.4 Sozial
+
 - **Hack-Duell:** asynchron, gleiche Fragmente und Fragen, wer mehr behält, gewinnt.
 - **Netz-Reparatur (Koop):** Freunde bauen ein gemeinsames Netz, jeder deckt sein Interessengebiet ab.
 - **Vergleich der Fußabdrücke:** Überlappung und Lücken, mit der Frage „Was kannst du, was ich nicht kann?“.
@@ -123,6 +129,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 **Grundsatz:** Das Hauptspiel (Netz wachsen lassen, Fragen beantworten) bleibt kostenlos und ohne Wartezeit spielbar. Geld kommt aus Werbung und optionalen Gems.
 
 **AdMob**
+
 - **Nach falscher Antwort** (Idee des Auftraggebers): Statt reiner Strafe als Angebot formuliert. Bolt: „Reparatur-Funk? Schau kurz zu, dann gibt's eine zweite Chance.“
   - **Rewarded Ad (freiwillig):** Zweite Chance mit neuem Versuch ohne Integritätsverlust, oder ein Hinweis-Fragment gratis.
   - **Interstitial (begrenzt):** Höchstens nach jeder dritten falschen Antwort, nie mehr als alle ca. 3 Minuten, nie mitten in Sammelphase oder Frage, nie bei Bosskämpfen. Wer Gems-Pro/„werbefrei“ hat, sieht keine.
@@ -130,6 +137,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - Einwilligung über Google UMP (DSGVO), personalisierte Werbung nur nach Zustimmung; keine Werbung für Kinder-Zielgruppen. Zielgruppenfrage bleibt offen (siehe 12).
 
 **Gem-System**
+
 - **Gems verdienen:** Meilensteine, Bosse, Streak-Wochen, abgeschlossene Kreise, Tages-Puls, optional Rewarded Ads (Gem-Splitter).
 - **Gems ausgeben:**
   - **Bereiche öffnen:** Jeder Sektor ist in Bereiche gegliedert (z. B. Wissenschaft: Physik, Chemie, Mathe, Informatik, Technik, Medizin). Der erste Bereich je Sektor ist frei, weitere kosten Gems (oder werden durch Spielfortschritt freigeschaltet, dann günstiger).
@@ -140,26 +148,30 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - Fairness: keine Pay-to-win-Vorteile bei Antworten, Duelle und Ranglisten bleiben unberührt.
 
 ### 6.5 Belohnungsgefühl (Juice)
+
 Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/Natur/Holz je nach Zustand), Charakterreaktionen, Konfetti nur bei echten Meilensteinen.
 
 ## 7. KI-Backend (Gemini)
 
 ### 7.1 Aufgaben
+
 1. **Fragen und Fragmente erzeugen** (strukturiertes JSON, Schema-validiert).
 2. **Verzweigungen vorschlagen:** zu jedem Knoten eine Vertiefung und eine Brücke, abgestimmt auf Interessenprofil und die feste Themen-Taxonomie.
 3. **Erklärungen** („Warum?“) und Mini-Lore im Ton der Charaktere.
 4. **Variante** derselben Frage bei Wiederholung.
 
 ### 7.2 Qualitätssicherung (wichtig, weil Bildungsapp)
+
 - Feste **Taxonomie** (ca. 200 Unterthemen, von Hand kuratiert) als Rückgrat; das Modell wählt innerhalb davon, erfindet nicht frei Themen.
 - **Zweiter Durchlauf** als Prüfer: Ist die Antwort eindeutig? Sind Köder wirklich falsch/irrelevant? Ist die Frage aus den Fragmenten lösbar? Mit Such-Grounding, wo verfügbar.
 - Quellenangabe pro Fragment im Codex.
 - **Melden-Button**; gemeldete Fragen werden gesperrt und neu geprüft.
-- Caching: Geprüfte Fragen kommen in einen **gemeinsamen Pool**. Personalisiert wird primär durch *Auswahl* und *Stil*, nicht durch neue Erzeugung für jeden Klick. Das senkt Kosten und Fehlerquote.
+- Caching: Geprüfte Fragen kommen in einen **gemeinsamen Pool**. Personalisiert wird primär durch _Auswahl_ und _Stil_, nicht durch neue Erzeugung für jeden Klick. Das senkt Kosten und Fehlerquote.
 - Modellnamen **nicht fest verdrahtet**: Konfiguration serverseitig, Provider-Interface mit Mock-Provider für Tests und Offline-Entwicklung.
 - Tagesbudget und Kill-Switch gegen Kostenexplosion.
 
 ### 7.3 Interessenmodell
+
 - Pro Spieler ein Vektor über die Taxonomie (Interesse, Kompetenz, Unsicherheit).
 - Signale: Wahl Vertiefung vs. Brücke, Antwortqualität, Verweildauer im Trümmerfeld, Abbrüche, Codex-Favoriten.
 - Auswahl der Vorschläge über ein **Bandit-Verfahren** (z. B. Thompson-Sampling): überwiegend passend, ein fester Anteil („Weitblick“, ca. 20 %) bewusst fremd, damit keine Filterblase entsteht.
@@ -175,6 +187,7 @@ Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/N
 Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als Animation), Antenne und einem Greifarm zum Einsammeln. Neugierig, eifrig, ein bisschen tollpatschig, liebt Wortwitz. Gibt Tipps, kommentiert Antworten, jubelt und tröstet, spottet leise zurück gegen MORPH. Wächst mit dem Netz: Sein Gehäuse bekommt in äußeren Sektoren Moos, Farbspritzer, Pergamentaufkleber oder Sternenstaub. Als Skins freischaltbar.
 
 **Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle):
+
 - **Quantis** – Wissenschaft: übergenauer, trockener Humor, Hologramm-Gestalt aus Gleichungen.
 - **Rhizom** – Natur: ruhiger Baumgeist, spricht in langen Bildern, mag Tiere.
 - **Kodex** – Geschichte: Archivar-Eule mit Tintenfeder, zitiert gern, irrt nie, behauptet er.
@@ -184,6 +197,7 @@ Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als 
 Die außer Kontrolle geratene KI, die das Archiv zerstört hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo MORPH war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Pro Sektor gibt es einen MORPH-Auftritt als Boss; sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
 
 **Asset-Liste für den Prototyp:**
+
 - Bolt (8 Gesichtsausdrücke, 4 Posen), MORPH (5 Formen, Rauschen-Animation), 4 Hüter (je Portrait + 2 Posen), Glitch (3 Varianten).
 - Knoten-Icons (offen, gelöst, beschädigt, Boss, Tages-Puls), Fragment-Karten-Rahmen je Sektor.
 - 4 Sektor-Textursets + Kern-Platinenset, Partikel.
@@ -210,6 +224,7 @@ Die außer Kontrolle geratene KI, die das Archiv zerstört hat. Optisch ein wand
 - **Datenschutz:** anonyme Anmeldung zuerst, Konto optional, Export/Löschung, keine Personendaten an das Modell.
 
 **Datenmodell (grob):**
+
 ```
 taxonomy/{topicId}      { name, sector, parent, neighbors[], difficultyBand }
 questions/{qid}         { topics[], sectors[], type, stem, answer, distractors, fragments[], explanation, sources[], status, reports }
@@ -220,17 +235,17 @@ users/{uid}/codex/{fid} { fragmentId, seenAt, srsDue }
 
 ## 11. Roadmap
 
-| Phase | Inhalt | Abnahme |
-|---|---|---|
-| 0 | Repo, Tooling, Taxonomie-Entwurf, Design-Tokens | Lint/Typecheck/Tests grün |
-| 1 | **Reiner Spielkern:** Graph-Wachstum, Fragenablauf, Schwierigkeit, Scoring (Shared + Tests) | Simulation spielt 1000 Knoten ohne Fehler |
-| 2 | **Vertical Slice in Expo Go:** Kern + 1 Sektor, Mock-Fragen und Mock-Ads/Gems, Netzkarte in 2,5D, Knoten-Ablauf, Bolt | 10 Minuten spielbar per QR-Code |
-| 3 | 4 Sektoren, Überschneidungszonen, Shader-Übergänge | Optik-Auflösung sichtbar |
-| 4 | Gemini-Pipeline + Prüfer, Pool, Meldefunktion | Fehlerquote in Stichprobe < 2 % |
-| 5 | Interessenmodell, Bandit, Weitblick-Quote | A/B im Simulator |
-| 6 | Gamification: Codex, Tages-Puls, Bosse, Streaks, Charaktere | Retention-Test intern |
-| 7 | Soziales (Duelle, Koop), Events | |
-| 8 | Politur, Barrierefreiheit, Store-Vorbereitung | |
+| Phase | Inhalt                                                                                                                | Abnahme                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| 0     | Repo, Tooling, Taxonomie-Entwurf, Design-Tokens                                                                       | Lint/Typecheck/Tests grün                 |
+| 1     | **Reiner Spielkern:** Graph-Wachstum, Fragenablauf, Schwierigkeit, Scoring (Shared + Tests)                           | Simulation spielt 1000 Knoten ohne Fehler |
+| 2     | **Vertical Slice in Expo Go:** Kern + 1 Sektor, Mock-Fragen und Mock-Ads/Gems, Netzkarte in 2,5D, Knoten-Ablauf, Bolt | 10 Minuten spielbar per QR-Code           |
+| 3     | 4 Sektoren, Überschneidungszonen, Shader-Übergänge                                                                    | Optik-Auflösung sichtbar                  |
+| 4     | Gemini-Pipeline + Prüfer, Pool, Meldefunktion                                                                         | Fehlerquote in Stichprobe < 2 %           |
+| 5     | Interessenmodell, Bandit, Weitblick-Quote                                                                             | A/B im Simulator                          |
+| 6     | Gamification: Codex, Tages-Puls, Bosse, Streaks, Charaktere                                                           | Retention-Test intern                     |
+| 7     | Soziales (Duelle, Koop), Events                                                                                       |                                           |
+| 8     | Politur, Barrierefreiheit, Store-Vorbereitung                                                                         |                                           |
 
 ## 12. Risiken und offene Fragen
 
@@ -243,6 +258,7 @@ users/{uid}/codex/{fid} { fragmentId, seenAt, srsDue }
 **Entschieden:** Ton leicht verspielt · Prototyp zuerst mit Mock-Daten · erste Tests in Expo Go · Finanzierung über AdMob und Gems · Spielcharakter bist du selbst.
 
 **Noch offen:**
+
 1. Zielgruppe: Erwachsene oder auch Jugendliche? (Beeinflusst Werbung nach Fehlern und Einwilligungen; unter 16 bräuchte es strengere Regeln.)
 2. Endgültiger Name (Arbeitstitel NEXUS), ebenso Namen von Bolt/MORPH, falls dir andere besser gefallen.
 3. Interstitials nach Fehlern: Soll die Standardvariante „freiwillig (Rewarded)“ sein, mit seltenen Zwangsanzeigen, wie oben vorgeschlagen?

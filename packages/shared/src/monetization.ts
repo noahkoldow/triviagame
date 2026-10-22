@@ -36,7 +36,8 @@ export function decideAds(s: AdState, c: AdContext): AdDecision {
   if (s.adFree || c.phase !== 'afterWrong' || c.boss) {
     return { offerRewarded: false, showInterstitial: false, personalized };
   }
-  const gapOk = s.lastInterstitialAt === null || c.now - s.lastInterstitialAt >= INTERSTITIAL_MIN_GAP_MS;
+  const gapOk =
+    s.lastInterstitialAt === null || c.now - s.lastInterstitialAt >= INTERSTITIAL_MIN_GAP_MS;
   const showInterstitial =
     s.ageGroup === 'adult' && s.wrongSinceInterstitial >= INTERSTITIAL_EVERY_WRONG && gapOk;
   return { offerRewarded: !showInterstitial, showInterstitial, personalized };

@@ -59,7 +59,10 @@ export const COSMETICS: { id: string; de: string; color: string; cost: number }[
   { id: 'gold', de: 'Archiv-Gold', color: '#FBBF24', cost: 150 },
 ];
 
-export function initialPlayer(pool: Pool, roots: Record<Sector, string> = ROOT_QUESTIONS): PlayerState {
+export function initialPlayer(
+  pool: Pool,
+  roots: Record<Sector, string> = ROOT_QUESTIONS,
+): PlayerState {
   return {
     profile: {
       name: '',
@@ -116,7 +119,10 @@ export function recordWrong(p: PlayerState, pool: Pool, nodeId: string): PlayerS
       nodes: { ...p.network.nodes, [nodeId]: { ...n, attempts: n.attempts + 1 } },
     },
     integrity: Math.max(0, p.integrity - 1),
-    skill: { ...p.skill, [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false) },
+    skill: {
+      ...p.skill,
+      [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false),
+    },
     interest: recordResult(p.interest, q.area, false),
     ads: { ...p.ads, wrongSinceInterstitial: p.ads.wrongSinceInterstitial + 1 },
     stats: { ...p.stats, wrong: p.stats.wrong + 1 },
@@ -155,7 +161,13 @@ export function recordCorrect(
   }
   const q = pool.get(n.questionId);
   const attempts = n.attempts + 1;
-  const grown = completeNode(p.network, nodeId, attempts, today, ctxFor(p, pool, `${nodeId}:${attempts}`));
+  const grown = completeNode(
+    p.network,
+    nodeId,
+    attempts,
+    today,
+    ctxFor(p, pool, `${nodeId}:${attempts}`),
+  );
   let reward = rewardFor({
     difficulty: q.difficulty,
     attempts,
@@ -184,7 +196,12 @@ export function recordCorrect(
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
-  return { player, spawned: grown.spawned.map((s) => s.id), reward, closedCircle: grown.closedCircle };
+  return {
+    player,
+    spawned: grown.spawned.map((s) => s.id),
+    reward,
+    closedCircle: grown.closedCircle,
+  };
 }
 
 export function recordReviewResult(
@@ -207,7 +224,10 @@ export function recordReviewResult(
       network: reviewNode(p.network, nodeId, correct, today),
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
-      skill: { ...p.skill, [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, correct) },
+      skill: {
+        ...p.skill,
+        [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, correct),
+      },
     },
   };
 }

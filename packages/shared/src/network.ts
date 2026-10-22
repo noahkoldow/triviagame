@@ -70,7 +70,9 @@ export function pickDeepen(parent: Question, state: NetworkState, ctx: SpawnCont
   const ok = (q: Question) => !used.has(q.id) && ctx.unlockedAreas.includes(q.area);
   let cands = parent.deepen.map((id) => ctx.pool.get(id)).filter(ok);
   if (cands.length === 0) {
-    cands = ctx.pool.list.filter((q) => q.area === parent.area && ok(q) && q.difficulty >= parent.difficulty);
+    cands = ctx.pool.list.filter(
+      (q) => q.area === parent.area && ok(q) && q.difficulty >= parent.difficulty,
+    );
   }
   const target = targetDifficulty(ctx.skill[parent.area] ?? BASE_SKILL) + 0;
   return closest(cands, Math.max(target, parent.difficulty));
