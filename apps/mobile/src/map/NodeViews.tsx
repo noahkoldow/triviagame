@@ -9,6 +9,7 @@ import {
   type SkFont,
   type SkPath,
 } from '@shopify/react-native-skia';
+import { memo } from 'react';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { type NetNode, type Sector } from '@nexus/shared';
 import { colors, mix, shade } from '../theme';
@@ -190,8 +191,22 @@ function Solid({ parts, face, edge }: { parts: HexParts; face: string; edge: str
   );
 }
 
+const dotPath = unitPath((p) => p.addCircle(0, 0.62, 0.15));
+const notchPath = unitPath((p) => p.addCircle(-56 + 9, -56 * SQUASH + 7, 2.6));
+
+/** The pulsing ring: its two animated values exist only for nodes that actually pulse. */
+function PulseRing({ pulse, strong, color }: { pulse: SharedValue<number>; strong: boolean; color: string }) {
+  const t = useDerivedValue(() => [{ scale: 1 + pulse.value * (strong ? 0.3 : 0.2) }]);
+  const o = useDerivedValue(() => 0.9 - pulse.value * 0.7);
+  return (
+    <Group transform={t} opacity={o}>
+      <Path path={NODE_RING} style="stroke" strokeWidth={3} strokeJoin="round" color={color} />
+    </Group>
+  );
+}
+
 /** A node: a larger hexagon tile with a solid wall, a symbol and (when open) a pulsing ring. */
-export function NodeTile({
+function NodeTileBase({
   info,
   pulse,
   highlighted,
@@ -209,8 +224,6 @@ export function NodeTile({
   const edge = shade(face, 0.4);
   const icon = ICONS[info.sector];
   const lw = font.getTextWidth(info.label);
-  const ringT = useDerivedValue(() => [{ scale: 1 + pulse.value * (highlighted ? 0.3 : 0.2) }]);
-  const ringO = useDerivedValue(() => (open ? 0.9 - pulse.value * 0.7 : 0));
 
   return (
     <Group transform={[{ translateX: node.pos.x }, { translateY: node.pos.y * SQUASH }]}>
@@ -221,9 +234,7 @@ export function NodeTile({
       <Group transform={[{ translateY: -NODE_DEPTH }]}>
         <Solid parts={NODE} face={face} edge={edge} />
         {highlighted || open ? (
-          <Group transform={ringT} opacity={ringO}>
-            <Path path={NODE_RING} style="stroke" strokeWidth={3} strokeJoin="round" color={highlighted ? info.color : '#FFFFFF'} />
-          </Group>
+          <PulseRing pulse={pulse} strong={highlighted} color={highlighted ? info.color : '#FFFFFF'} />
         ) : null}
 
         <Group transform={[{ translateY: -2 }, { scale: NODE_R * 0.36 }]}>
@@ -234,7 +245,7 @@ export function NodeTile({
           ) : node.state === 'damaged' ? (
             <>
               <Rect x={-0.12} y={-0.8} width={0.24} height={1.05} color="#FFFFFF" />
-              <Path path={unitPath((p) => p.addCircle(0, 0.62, 0.15))} color="#FFFFFF" />
+              <Path path={dotPath} color="#FFFFFF" />
             </>
           ) : (
             <Path path={icon.path} style={icon.fill ? 'fill' : 'stroke'} strokeWidth={0.2} strokeJoin="round" color="#FFFFFF" />
@@ -252,7 +263,7 @@ export function NodeTile({
 }
 
 /** Marker for the preview strand: a small tile in the colour of the land it sits on. */
-export function SiteTile({ x, y, color }: { x: number; y: number; color: string }) {
+function SiteTileBase({ x, y, color }: { x: number; y: number; color: string }) {
   return (
     <Group transform={[{ translateX: x }, { translateY: y * SQUASH - 9 }, { scale: 0.62 }]} opacity={0.95}>
       <Solid parts={NODE} face={color} edge={shade(color, 0.4)} />
@@ -298,7 +309,7 @@ const pinsV = (() => {
   return p.detach();
 })();
 
-export function CoreTile() {
+function CoreTileBase() {
   const metal = '#A9B8C6';
   return (
     <Group>
@@ -321,33 +332,32 @@ export function CoreTile() {
         <RoundedRect x={-30} y={-30 * SQUASH} width={60} height={60 * SQUASH} r={3} style="stroke" strokeWidth={1.5} color={colors.accent} opacity={0.9} />
         <RoundedRect x={-11} y={-11 * SQUASH} width={22} height={22 * SQUASH} r={2} color={colors.accent} />
         {/* pin-1 notch */}
-        <Path path={unitPath((p) => p.addCircle(-CHIP_W + 9, -CHIP_H + 7, 2.6))} color="#6C8197" />
+        <Path path={notchPath} color="#6C8197" />
       </Group>
     </Group>
   );
 }
 
 /** A disturbed outpost: a flickering tile that has to be connected to the network. */
-export function OutpostTile({
+function OutpostTileBase({
   x,
   y,
   color,
   label,
   font,
-  glitch,
+  shiftA,
+  shiftB,
 }: {
   x: number;
   y: number;
   color: string;
   label: string;
   font: SkFont;
-  glitch: SharedValue<number>;
+  shiftA: SharedValue<{ translateX: number }[]>;
+  shiftB: SharedValue<{ translateX: number }[]>;
 }) {
   const face = mix(color, '#3A2A48', 0.55);
   const lw = font.getTextWidth(label);
-  // chromatic glitch: two offset copies that jump in steps
-  const shiftA = useDerivedValue(() => [{ translateX: -1 - (Math.floor(glitch.value * 14) % 3) }]);
-  const shiftB = useDerivedValue(() => [{ translateX: 1 + (Math.floor(glitch.value * 14 + 2) % 3) }]);
   return (
     <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
       <Group transform={[{ translateY: 3 }]} opacity={0.5}>
@@ -366,7 +376,7 @@ export function OutpostTile({
         </Path>
         <Group transform={[{ translateY: -2 }, { scale: NODE_R * 0.36 }]}>
           <Rect x={-0.12} y={-0.8} width={0.24} height={1.05} color="#FFFFFF" />
-          <Path path={unitPath((p) => p.addCircle(0, 0.62, 0.15))} color="#FFFFFF" />
+          <Path path={dotPath} color="#FFFFFF" />
         </Group>
       </Group>
       <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
@@ -385,7 +395,7 @@ export interface Shard {
 }
 
 /** A piece of debris: a small hexagon gem on the ground with a floating tag. */
-export function ShardTile({
+function ShardTileBase({
   shard,
   color,
   font,
@@ -415,3 +425,9 @@ export function ShardTile({
     </Group>
   );
 }
+
+export const NodeTile = memo(NodeTileBase);
+export const SiteTile = memo(SiteTileBase);
+export const CoreTile = memo(CoreTileBase);
+export const OutpostTile = memo(OutpostTileBase);
+export const ShardTile = memo(ShardTileBase);

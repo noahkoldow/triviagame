@@ -65,9 +65,8 @@ function sitesAndEdges(p: ReturnType<typeof initialPlayer>): { sites: Site[]; ed
 describe('map scene', () => {
   it('loads the node and chip drawings (module-level paths)', async () => {
     const v = await import('./NodeViews');
-    expect(typeof v.CoreTile).toBe('function');
-    expect(typeof v.NodeTile).toBe('function');
-    expect(typeof v.OutpostTile).toBe('function');
+    // memoised components are objects; what matters is that loading them did not throw
+    for (const c of [v.CoreTile, v.NodeTile, v.OutpostTile, v.ShardTile, v.SiteTile]) expect(c).toBeTruthy();
   });
 
   it('builds for a fresh game with outposts', () => {

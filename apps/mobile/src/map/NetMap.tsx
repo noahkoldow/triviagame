@@ -11,7 +11,7 @@ import {
   Skia,
   vec,
 } from '@shopify/react-native-skia';
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { PanResponder, Platform, View } from 'react-native';
 import {
   Easing,
@@ -80,7 +80,7 @@ interface Props {
 
 const SECTOR_COLOR = colors.sector;
 
-export function NetMap({
+function NetMapBase({
   nodes,
   pool,
   width,
@@ -249,6 +249,11 @@ export function NetMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey]);
 
+  // ends the scavenging one frame later, so the first frames of a swipe are not held up by the re-render
+  const dismiss = () => {
+    requestAnimationFrame(() => onDismissRef.current?.());
+  };
+
   const responder = useRef(
     (() => {
       let base = { cx: 0, cy: 0 };
@@ -268,7 +273,7 @@ export function NetMap({
           if (!moved && Math.abs(g.dx) + Math.abs(g.dy) > 8) {
             moved = true;
             dim.value = withTiming(0, { duration: 200 });
-            if (scavengingRef.current) onDismissRef.current?.();
+            if (scavengingRef.current) dismiss();
           }
           const t = e.nativeEvent.touches;
           if (t.length >= 2) {
@@ -282,7 +287,7 @@ export function NetMap({
             gBase = { dx: g.dx, dy: g.dy };
             if (!moved) {
               dim.value = withTiming(0, { duration: 200 });
-              if (scavengingRef.current) onDismissRef.current?.();
+              if (scavengingRef.current) dismiss();
             }
             moved = true;
           } else {
@@ -330,7 +335,7 @@ export function NetMap({
             }
           }
           if (best && bd <= Math.max(36, NODE_R * s + 8)) onSelectRef.current(best.id);
-          else if (scavengingRef.current) onDismissRef.current?.();
+          else if (scavengingRef.current) dismiss();
         },
       });
     })(),
@@ -341,6 +346,8 @@ export function NetMap({
     'worklet';
     return Math.floor(g * 16);
   };
+  const outShiftA = useDerivedValue(() => [{ translateX: -1 - (step(glitch.value) % 3) }]);
+  const outShiftB = useDerivedValue(() => [{ translateX: 1 + ((step(glitch.value) + 2) % 3) }]);
   const noiseA = useDerivedValue(() => (((step(glitch.value) * 37 + 11) % 7) / 7) * 0.4);
   const noiseB = useDerivedValue(() => (((step(glitch.value) * 53 + 5) % 5) / 5) * 0.4);
   const noiseC = useDerivedValue(() => (((step(glitch.value) * 29 + 3) % 6) / 6) * 0.35);
@@ -455,7 +462,8 @@ export function NetMap({
                 color={SECTOR_COLOR[sectorOfArea(b.outpost.area)]}
                 label={areaById(b.outpost.area).de}
                 font={font}
-                glitch={glitch}
+                shiftA={outShiftA}
+                shiftB={outShiftB}
               />
             ) : b.node ? (
               <NodeTile
@@ -512,3 +520,16 @@ export function NetMap({
     </View>
   );
 }
+
+/**
+ * The map redraws only when its data changes. The callbacks are read through refs
+ * inside, so a new function from the parent is no reason to rebuild the whole scene.
+ */
+export const NetMap = memo(NetMapBase, (a, b) => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof Props>;
+  for (const k of keys) {
+    if (typeof a[k] === 'function' && typeof b[k] === 'function') continue;
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
+});

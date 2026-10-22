@@ -146,6 +146,14 @@ export default function Home() {
     : 0;
   const outpostCost = outpost ? areaCost(outpost.area) : 0;
 
+  const debrisProp = useMemo(
+    () =>
+      debrisNode
+        ? { nodeId: debrisNode.id, center: snapToHex(debrisNode.pos.x, debrisNode.pos.y), color: debrisColor, shards }
+        : undefined,
+    [debrisNode, debrisColor, shards],
+  );
+
   const selected = sel ? network.nodes[sel] : undefined;
   const selQ = selected ? pool.get(selected.questionId) : undefined;
   const openCount = nodes.filter((n) => n.state === 'open' && !n.locked).length;
@@ -191,11 +199,7 @@ export default function Home() {
           tap();
           setOutpostId(id);
         }}
-        debris={
-          debrisNode
-            ? { nodeId: debrisNode.id, center: snapToHex(debrisNode.pos.x, debrisNode.pos.y), color: debrisColor, shards }
-            : undefined
-        }
+        debris={debrisProp}
         onShard={(id) => {
           tap();
           setShardId(id);
