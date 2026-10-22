@@ -25,7 +25,7 @@ Spielbar in Expo Go (Mock-Daten):
 ## Prototyp 0.4 (Folgen und Außenposten)
 
 - Cache mit echter Entscheidung, Stichwort statt Frage, Folgen bei Fehlern (D17), gestörte Außenposten (D16).
-- **Ungeprüft auf Gerät.** Strang-Vorschau ist standardmäßig aus ().
+- **Ungeprüft auf Gerät.** Strang-Vorschau ist standardmäßig aus (Prop `showStrand` in NetMap).
 
 ## Verifiziert
 
