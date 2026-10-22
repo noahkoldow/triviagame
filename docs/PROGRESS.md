@@ -9,6 +9,13 @@ Spielbar in Expo Go (Mock-Daten):
 - **Figuren**: Bolt (Skia-gezeichnet, Stimmungen), MORPH (Rauschen-Gesicht).
 - **Werbung**: Mock-Overlay. Rewarded nach falscher Antwort (zweite Chance + Hinweis), Interstitial höchstens jede 3. Fehlantwort, mind. 3 min Abstand, nur ab 16, nie in Sammel-/Fragephase.
 
+## Prototyp 0.2 (Karte)
+
+- Geneigte 3D-Karte (Perspektive, Billboards), Nebel der Erkundung, Szenerie pro Gebiet, Vorschau-Strang (siehe D9–D13).
+- Trümmerfeld direkt auf der Karte; globaler Cache mit 4 Plätzen, nur per ⚡ in der Frage lesbar.
+- Neues Karten-UI (HUD, Cache-Leiste, Dock). Interessen-Signal (`chooseNode`) ist jetzt verdrahtet.
+- **Ungeprüft auf Gerät:** Optik der Neigung, Nebel-Performance, Hit-Tests, Gesten.
+
 ## Verifiziert
 
 `pnpm typecheck`, `pnpm test`, `expo export --platform android` (Bundle baut). **Nicht** auf Gerät/Simulator gelaufen: Optik, Gesten und Haptik sind ungeprüft.

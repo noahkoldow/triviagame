@@ -12,6 +12,11 @@ import {
   unlockArea,
   spendRewind,
   buyCosmetic,
+  CACHE_SLOTS,
+  cacheAdd,
+  cacheDrop,
+  cacheSwap,
+  debrisOffsets,
 } from './index';
 
 const pool = new Pool(MOCK_QUESTIONS);
@@ -86,5 +91,43 @@ describe('player flow', () => {
     expect(b.bits).toBe(40);
     expect(b.activeCosmetic).toBe('lime');
     expect(buyCosmetic(b, 'gold')).toBeNull();
+  });
+});
+
+describe('cache', () => {
+  const e = (f: string, q = 'sci-light') => ({ questionId: q, fragmentId: f });
+
+  it('holds at most CACHE_SLOTS fragments and rejects duplicates', () => {
+    let p = initialPlayer(pool);
+    for (let i = 0; i < CACHE_SLOTS; i++) p = cacheAdd(p, e(`f${i}`))!;
+    expect(p.cache).toHaveLength(CACHE_SLOTS);
+    expect(cacheAdd(p, e('extra'))).toBeNull();
+    expect(cacheAdd(p, e('f0'))).toBeNull();
+  });
+
+  it('swaps and drops entries', () => {
+    let p = cacheAdd(initialPlayer(pool), e('a'))!;
+    p = cacheSwap(p, e('a'), e('b'))!;
+    expect(p.cache).toEqual([e('b')]);
+    expect(cacheSwap(p, e('zzz'), e('c'))).toBeNull();
+    expect(cacheDrop(p, e('b')).cache).toEqual([]);
+  });
+
+  it('is emptied after an attempt', () => {
+    const p = cacheAdd(initialPlayer(pool), e('a'))!;
+    expect(recordWrong(p, pool, 'n0').cache).toEqual([]);
+    expect(recordCorrect(p, pool, 'n0', '2026-10-01', 0).player.cache).toEqual([]);
+  });
+
+  it('always fits the key fragments of every question (fairness)', () => {
+    for (const q of MOCK_QUESTIONS) {
+      expect(q.fragments.filter((f) => f.kind === 'key').length).toBeLessThanOrEqual(CACHE_SLOTS);
+    }
+  });
+
+  it('places debris deterministically', () => {
+    const a = debrisOffsets('n0:0', 5);
+    expect(a).toEqual(debrisOffsets('n0:0', 5));
+    expect(a).toHaveLength(5);
   });
 });

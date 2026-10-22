@@ -1,3 +1,4 @@
+import type { CacheEntry } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
   DEBRIS_COST,
@@ -44,6 +45,8 @@ export interface PlayerState {
   integrity: number;
   streak: { count: number; lastDay: string | null; freezes: number };
   unlockedAreas: string[];
+  /** Fragments carried from debris fields; see `cache.ts`. Emptied after every attempt. */
+  cache: CacheEntry[];
   /** fragmentId → day first collected */
   codex: Record<string, string>;
   ownedCosmetics: string[];
@@ -82,6 +85,7 @@ export function initialPlayer(
     integrity: MAX_INTEGRITY,
     streak: { count: 0, lastDay: null, freezes: 2 },
     unlockedAreas: initialUnlockedAreas(),
+    cache: [],
     codex: {},
     ownedCosmetics: ['cyan'],
     activeCosmetic: 'cyan',
@@ -119,6 +123,7 @@ export function recordWrong(p: PlayerState, pool: Pool, nodeId: string): PlayerS
       nodes: { ...p.network.nodes, [nodeId]: { ...n, attempts: n.attempts + 1 } },
     },
     integrity: Math.max(0, p.integrity - 1),
+    cache: [],
     skill: {
       ...p.skill,
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false),
@@ -193,6 +198,7 @@ export function recordCorrect(
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, attempts === 1),
     },
     interest: recordResult(p.interest, q.area, true),
+    cache: [],
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
@@ -222,6 +228,7 @@ export function recordReviewResult(
     player: {
       ...p,
       network: reviewNode(p.network, nodeId, correct, today),
+      cache: [],
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
       skill: {

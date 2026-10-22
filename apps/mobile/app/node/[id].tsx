@@ -4,20 +4,17 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   areaById,
-  buildField,
+  cacheFragments,
   decideAds,
   isCorrect,
   noteInterstitialShown,
   recordCorrect,
   recordReviewResult,
   recordWrong,
-  seededRng,
   sectorOfArea,
-  sessionParams,
   spendRewind,
   variantOptions,
   variantOrder,
-  type Fragment,
   type Question,
   type Reward,
 } from '@nexus/shared';
@@ -26,12 +23,12 @@ import { Morph } from '../../src/components/Morph';
 import { Button, Card, H1, P, Pill, tap } from '../../src/components/ui';
 import { ads } from '../../src/services/ads';
 import { pool } from '../../src/services/content';
-import { setRecentlySpawned } from '../../src/state/session';
+import { clearHint, getHint, setDebrisReturn, setHint, setRecentlySpawned } from '../../src/state/session';
 import { getState, today, update, useGame } from '../../src/state/store';
 import { de } from '../../src/strings';
 import { colors } from '../../src/theme';
 
-type Phase = 'intro' | 'collect' | 'question' | 'result';
+type Phase = 'question' | 'result';
 
 const MORPH_QUIPS = [
   'Wozu merken? Frag mich einfach. Ich kürze dir das ab. 😇',
@@ -71,15 +68,13 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   const q = pool.get(node.questionId);
   const sector = sectorOfArea(q.area);
   const color = colors.sector[sector];
-  const params = sessionParams(q);
 
-  const [phase, setPhase] = useState<Phase>('intro');
+  const [phase, setPhase] = useState<Phase>('question');
   const [variant, setVariant] = useState(node.attempts);
-  const [cache, setCache] = useState<string[]>([]);
-  const [viewing, setViewing] = useState<Fragment | null>(null);
+  const cache = useGame((p) => p.cache);
   const [rewindOpen, setRewindOpen] = useState(false);
   const [rewinds, setRewinds] = useState(0);
-  const [hint, setHint] = useState<string | null>(null);
+  const hint = getHint(nodeId);
   const [choice, setChoice] = useState<number | null>(null);
   const [text, setText] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
@@ -93,7 +88,6 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   } | null>(null);
   const [adBusy, setAdBusy] = useState(false);
 
-  const field = useMemo(() => buildField(q, variant), [q, variant]);
   const options = useMemo(
     () => (q.type === 'choice' ? variantOptions(q, variant) : null),
     [q, variant],
@@ -102,32 +96,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     () => (q.type === 'order' ? variantOrder(q, variant) : []),
     [q, variant],
   );
-  const positions = useMemo(() => {
-    const rng = seededRng(`${q.id}:pos:${variant}`);
-    return field.map((_, i) => {
-      const angle = (i / field.length) * Math.PI * 2 + rng() * 0.5;
-      const r = 0.55 + rng() * 0.35;
-      return {
-        x: 50 + Math.cos(angle) * r * 40,
-        y: 50 + Math.sin(angle) * r * 40,
-        rot: (rng() - 0.5) * 30,
-      };
-    });
-  }, [field, q.id, variant]);
-
-  const cachedFragments = cache
-    .map((fid) => q.fragments.find((f) => f.id === fid)!)
-    .filter(Boolean);
-
-  const collectFragment = (f: Fragment) => {
-    if (cache.includes(f.id)) return;
-    if (cache.length < params.slots) setCache([...cache, f.id]);
-    setViewing(null);
-  };
-  const swapFragment = (f: Fragment, out: string) => {
-    setCache(cache.map((c) => (c === out ? f.id : c)));
-    setViewing(null);
-  };
+  const cachedFragments = cacheFragments(getState(), pool);
 
   const check = (): boolean => {
     if (q.type === 'choice' && options) return choice === options.answer;
@@ -159,6 +128,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
       const r = recordCorrect(getState(), pool, nodeId, day, rewinds);
       update(() => r.player);
       setRecentlySpawned(r.spawned);
+      clearHint(nodeId);
       tap('success');
       setResult({
         correct: true,
@@ -216,19 +186,15 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     if (!watched) return;
     update((p) => ({ ...p, integrity: Math.min(5, p.integrity + 1) }));
     const key = q.fragments.find((f) => f.kind === 'key');
-    if (key) setHint(key.text);
+    if (key) setHint(nodeId, key.text);
     tap('success');
     retry();
   };
 
+  /** Back to the debris field on the map; a new attempt brings a new mix of fragments. */
   const retry = () => {
-    setVariant(variant + 1);
-    setCache([]);
-    setChoice(null);
-    setText('');
-    setPicked([]);
-    setRewinds(0);
-    setPhase('collect');
+    setDebrisReturn(nodeId);
+    router.back();
   };
 
   const rewind = () => {
@@ -257,148 +223,6 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     </View>
   );
 
-  if (phase === 'intro') {
-    return (
-      <SafeAreaView style={styles.root}>
-        {header}
-        <ScrollView contentContainerStyle={styles.body}>
-          <View style={{ alignItems: 'center' }}>
-            <Bolt size={110} mood="happy" />
-          </View>
-          <Card>
-            <H1 style={{ fontSize: 22 }}>{review ? 'Reparatur-Lauf' : de.kinds[node.kind]}</H1>
-            <P style={{ marginTop: 6 }}>
-              {review
-                ? 'Dieser Knoten war wackelig. Sammle die Fragmente noch einmal und beantworte die Frage.'
-                : `Zwischen den Trümmern liegen Datenfragmente. Dein Cache fasst nur ${params.slots}, such dir aus, was du behältst. Danach verschwinden die Fragmente und die Frage erscheint.`}
-            </P>
-            {node.attempts > 0 ? (
-              <P style={{ marginTop: 6 }}>
-                Versuch {node.attempts + 1}: neue Fragmente, neue Variante.
-              </P>
-            ) : null}
-          </Card>
-          <Button label="Trümmerfeld betreten" onPress={() => setPhase('collect')} />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  if (phase === 'collect') {
-    return (
-      <SafeAreaView style={styles.root}>
-        {header}
-        <View style={styles.body}>
-          <View
-            style={styles.cacheRow}
-            accessibilityLabel={`Cache: ${cache.length} von ${params.slots} belegt`}
-          >
-            <Text style={styles.cacheLabel}>CACHE</Text>
-            {Array.from({ length: params.slots }).map((_, i) => {
-              const f = cachedFragments[i];
-              return (
-                <View
-                  key={i}
-                  style={[styles.slot, f && { borderColor: color, backgroundColor: color + '22' }]}
-                >
-                  <Text style={[styles.slotText, f && { color }]} numberOfLines={1}>
-                    {f ? f.hint : '·'}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-          {hint ? (
-            <Card style={{ borderColor: colors.accent }}>
-              <P style={{ color: colors.text }}>Bolt-Hinweis: {hint}</P>
-            </Card>
-          ) : null}
-          <View style={styles.arena}>
-            {field.map((f, i) => {
-              const pos = positions[i]!;
-              const inCache = cache.includes(f.id);
-              return (
-                <Pressable
-                  key={f.id}
-                  onPress={() => {
-                    tap();
-                    setViewing(f);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Trümmerteil: ${f.hint}${inCache ? ', im Cache' : ''}`}
-                  style={[
-                    styles.shard,
-                    {
-                      left: `${pos.x - 14}%`,
-                      top: `${pos.y - 8}%`,
-                      transform: [{ rotate: `${pos.rot}deg` }],
-                    },
-                    inCache && { borderColor: color, backgroundColor: color + '33' },
-                  ]}
-                >
-                  <Text style={[styles.shardText, inCache && { color }]}>
-                    {inCache ? '✓ ' : ''}
-                    {f.hint}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <P>Tippe auf Trümmerteile und lies die Fragmente. Merke dir, was wichtig sein könnte.</P>
-          <Button label="Weiter zur Frage" onPress={() => setPhase('question')} />
-        </View>
-
-        <Modal
-          transparent
-          animationType="fade"
-          visible={!!viewing}
-          onRequestClose={() => setViewing(null)}
-        >
-          <View style={styles.modalBack}>
-            {viewing ? (
-              <Card style={{ gap: 12 }}>
-                <Text style={[styles.cacheLabel, { color }]}>{viewing.hint.toUpperCase()}</Text>
-                <Text style={styles.fragText}>{viewing.text}</Text>
-                {cache.includes(viewing.id) ? (
-                  <Button label="Schließen" variant="ghost" onPress={() => setViewing(null)} />
-                ) : cache.length < params.slots ? (
-                  <>
-                    <Button
-                      label="Merken (in den Cache)"
-                      onPress={() => collectFragment(viewing)}
-                    />
-                    <Button
-                      label="Liegen lassen"
-                      variant="ghost"
-                      onPress={() => setViewing(null)}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <P>Cache voll. Tausche gegen:</P>
-                    {cachedFragments.map((c) => (
-                      <Button
-                        key={c.id}
-                        label={c.hint}
-                        variant="ghost"
-                        onPress={() => swapFragment(viewing, c.id)}
-                      />
-                    ))}
-                    <Button
-                      label="Liegen lassen"
-                      variant="ghost"
-                      onPress={() => setViewing(null)}
-                    />
-                  </>
-                )}
-              </Card>
-            ) : null}
-          </View>
-        </Modal>
-      </SafeAreaView>
-    );
-  }
-
   if (phase === 'question') {
     return (
       <SafeAreaView style={styles.root}>
@@ -407,7 +231,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
           <View style={styles.qTop}>
             <Bolt size={64} mood="think" />
             <Text style={styles.lock}>
-              🔒 {cache.length} Fragment{cache.length === 1 ? '' : 'e'} im Cache
+              🔒 Cache versiegelt · {cache.length} Fragment{cache.length === 1 ? '' : 'e'}
             </Text>
           </View>
           <Card>
@@ -488,11 +312,11 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
           <View style={{ gap: 8, marginTop: 4 }}>
             <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />
             <Button
-              label="Rückspulen"
+              label="⚡ Blitz: Cache öffnen"
               variant="ghost"
               sub={
                 energy > 0
-                  ? `Cache noch einmal ansehen · ⚡ 1 (du hast ${energy})`
+                  ? `Kostet 1 Energie (du hast ${energy}). Sonst ist der Cache in der Frage zu.`
                   : 'Keine Energie. Lösche Knoten, um sie aufzuladen'
               }
               disabled={energy <= 0 || cache.length === 0}
@@ -509,7 +333,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         >
           <View style={styles.modalBack}>
             <Card style={{ gap: 12 }}>
-              <Text style={styles.cacheLabel}>REWIND · DEIN CACHE</Text>
+              <Text style={styles.cacheLabel}>BLITZ · DEIN CACHE</Text>
               {cachedFragments.map((f) => (
                 <View key={f.id} style={{ gap: 2 }}>
                   <Text style={[styles.cacheLabel, { color }]}>{f.hint}</Text>
@@ -612,7 +436,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                     onPress={watchForSecondChance}
                   />
                 ) : null}
-                <Button label="Nochmal versuchen" onPress={retry} />
+                <Button label="Zurück ins Trümmerfeld" onPress={retry} />
                 {r.attempts >= 3 ? (
                   <Card style={{ gap: 8 }}>
                     <P>Du kannst den Knoten später noch einmal angehen. Richtig wäre gewesen:</P>
