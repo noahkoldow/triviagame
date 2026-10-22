@@ -17,6 +17,7 @@ import {
   Easing,
   useDerivedValue,
   useSharedValue,
+  withDelay,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
@@ -101,6 +102,8 @@ export function NetMap({
   const pulse = useSharedValue(0);
   /** Runs 0 → 1 over 8 s; the noise reads it in a few steps, so it ticks slowly instead of gliding. */
   const glitch = useSharedValue(0);
+  /** 1 while the map rests, 0 while it is dragged or zoomed: the veil only shows when it rests. */
+  const calm = useSharedValue(1);
 
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, true);
@@ -246,6 +249,10 @@ export function NetMap({
       let gBase = { dx: 0, dy: 0 };
       let pinch: { d0: number; s0: number } | null = null;
       let moved = false;
+      const settle = () => {
+        // back to calm shortly after the finger lifts
+        calm.value = withDelay(400, withTiming(1, { duration: 350 }));
+      };
       return PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
@@ -256,7 +263,10 @@ export function NetMap({
           moved = false;
         },
         onPanResponderMove: (e, g) => {
-          if (Math.abs(g.dx) + Math.abs(g.dy) > 8) moved = true;
+          if (!moved && Math.abs(g.dx) + Math.abs(g.dy) > 8) {
+            moved = true;
+            calm.value = withTiming(0, { duration: 150 });
+          }
           const t = e.nativeEvent.touches;
           if (t.length >= 2) {
             const a = t[0]!;
@@ -267,6 +277,7 @@ export function NetMap({
             setCam(cam.current.cx, cam.current.cy, s);
             base = { cx: cam.current.cx, cy: cam.current.cy };
             gBase = { dx: g.dx, dy: g.dy };
+            if (!moved) calm.value = withTiming(0, { duration: 150 });
             moved = true;
           } else {
             pinch = null;
@@ -275,8 +286,14 @@ export function NetMap({
             setCam(c.x, c.y, cam.current.s);
           }
         },
+        onPanResponderTerminate: () => {
+          if (moved) settle();
+        },
         onPanResponderRelease: (e) => {
-          if (moved) return;
+          if (moved) {
+            settle();
+            return;
+          }
           const { width: w, height: h } = sizeRef.current;
           const { cx: x, cy: y, s } = cam.current;
           const tx = e.nativeEvent.locationX;
@@ -336,7 +353,8 @@ export function NetMap({
   useEffect(() => {
     dim.value = withTiming(scavenging ? 1 : 0, { duration: 300 });
   }, [scavenging, dim]);
-  const restOpacity = useDerivedValue(() => 1 - 0.8 * dim.value);
+  // a dark veil over everything while a node is scavenged and the map rests
+  const veilOpacity = useDerivedValue(() => 0.92 * dim.value * calm.value);
   const focusOpacity = useDerivedValue(() => dim.value);
 
   // the land right around the scavenged node, drawn again at full strength
@@ -386,7 +404,6 @@ export function NetMap({
         </Rect>
 
         <Group transform={transform}>
-          <Group opacity={restOpacity}>
           {/* fog: faint outlines fading outward */}
           {atlas && ghostDraw ? (
             <Atlas image={atlas.image} sprites={ghostDraw.sprites} transforms={ghostDraw.transforms} colors={ghostDraw.colors} colorBlendMode="modulate" />
@@ -452,10 +469,14 @@ export function NetMap({
               <SiteTile key={`p-${b.site!.id}`} x={b.site!.x} y={b.site!.y} color={SECTOR_COLOR[b.site!.sector]} />
             ),
           )}
-          </Group>
+        </Group>
 
-          {/* the scavenged node with its pieces, at full strength on top */}
-          {debris ? (
+        {/* veil: pulls everything back while a node is being scavenged */}
+        <Rect x={0} y={0} width={width} height={height} color="#060B15" opacity={veilOpacity} />
+
+        {/* the scavenged node with its pieces, at full strength on top of the veil */}
+        {debris ? (
+          <Group transform={transform}>
             <Group opacity={focusOpacity}>
               {atlas && focusTiles ? (
                 <Atlas image={atlas.image} sprites={focusTiles.sprites} transforms={focusTiles.transforms} colors={focusTiles.colors} colorBlendMode="modulate" />
@@ -477,8 +498,8 @@ export function NetMap({
                 ),
               )}
             </Group>
-          ) : null}
-        </Group>
+          </Group>
+        ) : null}
 
         {/* soft edges of the screen */}
         <Rect x={0} y={0} width={width} height={height * 0.3}>
