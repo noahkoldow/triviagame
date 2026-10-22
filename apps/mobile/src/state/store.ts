@@ -34,7 +34,18 @@ export async function hydrate(): Promise<void> {
         streak: { ...base.streak, ...saved.streak },
         ads: { ...base.ads, ...saved.ads },
         stats: { ...base.stats, ...saved.stats },
-        network: saved.network?.nodes ? saved.network : base.network,
+        network: saved.network?.nodes
+          ? {
+              ...saved.network,
+              // saves from before outposts: areas that were already bought count as connected
+              outposts:
+                saved.network.outposts ??
+                base.network.outposts?.map((o) => ({
+                  ...o,
+                  connected: (saved.unlockedAreas ?? base.unlockedAreas).includes(o.area),
+                })),
+            }
+          : base.network,
       };
     }
   } catch {

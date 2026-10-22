@@ -1,4 +1,5 @@
 import {
+  DashPathEffect,
   Group,
   Path,
   Rect,
@@ -268,6 +269,54 @@ export function CoreTile() {
         <Path path={CORE_MID} color="#FFFFFF" opacity={0.2} />
         <Path path={CORE_IN} color="#FFFFFF" />
       </Group>
+    </Group>
+  );
+}
+
+/** A disturbed outpost: a flickering tile that has to be connected to the network. */
+export function OutpostTile({
+  x,
+  y,
+  color,
+  label,
+  font,
+  pulse,
+}: {
+  x: number;
+  y: number;
+  color: string;
+  label: string;
+  font: SkFont;
+  pulse: SharedValue<number>;
+}) {
+  const face = mix(color, '#3A2A48', 0.55);
+  const lw = font.getTextWidth(label);
+  // chromatic glitch: two offset copies that jitter
+  const shiftA = useDerivedValue(() => [{ translateX: -3 - pulse.value * 2 }, { translateY: -1 }]);
+  const shiftB = useDerivedValue(() => [{ translateX: 3 + pulse.value * 2 }, { translateY: 1 }]);
+  return (
+    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
+      <Group transform={[{ translateY: 3 }]} opacity={0.5}>
+        <Path path={NODE.top} color="#02060C" />
+      </Group>
+      <Group transform={[{ translateY: -NODE_DEPTH }]}>
+        <Group transform={shiftA} opacity={0.55}>
+          <Path path={NODE.top} color="#FF4B8B" />
+        </Group>
+        <Group transform={shiftB} opacity={0.55}>
+          <Path path={NODE.top} color="#1CB0F6" />
+        </Group>
+        <Solid parts={NODE} face={face} edge={shade(face, 0.4)} />
+        <Path path={NODE_INNER} style="stroke" strokeWidth={2} strokeJoin="round" color="#FFFFFF" opacity={0.25}>
+          <DashPathEffect intervals={[5, 5]} />
+        </Path>
+        <Group transform={[{ translateY: -2 }, { scale: NODE_R * 0.36 }]}>
+          <Rect x={-0.12} y={-0.8} width={0.24} height={1.05} color="#FFFFFF" />
+          <Path path={unitPath((p) => p.addCircle(0, 0.62, 0.15))} color="#FFFFFF" />
+        </Group>
+      </Group>
+      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
+      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#FFC4E0" />
     </Group>
   );
 }

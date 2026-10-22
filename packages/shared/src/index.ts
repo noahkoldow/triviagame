@@ -14,3 +14,4 @@ export * from './content';
 export * from './game';
 export * from './cache';
 export * from './hex';
+export * from './outposts';

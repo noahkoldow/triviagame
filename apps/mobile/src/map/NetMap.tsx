@@ -22,6 +22,7 @@ import {
 } from 'react-native-reanimated';
 import {
   areaById,
+  type Outpost,
   sectorOfArea,
   snapToHex,
   type NetNode,
@@ -45,6 +46,7 @@ import {
   NODE_DEPTH,
   NODE_R,
   NodeTile,
+  OutpostTile,
   ShardTile,
   SiteTile,
   type NodeInfo,
@@ -63,6 +65,9 @@ interface Props {
   focusId?: string;
   focusZoom?: number;
   showStrand?: boolean;
+  /** Disturbed areas still to be connected. */
+  outposts?: Outpost[];
+  onOutpost?: (id: string) => void;
   /** Debris field of the node the player is currently scavenging. */
   debris?: { center: { x: number; y: number }; color: string; shards: Shard[] };
   onShard?: (fragmentId: string) => void;
@@ -80,7 +85,9 @@ export function NetMap({
   focusKey,
   focusId,
   focusZoom,
-  showStrand = true,
+  showStrand = false,
+  outposts = [],
+  onOutpost,
   debris,
   onShard,
   onSelect,
@@ -134,8 +141,18 @@ export function NetMap({
         noise: n.state === 'damaged' || (n.state === 'open' && n.attempts > 0),
       };
     });
-    return [...real, ...strand];
-  }, [placed, pool, strand]);
+    const far = outposts
+      .filter((o) => !o.connected)
+      .map<Site>((o) => ({
+        id: o.id,
+        ...snapToHex(o.x, o.y),
+        area: o.area,
+        sector: sectorOfArea(o.area),
+        state: 'locked',
+        noise: true,
+      }));
+    return [...real, ...far, ...strand];
+  }, [placed, pool, strand, outposts]);
 
   const edges = useMemo<TraceEdge[]>(() => {
     const out: TraceEdge[] = [];
@@ -185,6 +202,14 @@ export function NetMap({
   onSelectRef.current = onSelect;
   const onShardRef = useRef(onShard);
   onShardRef.current = onShard;
+  const onOutpostRef = useRef(onOutpost);
+  onOutpostRef.current = onOutpost;
+  const openOutposts = useMemo(
+    () => outposts.filter((o) => !o.connected).map((o) => ({ id: o.id, ...snapToHex(o.x, o.y) })),
+    [outposts],
+  );
+  const outpostsRef = useRef(openOutposts);
+  outpostsRef.current = openOutposts;
   const shardsRef = useRef<Shard[]>([]);
   shardsRef.current = debris?.shards ?? [];
 
@@ -262,6 +287,13 @@ export function NetMap({
             onShardRef.current?.(sBest.id);
             return;
           }
+          for (const o of outpostsRef.current) {
+            const p = project(x, y, s, w, h, o.x, o.y, NODE_DEPTH);
+            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(36, NODE_R * s + 8)) {
+              onOutpostRef.current?.(o.id);
+              return;
+            }
+          }
           let best: NetNode | null = null;
           let bd = Infinity;
           for (const n of nodesRef.current) {
@@ -282,13 +314,17 @@ export function NetMap({
 
   // things standing on the map, back to front
   const stack = useMemo(() => {
-    const list: { y: number; node?: NetNode; shard?: Shard; site?: Site }[] = [
+    const list: { y: number; node?: NetNode; shard?: Shard; site?: Site; outpost?: { id: string; x: number; y: number; area: string } }[] = [
+      ...outposts
+        .filter((o) => !o.connected)
+        .map((o) => ({ ...o, ...snapToHex(o.x, o.y) }))
+        .map((o) => ({ y: o.y, outpost: o })),
       ...placed.map((n) => ({ y: n.pos.y, node: n })),
       ...strand.map((s) => ({ y: s.y, site: s })),
       ...(debris?.shards ?? []).map((sh) => ({ y: sh.y, shard: sh })),
     ];
     return list.sort((a, b) => a.y - b.y);
-  }, [placed, strand, debris]);
+  }, [placed, strand, debris, outposts]);
 
   return (
     <View
@@ -330,7 +366,17 @@ export function NetMap({
 
           <CoreTile />
           {stack.map((b) =>
-            b.shard ? (
+            b.outpost ? (
+              <OutpostTile
+                key={`o-${b.outpost.id}`}
+                x={b.outpost.x}
+                y={b.outpost.y}
+                color={SECTOR_COLOR[sectorOfArea(b.outpost.area)]}
+                label={areaById(b.outpost.area).de}
+                font={font}
+                pulse={pulse}
+              />
+            ) : b.shard ? (
               <ShardTile key={`s-${b.shard.id}`} shard={b.shard} color={debris!.color} font={font} />
             ) : b.node ? (
               <NodeTile

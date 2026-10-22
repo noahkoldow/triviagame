@@ -87,6 +87,8 @@ export interface NetNode {
 
 export interface NetworkState {
   nodes: Record<string, NetNode>;
+  /** Disturbed topic areas scattered on the map; see `outposts.ts`. */
+  outposts?: import('./outposts').Outpost[];
   /** Question ids already used by a node (solved or open). */
   usedQuestions: string[];
 }

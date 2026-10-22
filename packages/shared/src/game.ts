@@ -12,7 +12,9 @@ import {
   Pool,
   completeNode,
   createNetwork,
+  connectOutpost,
   growMissing,
+  outpostsReachedBy,
   reviewNode,
   unlockDebris,
   type SpawnContext,
@@ -22,7 +24,7 @@ import { seededRng } from './rng';
 import { BASE_SKILL, updateSkill, type SkillMap } from './skill';
 import { isDue } from './srs';
 import { ROOT_QUESTIONS } from './content';
-import type { NetworkState, Sector } from './types';
+import type { NetNode, NetworkState, Sector } from './types';
 
 export interface PlayerProfile {
   name: string;
@@ -111,6 +113,29 @@ export function ctxFor(p: PlayerState, pool: Pool, seed: string): SpawnContext {
   };
 }
 
+/** Connects every outpost that the new nodes reached and opens its area. */
+function reach(
+  p: PlayerState,
+  pool: Pool,
+  fresh: NetNode[],
+  seed: string,
+): { player: PlayerState; spawned: string[]; areas: string[] } {
+  let player = p;
+  const spawned: string[] = [];
+  const areas: string[] = [];
+  for (const n of fresh) {
+    for (const oid of outpostsReachedBy(player.network, n)) {
+      const area = player.network.outposts!.find((o) => o.id === oid)!.area;
+      const unlocked = player.unlockedAreas.includes(area) ? player.unlockedAreas : [...player.unlockedAreas, area];
+      const c = connectOutpost(player.network, oid, n, ctxFor({ ...player, unlockedAreas: unlocked }, pool, `${seed}:${oid}`));
+      player = { ...player, network: c.state, unlockedAreas: unlocked };
+      areas.push(area);
+      if (c.node) spawned.push(c.node.id);
+    }
+  }
+  return { player, spawned, areas };
+}
+
 /** The player tapped a node: a strong interest signal for its area. */
 export function chooseNode(p: PlayerState, pool: Pool, nodeId: string): PlayerState {
   const n = p.network.nodes[nodeId];
@@ -153,6 +178,8 @@ export interface CorrectResult {
   closedCircle: boolean;
   /** All key fragments were carried and the cache stayed closed. */
   prepared: boolean;
+  /** Areas that were connected by this answer. */
+  reachedAreas: string[];
 }
 
 function collect(p: PlayerState, pool: Pool, questionId: string, today: string) {
@@ -172,7 +199,7 @@ export function recordCorrect(
 ): CorrectResult {
   const n = p.network.nodes[nodeId];
   if (!n || n.state !== 'open') {
-    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false };
+    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false, reachedAreas: [] };
   }
   const q = pool.get(n.questionId);
   const attempts = n.attempts + 1;
@@ -218,12 +245,14 @@ export function recordCorrect(
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
+  const reached = reach(player, pool, grown.spawned, `${nodeId}:${attempts}`);
   return {
-    player,
-    spawned: grown.spawned.map((s) => s.id),
+    player: reached.player,
+    spawned: [...grown.spawned.map((s) => s.id), ...reached.spawned],
     reward,
     closedCircle: grown.closedCircle,
     prepared,
+    reachedAreas: reached.areas,
   };
 }
 
@@ -244,13 +273,17 @@ export function recordReviewResult(
   const grown = correct
     ? growMissing(reviewed, nodeId, ctxFor(p, pool, `${nodeId}:repair`))
     : { state: reviewed, spawned: [] };
+  const base: PlayerState = {
+    ...p,
+    network: grown.state,
+    integrity: correct ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
+  };
+  const reached = reach(base, pool, grown.spawned as NetNode[], `${nodeId}:repair`);
   return {
     reward,
-    spawned: grown.spawned.map((s) => s.id),
+    spawned: [...grown.spawned.map((s) => s.id), ...reached.spawned],
     player: {
-      ...p,
-      network: grown.state,
-      integrity: correct ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
+      ...reached.player,
       cache: [],
       spent: [],
       xp: p.xp + reward.xp,
@@ -313,11 +346,16 @@ export function healIntegrity(p: PlayerState): PlayerState | null {
   return { ...p, gems: r.balance, integrity: MAX_INTEGRITY };
 }
 
-export function unlockArea(p: PlayerState, areaId: string): PlayerState | null {
+/** Buys an area with gems; with a pool the disturbed outpost of that area is connected too. */
+export function unlockArea(p: PlayerState, areaId: string, pool?: Pool): PlayerState | null {
   if (p.unlockedAreas.includes(areaId)) return null;
   const r = trySpend(p.gems, areaCost(areaId));
   if (!r.ok) return null;
-  return { ...p, gems: r.balance, unlockedAreas: [...p.unlockedAreas, areaId] };
+  const opened: PlayerState = { ...p, gems: r.balance, unlockedAreas: [...p.unlockedAreas, areaId] };
+  const outpost = opened.network.outposts?.find((o) => o.area === areaId && !o.connected);
+  if (!outpost || !pool) return opened;
+  const c = connectOutpost(opened.network, outpost.id, undefined, ctxFor(opened, pool, `buy:${areaId}`));
+  return { ...opened, network: c.state };
 }
 
 export function openDebris(p: PlayerState, nodeId: string): PlayerState | null {

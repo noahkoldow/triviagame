@@ -34,6 +34,8 @@ export interface PlaceOptions {
   side?: Partial<Record<Sector, number>>;
   existing: Vec3[];
   seed: string;
+  /** Lean the direction toward this point (an outpost); `pull` 0..1 is how strongly. */
+  target?: { x: number; y: number; pull: number };
 }
 
 /**
@@ -56,6 +58,10 @@ export function placeNode(o: PlaceOptions): Vec3 {
   } else {
     angle = parentTh + sign * (0.9 + rng() * 0.5);
     dist = 80 + rng() * 30;
+  }
+  if (o.target) {
+    const ta = Math.atan2(o.target.y - o.parent.y, o.target.x - o.parent.x);
+    angle += angDiff(ta, angle) * o.target.pull;
   }
   const cand = {
     x: o.parent.x + Math.cos(angle) * dist,

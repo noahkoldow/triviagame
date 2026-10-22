@@ -22,6 +22,11 @@ Spielbar in Expo Go (Mock-Daten):
 - UI bleibt im Duolingo-Stil (dicke Kanten, kräftige Farben).
 - **Ungeprüft auf Gerät:** Performance und Optik der Karte.
 
+## Prototyp 0.4 (Folgen und Außenposten)
+
+- Cache mit echter Entscheidung, Stichwort statt Frage, Folgen bei Fehlern (D17), gestörte Außenposten (D16).
+- **Ungeprüft auf Gerät.** Strang-Vorschau ist standardmäßig aus ().
+
 ## Verifiziert
 
 `pnpm typecheck`, `pnpm test`, `expo export --platform android` (Bundle baut). **Nicht** auf Gerät/Simulator gelaufen: Optik, Gesten und Haptik sind ungeprüft.

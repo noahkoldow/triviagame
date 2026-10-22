@@ -84,6 +84,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     spawned?: string[];
     closedCircle?: boolean;
     prepared?: boolean;
+    reachedAreas?: string[];
     gaveUp?: boolean;
     attempts: number;
   } | null>(null);
@@ -137,6 +138,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         spawned: r.spawned,
         closedCircle: r.closedCircle,
         prepared: r.prepared,
+        reachedAreas: r.reachedAreas,
         attempts: node.attempts + 1,
       });
       setPhase('result');
@@ -396,6 +398,13 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                 </P>
               </Card>
             ) : null}
+            {(r.reachedAreas ?? []).map((a) => (
+              <Card key={a} style={{ borderColor: colors.primary }}>
+                <P style={{ color: colors.primary }}>
+                  Neuer Bereich verbunden: {areaById(a).de}! Das Rauschen dort lichtet sich, ein neuer Knoten wartet.
+                </P>
+              </Card>
+            ))}
             {r.closedCircle ? (
               <Card style={{ borderColor: colors.gem }}>
                 <P style={{ color: colors.gem }}>

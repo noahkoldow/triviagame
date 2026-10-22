@@ -18,6 +18,8 @@ import {
   dueReviews,
   healIntegrity,
   openDebris,
+  unlockArea,
+  areaCost,
   regenEnergy,
   snapToHex,
   sectorOfArea,
@@ -40,6 +42,7 @@ export default function Home() {
   const network = useGame((p) => p.network);
   const cache = useGame((p) => p.cache);
   const gems = useGame((p) => p.gems);
+  const outposts = network.outposts ?? [];
   const integrity = useGame((p) => p.integrity);
   const spent = useGame((p) => p.spent);
   const name = useGame((p) => p.profile.name);
@@ -53,6 +56,7 @@ export default function Home() {
   const [cacheView, setCacheView] = useState<CacheEntry | null>(null);
   const [tip, setTip] = useState(true);
   const [unstable, setUnstable] = useState(false);
+  const [outpostId, setOutpostId] = useState<string | null>(null);
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
   const due = dueReviews(getState(), today());
@@ -126,6 +130,21 @@ export default function Home() {
   const inCache = !!shardEntry && cache.some((c) => c.questionId === shardEntry.questionId && c.fragmentId === shardEntry.fragmentId);
   const cached = useMemo(() => cacheFragments(getState(), pool), [cache]);
 
+  const outpost = outpostId ? outposts.find((o) => o.id === outpostId && !o.connected) : undefined;
+  const outpostSteps = outpost
+    ? Math.max(
+        1,
+        Math.round(
+          Math.min(
+            ...nodes
+              .filter((n) => !n.locked)
+              .map((n) => Math.hypot(n.pos.x - outpost.x, n.pos.y - outpost.y)),
+          ) / 110,
+        ),
+      )
+    : 0;
+  const outpostCost = outpost ? areaCost(outpost.area) : 0;
+
   const selected = sel ? network.nodes[sel] : undefined;
   const selQ = selected ? pool.get(selected.questionId) : undefined;
   const openCount = nodes.filter((n) => n.state === 'open' && !n.locked).length;
@@ -165,6 +184,11 @@ export default function Home() {
         focusKey={focusKey}
         focusId={focusId}
         focusZoom={debrisId ? 1.15 : undefined}
+        outposts={outposts}
+        onOutpost={(id) => {
+          tap();
+          setOutpostId(id);
+        }}
         debris={
           debrisNode
             ? { center: snapToHex(debrisNode.pos.x, debrisNode.pos.y), color: debrisColor, shards }
@@ -329,6 +353,39 @@ export default function Home() {
                   );
                 })()
               : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* a disturbed outpost */}
+      <Modal transparent animationType="fade" visible={!!outpost} onRequestClose={() => setOutpostId(null)}>
+        <Pressable style={styles.center} onPress={() => setOutpostId(null)}>
+          <Pressable style={styles.card} onPress={() => undefined}>
+            {outpost ? (
+              <>
+                <Text style={[styles.cardLabel, { color: colors.sector[sectorOfArea(outpost.area)] }]}>
+                  GESTÖRTER BEREICH
+                </Text>
+                <Text style={styles.topic}>{areaById(outpost.area).de}</Text>
+                <Text style={styles.fragText}>
+                  Dieser Bereich ist noch vom Rauschen verzerrt. Wachse in seine Richtung: Die Fragen auf dem Weg
+                  nähern sich seinem Thema, und sobald dein Netz ihn erreicht, ist er verbunden. Entfernung: etwa{' '}
+                  {outpostSteps} Schritte.
+                </Text>
+                <Button
+                  variant="gem"
+                  label={`Sofort verbinden · ${outpostCost} 💎`}
+                  sub={`Du hast ${gems} Gems`}
+                  disabled={gems < outpostCost}
+                  onPress={() => {
+                    const id = outpost.area;
+                    update((p) => unlockArea(p, id, pool));
+                    setOutpostId(null);
+                  }}
+                />
+                <Button label="Schließen" onPress={() => setOutpostId(null)} />
+              </>
+            ) : null}
           </Pressable>
         </Pressable>
       </Modal>

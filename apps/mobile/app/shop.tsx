@@ -14,6 +14,7 @@ import {
 } from '@nexus/shared';
 import { BackBar, Button, Card, Chip, P, tap } from '../src/components/ui';
 import { ads } from '../src/services/ads';
+import { pool } from '../src/services/content';
 import { PRODUCTS, purchases } from '../src/services/purchases';
 import { getState, update, useGame } from '../src/state/store';
 import { de } from '../src/strings';
@@ -84,7 +85,7 @@ export default function Shop() {
                       variant="gem"
                       label={`${cost} 💎`}
                       disabled={gems < cost}
-                      onPress={() => update((p) => unlockArea(p, a.id))}
+                      onPress={() => update((p) => unlockArea(p, a.id, pool))}
                       style={styles.smallBtn}
                     />
                   )}

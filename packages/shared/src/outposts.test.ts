@@ -1,0 +1,84 @@
+import { describe, expect, it } from 'vitest';
+import {
+  MOCK_QUESTIONS,
+  Pool,
+  SECTOR_ANGLE,
+  areaDistance,
+  createOutposts,
+  initialPlayer,
+  initialUnlockedAreas,
+  placeNode,
+  recordCorrect,
+  rootPosition,
+  sectorOfArea,
+  steerTarget,
+  unlockArea,
+} from './index';
+
+const pool = new Pool(MOCK_QUESTIONS);
+
+describe('outposts', () => {
+  it('scatters one disturbed outpost per area that is not open yet', () => {
+    const o = createOutposts(initialUnlockedAreas());
+    expect(o).toHaveLength(16 - initialUnlockedAreas().length);
+    expect(o.every((x) => !x.connected)).toBe(true);
+    for (const a of o) {
+      let d = Math.atan2(a.y, a.x) - SECTOR_ANGLE[sectorOfArea(a.area)];
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      expect(Math.abs(d)).toBeLessThan(0.8);
+      expect(Math.hypot(a.x, a.y)).toBeGreaterThan(700);
+    }
+    expect(createOutposts(initialUnlockedAreas())).toEqual(o);
+  });
+
+  it('measures how far two topics are apart', () => {
+    expect(areaDistance('physics', 'physics')).toBe(0);
+    expect(areaDistance('physics', 'chemistry')).toBe(1);
+    expect(areaDistance('chemistry', 'physics')).toBe(1);
+    expect(areaDistance('physics', 'economy')).toBe(2);
+  });
+
+  it('points a branch to the nearest disturbed outpost of its own sector', () => {
+    const o = createOutposts(initialUnlockedAreas());
+    const t = steerTarget(o, { x: 0, y: -200 }, 'science')!;
+    expect(sectorOfArea(t.area)).toBe('science');
+    expect(steerTarget(o.map((x) => ({ ...x, connected: true })), { x: 0, y: 0 }, 'science')).toBeUndefined();
+  });
+
+  it('bends new nodes toward the target', () => {
+    const parent = { ...rootPosition('science') };
+    const target = { x: 900, y: -700 };
+    const base = { parent, kind: 'deepen' as const, mainSector: 'science' as const, existing: [parent], seed: 'x' };
+    const plain = placeNode(base);
+    const leaning = placeNode({ ...base, target: { ...target, pull: 0.7 } });
+    const dist = (p: { x: number; y: number }) => Math.hypot(p.x - target.x, p.y - target.y);
+    expect(dist(leaning)).toBeLessThan(dist(plain));
+  });
+
+  it('connects an outpost when growth reaches it and opens its area', () => {
+    const p0 = initialPlayer(pool);
+    const n0 = p0.network.nodes['n0']!;
+    // put the chemistry outpost right next to the first node
+    const outposts = p0.network.outposts!.map((o) =>
+      o.area === 'chemistry' ? { ...o, x: n0.pos.x, y: n0.pos.y } : o,
+    );
+    const p = { ...p0, network: { ...p0.network, outposts } };
+    const r = recordCorrect(p, pool, 'n0', '2026-10-01', 0);
+    expect(r.reachedAreas).toEqual(['chemistry']);
+    expect(r.player.unlockedAreas).toContain('chemistry');
+    expect(r.player.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(true);
+    const fresh = r.spawned.map((id) => r.player.network.nodes[id]!);
+    expect(fresh.some((n) => pool.get(n.questionId).area === 'chemistry')).toBe(true);
+  });
+
+  it('can be connected with gems', () => {
+    const p = { ...initialPlayer(pool), gems: 100 };
+    const u = unlockArea(p, 'chemistry', pool)!;
+    expect(u.unlockedAreas).toContain('chemistry');
+    expect(u.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(true);
+    expect(Object.values(u.network.nodes).some((n) => pool.get(n.questionId).area === 'chemistry')).toBe(true);
+    // without a pool it only opens the area
+    expect(unlockArea(p, 'chemistry')!.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(false);
+  });
+});
