@@ -10,6 +10,8 @@ pnpm start          # Expo-Dev-Server, QR-Code mit Expo Go scannen
 # Handy und Rechner nicht im selben WLAN? -> pnpm --filter @nexus/mobile start:tunnel
 ```
 
+Ausführliche Anleitung (lokal, EAS Update, CI): [docs/TESTING.md](docs/TESTING.md).
+
 Der Prototyp läuft komplett lokal: Mock-Fragen, Mock-Werbung (Overlay statt AdMob), Mock-Käufe. Der Spielstand liegt in `AsyncStorage`.
 
 ## Aufbau
