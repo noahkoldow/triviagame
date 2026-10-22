@@ -21,7 +21,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (!hydrated) return;
     const onOnboarding = segments[0] === 'onboarding';
-    if (!onboarded && !onOnboarding) router.replace('/onboarding');
+    const onPrivacy = segments[0] === 'privacy';
+    if (!onboarded && !onOnboarding && !onPrivacy) router.replace('/onboarding');
     if (onboarded && onOnboarding) router.replace('/');
   }, [hydrated, onboarded, segments, router]);
 

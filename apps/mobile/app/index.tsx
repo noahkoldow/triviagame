@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CACHE_SLOTS,
@@ -59,6 +59,7 @@ export default function Home() {
   const [tip, setTip] = useState(true);
   const [unstable, setUnstable] = useState(false);
   const [outpostId, setOutpostId] = useState<string | null>(null);
+  const [listOpen, setListOpen] = useState(false);
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
   const due = dueReviews(getState(), today());
@@ -274,6 +275,7 @@ export default function Home() {
               items={[
                 { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
                 { label: 'Shop', icon: 'gem', tint: colors.gem, onPress: () => router.push('/shop') },
+                { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
                 { label: 'Profil', icon: 'user', onPress: () => router.push('/profile') },
               ]}
             />
@@ -363,6 +365,44 @@ export default function Home() {
                   );
                 })()
               : null}
+          </Dialog>
+        </Pressable>
+      </Modal>
+
+      {/* the same choices as on the map, as a list (also for screen readers) */}
+      <Modal transparent animationType="fade" visible={listOpen} onRequestClose={() => setListOpen(false)}>
+        <Pressable style={styles.center} onPress={() => setListOpen(false)}>
+          <Dialog title="Knoten" icon="shard" onClose={() => setListOpen(false)}>
+            <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={{ gap: 8 }}>
+              {nodes
+                .filter((n) => !n.locked && (n.state === 'open' || n.state === 'damaged'))
+                .sort((a, b) => (a.state === b.state ? 0 : a.state === 'damaged' ? -1 : 1))
+                .map((n) => (
+                  <Button
+                    key={n.id}
+                    variant="ghost"
+                    label={`${areaById(pool.get(n.questionId).area).de}: ${n.state === 'damaged' ? 'Reparatur' : de.kinds[n.kind]}`}
+                    onPress={() => {
+                      setListOpen(false);
+                      onSelect(n.id);
+                    }}
+                  />
+                ))}
+              {outposts
+                .filter((o) => !o.connected)
+                .map((o) => (
+                  <Button
+                    key={o.id}
+                    variant="ghost"
+                    label={`Gestörter Bereich: ${areaById(o.area).de}`}
+                    onPress={() => {
+                      setListOpen(false);
+                      setOutpostId(o.id);
+                    }}
+                  />
+                ))}
+            </ScrollView>
+            <Button label="Schließen" onPress={() => setListOpen(false)} />
           </Dialog>
         </Pressable>
       </Modal>

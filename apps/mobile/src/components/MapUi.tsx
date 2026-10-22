@@ -162,10 +162,10 @@ const styles = StyleSheet.create({
   statValue: { color: colors.text, fontWeight: '900', fontSize: 13 },
   cache: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 3 },
   cacheTitle: { color: WIN.text, fontSize: 12, fontWeight: '800', marginHorizontal: 4 },
-  slot: { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1 },
+  slot: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1 },
   slotRow: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '100%' },
   slotText: { fontSize: 12, fontWeight: '800' },
   dock: { flexDirection: 'row', gap: 4, padding: 3 },
-  dockItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
+  dockItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, minHeight: 44 },
   dockLabel: { color: WIN.text, fontSize: 13, fontWeight: '700' },
 });

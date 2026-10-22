@@ -50,7 +50,9 @@ export function Button({
       ? '#B00020'
       : variant === 'gem'
         ? '#5B1E96'
-        : WIN.text;
+        : variant === 'primary'
+          ? '#0B2A00'
+          : WIN.text;
   const button = (
     <Pressable
       accessibilityRole="button"
@@ -60,12 +62,19 @@ export function Button({
         tap();
         onPress();
       }}
-      style={({ pressed }) => [styles.btn, raised, pressed && !disabled && pressedIn]}
+      style={({ pressed }) => [
+        styles.btn,
+        raised,
+        variant === 'primary' && !disabled && styles.btnGreen,
+        pressed && !disabled && pressedIn,
+      ]}
     >
       {({ pressed }) => (
         <View style={pressed && !disabled ? { transform: [{ translateX: 1 }, { translateY: 1 }] } : null}>
           <View style={styles.btnRow}>
-            <Text style={[styles.btnLabel, { color: fg }, variant === 'primary' && styles.btnDefault]}>{label}</Text>
+            <Text maxFontSizeMultiplier={1.3} style={[styles.btnLabel, { color: fg }, variant === 'primary' && styles.btnDefault]}>
+              {label}
+            </Text>
             {icon ? <Icon name={icon} size={16} muted={disabled} /> : null}
           </View>
           {sub ? <Text style={[styles.btnSub, { color: disabled ? WIN.shadow : WIN.dark }]}>{sub}</Text> : null}
@@ -99,7 +108,7 @@ export function H1({
   children: React.ReactNode;
   style?: StyleProp<TextStyle>;
 }) {
-  return <Text style={[styles.h1, style]}>{children}</Text>;
+  return <Text maxFontSizeMultiplier={1.4} style={[styles.h1, style]}>{children}</Text>;
 }
 
 export function P({
@@ -109,7 +118,7 @@ export function P({
   children: React.ReactNode;
   style?: StyleProp<TextStyle>;
 }) {
-  return <Text style={[styles.p, style]}>{children}</Text>;
+  return <Text maxFontSizeMultiplier={1.5} style={[styles.p, style]}>{children}</Text>;
 }
 
 /** Top bar of the secondary screens: a window title bar with a close button. */
@@ -147,12 +156,13 @@ export function Pill({ label, color }: { label: string; color: string }) {
 
 const styles = StyleSheet.create({
   btn: {
-    minHeight: 34,
+    minHeight: 44,
     paddingHorizontal: 14,
     paddingVertical: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  btnGreen: { backgroundColor: '#58CC02', borderTopColor: '#B8F27A', borderLeftColor: '#B8F27A', borderRightColor: '#2C6A00', borderBottomColor: '#2C6A00' },
   defaultFrame: { borderWidth: 1, borderColor: WIN.black, padding: 0 },
   btnRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   btnLabel: { fontSize: 14, fontWeight: '600' },

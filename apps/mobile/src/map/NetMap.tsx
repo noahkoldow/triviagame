@@ -16,6 +16,7 @@ import { PanResponder, Platform, View } from 'react-native';
 import {
   Easing,
   useDerivedValue,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -103,15 +104,22 @@ function NetMapBase({
   const cy = useSharedValue(0);
   const zoom = useSharedValue(0.9);
   const pulse = useSharedValue(0);
+  const reduced = useReducedMotion();
   /** Runs 0 → 1 over 8 s; the noise reads it in a few steps, so it ticks slowly instead of gliding. */
   const glitch = useSharedValue(0);
   /** 1 = the rest of the map is veiled. Set by a tap on a point, cleared when the map is moved. */
   const dim = useSharedValue(0);
 
   useEffect(() => {
+    if (reduced) {
+      // with "reduce motion" on, nothing pulses or flickers: a calm, still picture
+      pulse.value = 0.4;
+      glitch.value = 0;
+      return;
+    }
     pulse.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, true);
     glitch.value = withRepeat(withTiming(1, { duration: 8000, easing: Easing.linear }), -1);
-  }, [pulse, glitch]);
+  }, [pulse, glitch, reduced]);
 
   const strand = useMemo(() => (showStrand ? buildStrand() : []), [showStrand]);
   const family = Platform.select({ ios: 'Helvetica', default: 'sans-serif' }) as string;
@@ -371,8 +379,8 @@ function NetMapBase({
   const scavenging = !!debris;
   // every tap on a point (it changes focusKey) veils the rest again
   useEffect(() => {
-    dim.value = withTiming(scavenging ? 1 : 0, { duration: 300 });
-  }, [scavenging, focusKey, dim]);
+    dim.value = withTiming(scavenging ? 1 : 0, { duration: reduced ? 0 : 300 });
+  }, [scavenging, focusKey, dim, reduced]);
   // a dark veil over everything but the scavenged node
   const veilOpacity = useDerivedValue(() => 0.92 * dim.value);
 

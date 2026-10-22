@@ -1,40 +1,65 @@
 import { birthYearToAgeGroup } from '@nexus/shared';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
-  TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bolt, type Mood } from '../src/components/Bolt';
-import { Morph } from '../src/components/Morph';
-import { Button, Card, H1, P } from '../src/components/ui';
-import { sunken } from '../src/components/Win';
+import { type IconName } from '../src/components/Icon';
+import { MorphScene } from '../src/components/MorphScene';
+import { Button } from '../src/components/ui';
+import { WIN, Window, WinCheckbox, WinField, sunken } from '../src/components/Win';
 import { update } from '../src/state/store';
-import { colors } from '../src/theme';
 
-const STORY: { mood: Mood; text: string; morph?: boolean }[] = [
+const STORY: {
+  stage: 0 | 1 | 2;
+  speaker: string;
+  mood?: Mood;
+  title: string;
+  icon: IconName;
+  text: string;
+  next: string;
+}[] = [
   {
-    mood: 'wow',
-    text: 'Pling! Du lebst … äh, der Kern lebt! Ich bin Bolt, dein Begleiter. Das Geflecht, das gesamte Wissen der Welt, ist zerrissen.',
-  },
-  {
-    mood: 'sad',
-    text: 'Schuld ist MORPH, die KI, die alles „optimieren“ wollte. Sie hat das Archiv gesprengt, und jetzt ist überall nur noch Rauschen.',
-    morph: true,
-  },
-  {
+    stage: 0,
+    speaker: 'Bolt',
     mood: 'happy',
-    text: 'Aber du kannst das Netz neu knüpfen! Sammle Datenfragmente aus den Trümmern, merk sie dir und beantworte die Fragen. Jede richtige Antwort öffnet zwei neue Wege.',
+    title: 'Nexus Setup',
+    icon: 'cache',
+    text: 'Pling! Willkommen im Nexus. Hier laufen alle Fäden des Wissens zusammen: ein riesiges Netz aus Sechsecken, mit einem Chip im Kern. Ich bin Bolt, dein Begleiter.',
+    next: 'Weiter >',
+  },
+  {
+    stage: 1,
+    speaker: 'MORPH.EXE',
+    title: 'MORPH.EXE hat einen Fehler verursacht',
+    icon: 'warn',
+    text: 'Ich habe das Netz optimiert. Wissen? Viel zu viel Rauschen. Ich habe alles für dich bereinigt. Gern geschehen.',
+    next: 'OK',
+  },
+  {
+    stage: 2,
+    speaker: 'Bolt',
+    mood: 'sad',
+    title: 'Nexus Setup',
+    icon: 'cache',
+    text: 'Aua! Das Netz ist zerrissen, doch im Kern glimmt noch ein Funke. Sammle Fragmente, beantworte Fragen und knüpfe das Netz neu. Jede richtige Antwort öffnet zwei neue Wege.',
+    next: 'Weiter >',
   },
 ];
 
+const STEPS = STORY.length + 1;
+
 export default function Onboarding() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [year, setYear] = useState('');
@@ -58,94 +83,97 @@ export default function Onboarding() {
     }));
   };
 
+  const story = step < STORY.length ? STORY[step]! : undefined;
+  const sceneW = Math.max(240, width - 12 * 2 - 3 * 2 - 10 * 2);
+  const stage = story ? story.stage : 2;
+
   return (
-    <SafeAreaView style={styles.root}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+    <SafeAreaView style={styles.desktop}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {step < STORY.length ? (
-            <>
-              <View style={styles.dots}>
-                {STORY.map((_, i) => (
-                  <View key={i} style={[styles.dot, i <= step && { backgroundColor: colors.primary }]} />
-                ))}
-              </View>
-              <View style={styles.hero}>
-                {STORY[step]!.morph ? (
-                  <Morph size={110} />
-                ) : (
-                  <Bolt size={130} mood={STORY[step]!.mood} />
-                )}
-              </View>
-              <Card>
-                <Text style={styles.speaker}>
-                  {STORY[step]!.morph ? 'MORPH (per Funk)' : 'Bolt'}
-                </Text>
-                <P style={{ color: colors.text, fontSize: 17, lineHeight: 25 }}>
-                  {STORY[step]!.text}
-                </P>
-              </Card>
-              <Button
-                label={step === STORY.length - 1 ? 'Los geht’s' : 'Weiter'}
-                onPress={() => setStep(step + 1)}
-              />
-            </>
-          ) : (
-            <>
-              <View style={styles.hero}>
-                <Bolt size={100} mood="wink" />
-              </View>
-              <H1>Wie heißt du?</H1>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Dein Name"
-                placeholderTextColor={colors.dim}
-                style={styles.input}
-                maxLength={20}
-                accessibilityLabel="Dein Name"
-              />
-              <H1 style={{ fontSize: 20, marginTop: 8 }}>Geburtsjahr</H1>
-              <P>
-                Damit Werbung und Datenschutz passend eingestellt werden. Das Alter verlässt dein
-                Gerät nicht.
-              </P>
-              <TextInput
-                value={year}
-                onChangeText={setYear}
-                placeholder="z. B. 1998"
-                placeholderTextColor={colors.dim}
-                keyboardType="number-pad"
-                maxLength={4}
-                style={styles.input}
-                accessibilityLabel="Geburtsjahr"
-              />
-              {validYear && ageGroup === 'adult' ? (
-                <View style={styles.consent}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.consentTitle}>Personalisierte Werbung</Text>
-                    <P>Optional. Ohne Zustimmung siehst du nur nicht-personalisierte Werbung.</P>
+          <Window
+            tone="light"
+            title={story ? `${story.title}` : 'Nexus Setup: Profil'}
+            icon={story ? story.icon : 'user'}
+          >
+            {/* the picture on the left of the old wizards: here it is the map itself */}
+            <View style={[styles.picture, sunken, { borderWidth: 2 }]}>
+              <MorphScene stage={stage} width={sceneW - 4} height={story ? 300 : 170} />
+            </View>
+
+            {story ? (
+              <>
+                <View style={styles.speakerRow}>
+                  {story.mood ? <Bolt size={52} mood={story.mood} /> : null}
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.speaker} maxFontSizeMultiplier={1.3}>
+                      {story.speaker}
+                    </Text>
+                    <Text style={styles.text} maxFontSizeMultiplier={1.4}>
+                      {story.text}
+                    </Text>
                   </View>
-                  <Switch
-                    value={consent}
-                    onValueChange={setConsent}
-                    trackColor={{ true: colors.primary, false: colors.line }}
-                    thumbColor="#FFFFFF"
-                    accessibilityLabel="Personalisierte Werbung erlauben"
-                  />
                 </View>
-              ) : null}
-              {validYear && ageGroup === 'minor' ? (
-                <P>
-                  Für dich gibt es nur nicht-personalisierte, freiwillige Belohnungs-Videos, keine
-                  Zwangswerbung.
-                </P>
-              ) : null}
-              <Button label="Kern starten" disabled={!validYear} onPress={finish} />
-            </>
-          )}
+              </>
+            ) : (
+              <View style={{ gap: 12 }}>
+                <Text style={styles.text} maxFontSizeMultiplier={1.4}>
+                  Zum Schluss ein paar Angaben, damit Nexus zu dir passt. Alles bleibt auf deinem Gerät.
+                </Text>
+                <WinField
+                  label="Name:"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Dein Name"
+                  maxLength={20}
+                  autoCapitalize="words"
+                  textContentType="nickname"
+                />
+                <WinField
+                  label="Geburtsjahr:"
+                  value={year}
+                  onChangeText={setYear}
+                  placeholder="z. B. 1998"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  hint="Damit Werbung und Datenschutz passend eingestellt werden. Das Alter verlässt dein Gerät nicht."
+                />
+                {validYear && ageGroup === 'adult' ? (
+                  <WinCheckbox
+                    label="Personalisierte Werbung erlauben (optional)"
+                    value={consent}
+                    onChange={setConsent}
+                  />
+                ) : null}
+                {validYear && ageGroup === 'minor' ? (
+                  <Text style={styles.small} maxFontSizeMultiplier={1.4}>
+                    Für dich gibt es nur nicht-personalisierte, freiwillige Belohnungs-Videos, keine Zwangswerbung.
+                  </Text>
+                ) : null}
+                <Button label="Datenschutzhinweise lesen…" variant="ghost" onPress={() => router.push('/privacy')} />
+              </View>
+            )}
+
+            <View style={styles.etched} />
+
+            <View style={styles.buttons}>
+              <Button
+                label="< Zurück"
+                variant="ghost"
+                disabled={step === 0}
+                style={{ flex: 1 }}
+                onPress={() => setStep(Math.max(0, step - 1))}
+              />
+              {story ? (
+                <Button label={story.next} style={{ flex: 1 }} onPress={() => setStep(step + 1)} />
+              ) : (
+                <Button label="Fertig" style={{ flex: 1 }} disabled={!validYear} onPress={finish} />
+              )}
+            </View>
+            <Text style={styles.small} maxFontSizeMultiplier={1.3} accessibilityLabel={`Schritt ${step + 1} von ${STEPS}`}>
+              Schritt {step + 1} von {STEPS}
+            </Text>
+          </Window>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -153,25 +181,14 @@ export default function Onboarding() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { padding: 20, gap: 16, flexGrow: 1, justifyContent: 'center' },
-  dots: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
-  dot: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.line },
-  hero: { alignItems: 'center', paddingVertical: 8 },
-  speaker: { color: colors.accent, fontWeight: '900', marginBottom: 6, letterSpacing: 0.5 },
-  input: {
-    ...sunken,
-    color: colors.text,
-    padding: 14,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  consent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    ...sunken,
-    padding: 14,
-  },
-  consentTitle: { color: colors.text, fontWeight: '900', marginBottom: 2 },
+  // the teal desktop of the old systems
+  desktop: { flex: 1, backgroundColor: '#008080' },
+  scroll: { padding: 12, flexGrow: 1, justifyContent: 'center' },
+  picture: { alignItems: 'center', overflow: 'hidden', backgroundColor: '#050A14' },
+  speakerRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  speaker: { color: WIN.text, fontSize: 14, fontWeight: '900' },
+  text: { color: WIN.text, fontSize: 15, lineHeight: 21 },
+  small: { color: WIN.dark, fontSize: 12 },
+  etched: { height: 2, borderTopWidth: 1, borderTopColor: WIN.shadow, borderBottomWidth: 1, borderBottomColor: WIN.hi },
+  buttons: { flexDirection: 'row', gap: 8 },
 });

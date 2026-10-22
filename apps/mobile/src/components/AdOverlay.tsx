@@ -3,6 +3,7 @@ import { Modal, StyleSheet, Text, View } from 'react-native';
 import { subscribeMockAds, type MockAdRequest } from '../services/ads';
 import { colors, radius } from '../theme';
 import { Button } from './ui';
+import { IS_PROTOTYPE } from '../config';
 import { Window } from './Win';
 
 /** Stand-in for AdMob in Expo Go. */
@@ -23,8 +24,8 @@ export function AdOverlay() {
   return (
     <Modal transparent animationType="fade" visible onRequestClose={() => req.resolve(false)}>
       <View style={styles.backdrop}>
-        <Window title="Werbung (Test)" icon="warn">
-          <Text style={styles.badge}>TESTWERBUNG · {rewarded ? 'Belohnung' : 'Anzeige'}</Text>
+        <Window title={IS_PROTOTYPE ? 'Werbung (Test)' : 'Werbung'} icon="warn">
+          {IS_PROTOTYPE ? <Text style={styles.badge}>TESTWERBUNG · {rewarded ? 'Belohnung' : 'Anzeige'}</Text> : null}
           <Text style={styles.title}>{rewarded ? 'Reparatur-Funk' : 'Kurze Unterbrechung'}</Text>
           <Text style={styles.body}>
             Hier würde AdMob eine {rewarded ? 'Video-Anzeige' : 'Anzeige'} zeigen.

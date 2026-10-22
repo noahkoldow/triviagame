@@ -17,7 +17,20 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.nexus.game"
+      "bundleIdentifier": "app.nexus.game",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "package": "app.nexus.game"

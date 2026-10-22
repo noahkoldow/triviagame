@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AREAS,
@@ -16,6 +16,7 @@ import { Icon } from '../src/components/Icon';
 import { BackBar, Button, Card, Chip, P, tap } from '../src/components/ui';
 import { ads } from '../src/services/ads';
 import { pool } from '../src/services/content';
+import { IS_PROTOTYPE } from '../src/config';
 import { PRODUCTS, purchases } from '../src/services/purchases';
 import { getState, update, useGame } from '../src/state/store';
 import { de } from '../src/strings';
@@ -44,6 +45,14 @@ export default function Shop() {
       return next;
     });
     tap('success');
+  };
+
+  const restore = async () => {
+    setBusy(true);
+    const r = await purchases.restore();
+    setBusy(false);
+    if (r.adFree) update((p) => ({ ...p, profile: { ...p.profile, adFree: true } }));
+    Alert.alert('Käufe wiederherstellen', r.adFree ? 'Werbefrei wurde wiederhergestellt.' : 'Es gab nichts wiederherzustellen.');
   };
 
   const watchForGems = async () => {
@@ -118,7 +127,7 @@ export default function Shop() {
               onPress={() => buy(p.id)}
             />
           ))}
-          <P>Testmodus: Käufe sind simuliert und kosten nichts.</P>
+          {IS_PROTOTYPE ? <P>Testmodus: Käufe sind simuliert und kosten nichts.</P> : null}
         </Card>
 
         <Text style={styles.section}>WERBEFREI</Text>
@@ -133,6 +142,8 @@ export default function Shop() {
             />
           )}
         </Card>
+
+        <Button label="Käufe wiederherstellen" variant="ghost" disabled={busy} onPress={restore} />
 
         <Text style={styles.section}>FARBEN FÜR DEINEN LEUCHTPUNKT</Text>
         <Card style={{ gap: 8 }}>

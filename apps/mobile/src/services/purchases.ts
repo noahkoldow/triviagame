@@ -16,11 +16,16 @@ export const PRODUCTS: Product[] = [
 
 export interface PurchaseProvider {
   purchase(productId: string): Promise<boolean>;
+  /** Restores non-consumable purchases (App Store rule 3.1.1). Gems are consumable and are not restored. */
+  restore(): Promise<{ adFree: boolean }>;
 }
 
 export const mockPurchases: PurchaseProvider = {
   async purchase() {
     return true;
+  },
+  async restore() {
+    return { adFree: false };
   },
 };
 

@@ -102,3 +102,24 @@ describe('question texts', () => {
     }
   });
 });
+
+import { AREAS, footprint } from './index';
+
+describe('knowledge footprint', () => {
+  it('is empty at the start and has one entry per area', () => {
+    const f = footprint(initialPlayer(pool), pool);
+    expect(f).toHaveLength(AREAS.length);
+    expect(f.every((a) => a.solved === 0 && a.depth === 0 && a.coverage === 0)).toBe(true);
+  });
+
+  it('grows where the player solved something', () => {
+    const p = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0).player;
+    const f = footprint(p, pool);
+    const physics = f.find((a) => a.area === 'physics')!;
+    expect(physics.solved).toBe(1);
+    expect(physics.depth).toBeGreaterThan(0);
+    expect(physics.coverage).toBeGreaterThan(0);
+    expect(physics.coverage).toBeLessThanOrEqual(1);
+    expect(f.find((a) => a.area === 'music')!.solved).toBe(0);
+  });
+});
