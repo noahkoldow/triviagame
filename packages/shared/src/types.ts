@@ -20,6 +20,8 @@ interface QuestionBase {
   side?: Partial<Record<Sector, number>>;
   /** Short keyword shown before the question ("Lichtgeschwindigkeit"); it must not give the answer away. */
   topic: string;
+  /** One or two sentences about the topic, shown under the keyword; must not give the answer away. */
+  intro: string;
   stem: string;
   fragments: Fragment[];
   explanation: string;

@@ -92,3 +92,13 @@ describe('outposts', () => {
     expect(unlockArea(p, 'chemistry')!.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(false);
   });
 });
+
+describe('question texts', () => {
+  it('every question has a keyword and a short intro', () => {
+    for (const q of MOCK_QUESTIONS) {
+      expect(q.topic.length, q.id).toBeGreaterThan(2);
+      expect(q.intro.length, q.id).toBeGreaterThan(20);
+      expect(q.intro.length, q.id).toBeLessThan(160);
+    }
+  });
+});

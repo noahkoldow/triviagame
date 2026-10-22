@@ -185,7 +185,7 @@ export default function Home() {
         focusKey={focusKey}
         focusId={focusId}
         focusZoom={debrisId ? 1.15 : undefined}
-        focusLift={debrisId ? 0.24 : 0}
+        focusLift={debrisId ? 0.28 : 0}
         outposts={outposts}
         onOutpost={(id) => {
           tap();
@@ -251,11 +251,8 @@ export default function Home() {
               </View>
               <Text style={styles.topicLabel}>THEMA</Text>
               <Text style={styles.topic}>{debrisQ.topic}</Text>
-              <Text style={styles.debrisText}>
-                {hint
-                  ? `Bolt: ${hint}`
-                  : `Auf dem Boden liegen Teile mit Etiketten. Lesen kannst du ein Teil erst im Cache (${CACHE_SLOTS} Plätze). Weggeworfenes ist für diesen Versuch weg.`}
-              </Text>
+              {debrisQ.intro ? <Text style={styles.debrisText}>{debrisQ.intro}</Text> : null}
+              {hint ? <Text style={styles.debrisHint}>Bolt: {hint}</Text> : null}
               <View style={styles.row}>
                 <Button label="Zurück" variant="ghost" style={{ flex: 1 }} onPress={() => setDebrisId(null)} />
                 <Button
@@ -289,7 +286,9 @@ export default function Home() {
                 <Text style={[styles.cardLabel, { color: debrisColor }]}>{shard.hint.toUpperCase()}</Text>
                 {inCache ? (
                   <>
-                    <Text style={styles.fragText}>{shard.text}</Text>
+                    <Text style={styles.cardSub}>
+                      Liegt im Cache. Was darin steht, siehst du erst in der Frage (Blitz).
+                    </Text>
                     <Button
                       label="Wegwerfen (endgültig)"
                       variant="ghost"
@@ -302,7 +301,7 @@ export default function Home() {
                 ) : (
                   <>
                     <Text style={styles.cardSub}>
-                      Was darin steht, siehst du erst, wenn das Teil im Cache liegt.
+                      Den Inhalt kennst du erst in der Frage. Entscheide nach dem Etikett.
                     </Text>
                     {cache.length < CACHE_SLOTS ? (
                       <Button
@@ -346,8 +345,9 @@ export default function Home() {
                   const f = pool.byId.get(cacheView.questionId)?.fragments.find((x) => x.id === cacheView.fragmentId);
                   return (
                     <>
-                      <Text style={styles.cardLabel}>{(f?.hint ?? '').toUpperCase()} · IM CACHE</Text>
-                      <Text style={styles.fragText}>{f?.text}</Text>
+                      <Text style={styles.cardLabel}>IM CACHE</Text>
+                      <Text style={styles.topic}>{f?.hint}</Text>
+                      <Text style={styles.cardSub}>Den Inhalt siehst du erst in der Frage (Blitz).</Text>
                       <Button
                         label="Wegwerfen (endgültig)"
                         variant="ghost"
@@ -512,6 +512,7 @@ const styles = StyleSheet.create({
   bottom: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   stack: { paddingHorizontal: 12, paddingBottom: 8, gap: 8 },
   debris: { borderRadius: 22, padding: 12, gap: 10 },
+  debrisHint: { color: colors.dim, fontSize: 12, lineHeight: 17 },
   debrisText: { color: colors.text, fontSize: 14, lineHeight: 20 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
   center: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: 20 },

@@ -5,11 +5,11 @@ import type { Fragment } from './types';
 
 /**
  * The cache is the player's small working memory: it holds fragments picked up
- * from debris fields on the map. It is limited, can be rearranged on the map at
- * any time, and is sealed while a question is open: during a question it can
- * only be peeked at by spending energy (⚡, see `spendRewind`).
+ * from debris fields on the map. It is limited to three. On the map only the labels
+ * of the fragments are shown (so they can be swapped or thrown away); what they
+ * say can only be read inside a question, by spending energy (⚡, see `spendRewind`).
  */
-export const CACHE_SLOTS = 4;
+export const CACHE_SLOTS = 3;
 
 export interface CacheEntry {
   questionId: string;
