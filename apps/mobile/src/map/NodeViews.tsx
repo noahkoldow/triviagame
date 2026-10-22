@@ -280,20 +280,20 @@ export function OutpostTile({
   color,
   label,
   font,
-  pulse,
+  glitch,
 }: {
   x: number;
   y: number;
   color: string;
   label: string;
   font: SkFont;
-  pulse: SharedValue<number>;
+  glitch: SharedValue<number>;
 }) {
   const face = mix(color, '#3A2A48', 0.55);
   const lw = font.getTextWidth(label);
-  // chromatic glitch: two offset copies that jitter
-  const shiftA = useDerivedValue(() => [{ translateX: -3 - pulse.value * 2 }, { translateY: -1 }]);
-  const shiftB = useDerivedValue(() => [{ translateX: 3 + pulse.value * 2 }, { translateY: 1 }]);
+  // chromatic glitch: two offset copies that jump in steps
+  const shiftA = useDerivedValue(() => [{ translateX: -2 - (Math.floor(glitch.value * 30) % 5) }, { translateY: -1 }]);
+  const shiftB = useDerivedValue(() => [{ translateX: 2 + (Math.floor(glitch.value * 30 + 2) % 5) }, { translateY: 1 }]);
   return (
     <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
       <Group transform={[{ translateY: 3 }]} opacity={0.5}>

@@ -96,10 +96,13 @@ export function NetMap({
   const cy = useSharedValue(0);
   const zoom = useSharedValue(0.9);
   const pulse = useSharedValue(0);
+  /** Runs 0 → 1 over 3 s; the noise reads it in steps, so it flickers instead of gliding. */
+  const glitch = useSharedValue(0);
 
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [pulse]);
+    glitch.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
+  }, [pulse, glitch]);
 
   const strand = useMemo(() => (showStrand ? buildStrand() : []), [showStrand]);
   const family = Platform.select({ ios: 'Helvetica', default: 'sans-serif' }) as string;
@@ -310,6 +313,18 @@ export function NetMap({
     })(),
   ).current;
 
+  // MORPH's noise: three groups of cells that blink and shift at different steps
+  const step = (g: number) => {
+    'worklet';
+    return Math.floor(g * 30);
+  };
+  const noiseA = useDerivedValue(() => (((step(glitch.value) * 37 + 11) % 7) / 7) * 0.75);
+  const noiseB = useDerivedValue(() => (((step(glitch.value) * 53 + 5) % 5) / 5) * 0.75);
+  const noiseC = useDerivedValue(() => (((step(glitch.value) * 29 + 3) % 6) / 6) * 0.7);
+  const shiftA = useDerivedValue(() => [{ translateX: ((step(glitch.value) * 17) % 7) - 3 }]);
+  const shiftB = useDerivedValue(() => [{ translateX: 3 - ((step(glitch.value) * 13) % 7) }]);
+  const shiftC = useDerivedValue(() => [{ translateY: ((step(glitch.value) * 11) % 5) - 2 }]);
+
   const transform = useDerivedValue(() => cameraTransform(cx.value, cy.value, zoom.value, width, height));
 
   // things standing on the map, back to front
@@ -348,6 +363,31 @@ export function NetMap({
             <Atlas image={atlas.image} sprites={tileDraw.sprites} transforms={tileDraw.transforms} colors={tileDraw.colors} colorBlendMode="modulate" />
           ) : null}
 
+          {/* the circuit board: strong around the core, thinning out */}
+          {scene.circuit.map((c) => (
+            <Path
+              key={`${c.color}-${c.width}`}
+              path={c.path}
+              style="stroke"
+              strokeWidth={c.width}
+              strokeCap="round"
+              strokeJoin="round"
+              color={c.color}
+              opacity={c.opacity}
+            />
+          ))}
+
+          {/* MORPH's noise */}
+          <Group opacity={noiseA} transform={shiftA}>
+            <Path path={scene.noise[0]!} color="#FF4B8B" />
+          </Group>
+          <Group opacity={noiseB} transform={shiftB}>
+            <Path path={scene.noise[1]!} color="#1CB0F6" />
+          </Group>
+          <Group opacity={noiseC} transform={shiftC}>
+            <Path path={scene.noise[2]!} color="#B46BFF" />
+          </Group>
+
           {/* circuit traces on top of the lit trace tiles */}
           {scene.traces.map((t) => (
             <Group key={t.color}>
@@ -374,7 +414,7 @@ export function NetMap({
                 color={SECTOR_COLOR[sectorOfArea(b.outpost.area)]}
                 label={areaById(b.outpost.area).de}
                 font={font}
-                pulse={pulse}
+                glitch={glitch}
               />
             ) : b.shard ? (
               <ShardTile key={`s-${b.shard.id}`} shard={b.shard} color={debris!.color} font={font} />
