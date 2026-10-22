@@ -83,6 +83,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     reward?: Reward;
     spawned?: string[];
     closedCircle?: boolean;
+    prepared?: boolean;
     gaveUp?: boolean;
     attempts: number;
   } | null>(null);
@@ -135,6 +136,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         reward: r.reward,
         spawned: r.spawned,
         closedCircle: r.closedCircle,
+        prepared: r.prepared,
         attempts: node.attempts + 1,
       });
       setPhase('result');
@@ -372,12 +374,27 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
               <View style={styles.rewards}>
                 <Text style={styles.rewardChip}>+{r.reward.xp} XP</Text>
                 <Text style={[styles.rewardChip, { color: colors.bit }]}>+{r.reward.bits} ◈</Text>
+                {r.prepared ? <Text style={[styles.rewardChip, { color: colors.primary }]}>Gut vorbereitet</Text> : null}
                 {r.reward.gems > 0 ? (
                   <Text style={[styles.rewardChip, { color: colors.gem }]}>
                     +{r.reward.gems} 💎
                   </Text>
                 ) : null}
               </View>
+            ) : null}
+            {!review && r.attempts === 2 ? (
+              <Card style={{ borderColor: colors.warn }}>
+                <P style={{ color: colors.warn }}>
+                  Erst im zweiten Anlauf: Nur die Vertiefung wächst. Der Knoten ist beschädigt. Repariere ihn, dann folgt die Brücke.
+                </P>
+              </Card>
+            ) : null}
+            {!review && r.attempts >= 3 ? (
+              <Card style={{ borderColor: colors.bad }}>
+                <P style={{ color: colors.bad }}>
+                  Mehrere Fehlversuche: Der Knoten ist beschädigt und lässt nichts Neues wachsen, bis du ihn repariert hast.
+                </P>
+              </Card>
             ) : null}
             {r.closedCircle ? (
               <Card style={{ borderColor: colors.gem }}>
@@ -423,7 +440,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
               </Card>
             ) : (
               <P style={{ textAlign: 'center' }}>
-                Der Knoten flackert, aber er hält. Versuch {r.attempts} · Integrität sinkt.
+                Der Knoten flackert, aber er hält. Versuch {r.attempts} · Integrität sinkt. Jeder weitere Fehler bremst das Wachstum: ab dem zweiten Treffer wächst weniger.
               </P>
             )}
             {!review ? (

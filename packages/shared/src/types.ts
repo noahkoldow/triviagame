@@ -18,6 +18,8 @@ interface QuestionBase {
   area: string;
   /** Secondary sector weights (0..1), e.g. medicine → { nature: 0.25 }. */
   side?: Partial<Record<Sector, number>>;
+  /** Short keyword shown before the question ("Lichtgeschwindigkeit"); it must not give the answer away. */
+  topic: string;
   stem: string;
   fragments: Fragment[];
   explanation: string;
@@ -75,6 +77,8 @@ export interface NetNode {
   attempts: number;
   /** Debris fields are locked until opened with gems. */
   locked?: boolean;
+  /** Children that were withheld because of wrong answers; they grow after a successful repair. */
+  missing?: ('deepen' | 'bridge')[];
   /** Leitner box for damaged nodes (1..4). */
   box: number;
   /** ISO day (YYYY-MM-DD) when a damaged node is due again. */

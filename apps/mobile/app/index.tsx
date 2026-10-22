@@ -1,12 +1,14 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CACHE_SLOTS,
   DEBRIS_COST,
+  HEAL_COST,
   areaById,
   buildField,
+  canStartNode,
   cacheAdd,
   cacheDrop,
   cacheFragments,
@@ -14,7 +16,9 @@ import {
   chooseNode,
   debrisOffsets,
   dueReviews,
+  healIntegrity,
   openDebris,
+  regenEnergy,
   snapToHex,
   sectorOfArea,
   type CacheEntry,
@@ -24,6 +28,7 @@ import { CacheBar, Dock, MapHud, glass } from '../src/components/MapUi';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
 import type { Shard } from '../src/map/NodeViews';
+import { ads } from '../src/services/ads';
 import { pool } from '../src/services/content';
 import { getHint, takeDebrisReturn, takeRecentlySpawned } from '../src/state/session';
 import { getState, today, update, useGame } from '../src/state/store';
@@ -35,6 +40,8 @@ export default function Home() {
   const network = useGame((p) => p.network);
   const cache = useGame((p) => p.cache);
   const gems = useGame((p) => p.gems);
+  const integrity = useGame((p) => p.integrity);
+  const spent = useGame((p) => p.spent);
   const name = useGame((p) => p.profile.name);
   const [size, setSize] = useState({ width: 360, height: 640 });
   const [highlight, setHighlight] = useState<string[]>([]);
@@ -45,9 +52,21 @@ export default function Home() {
   const [shardId, setShardId] = useState<string | null>(null);
   const [cacheView, setCacheView] = useState<CacheEntry | null>(null);
   const [tip, setTip] = useState(true);
+  const [unstable, setUnstable] = useState(false);
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
   const due = dueReviews(getState(), today());
+
+  useEffect(() => {
+    const tick = () =>
+      update((p) => {
+        const r = regenEnergy(p, Date.now());
+        return r === p ? null : r;
+      });
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const focus = (id: string) => {
     setFocusId(id);
@@ -80,8 +99,13 @@ export default function Home() {
 
   // the pieces lying around the node: key fragments are always among them
   const field = useMemo(
-    () => (debrisQ && debrisNode ? buildField(debrisQ, debrisNode.attempts) : []),
-    [debrisQ, debrisNode],
+    () =>
+      debrisQ && debrisNode
+        ? buildField(debrisQ, debrisNode.attempts).filter(
+            (f) => !spent.some((s) => s.questionId === debrisQ.id && s.fragmentId === f.id),
+          )
+        : [],
+    [debrisQ, debrisNode, spent],
   );
   const shards = useMemo<Shard[]>(() => {
     if (!debrisQ || !debrisNode) return [];
@@ -112,6 +136,10 @@ export default function Home() {
     const n = network.nodes[id];
     if (!n) return;
     if (!n.locked && (n.state === 'open' || n.state === 'damaged')) {
+      if (!canStartNode(getState(), id)) {
+        setUnstable(true);
+        return;
+      }
       if (n.state === 'open' && debrisId !== id) update((p) => chooseNode(p, pool, id));
       setDebrisId(id);
       focus(id);
@@ -122,7 +150,7 @@ export default function Home() {
   };
 
   const startQuestion = () => {
-    if (!debrisId) return;
+    if (!debrisId || !canStartNode(getState(), debrisId)) return;
     router.push({ pathname: '/node/[id]', params: { id: debrisId } });
   };
 
@@ -151,6 +179,13 @@ export default function Home() {
 
       <SafeAreaView edges={['top']} style={styles.top} pointerEvents="box-none">
         <MapHud />
+        {integrity === 0 ? (
+          <Pressable style={[styles.banner, styles.bannerBad]} onPress={() => setUnstable(true)} accessibilityRole="button">
+            <Text style={[styles.bannerText, { color: colors.bad }]}>
+              ❤ Netz instabil: neue Knoten gesperrt. Repariere beschädigte Knoten.
+            </Text>
+          </Pressable>
+        ) : null}
         {due.length > 0 ? (
           <Pressable
             style={styles.banner}
@@ -182,10 +217,12 @@ export default function Home() {
                 <Pill label={areaById(debrisQ.area).de} color={debrisColor} />
                 <Pill label={de.difficulty[debrisQ.difficulty]!} color={colors.warn} />
               </View>
+              <Text style={styles.topicLabel}>THEMA</Text>
+              <Text style={styles.topic}>{debrisQ.topic}</Text>
               <Text style={styles.debrisText}>
                 {hint
                   ? `Bolt: ${hint}`
-                  : `Tippe die Trümmerteile an, lies sie und nimm mit, was wichtig sein könnte. Der Cache fasst nur ${CACHE_SLOTS}.`}
+                  : `Auf dem Boden liegen Teile mit Etiketten. Lesen kannst du ein Teil erst im Cache (${CACHE_SLOTS} Plätze). Weggeworfenes ist für diesen Versuch weg.`}
               </Text>
               <View style={styles.row}>
                 <Button label="Zurück" variant="ghost" style={{ flex: 1 }} onPress={() => setDebrisId(null)} />
@@ -218,38 +255,47 @@ export default function Home() {
             {shard && shardEntry && debrisQ ? (
               <>
                 <Text style={[styles.cardLabel, { color: debrisColor }]}>{shard.hint.toUpperCase()}</Text>
-                <Text style={styles.fragText}>{shard.text}</Text>
                 {inCache ? (
-                  <Button
-                    label="Aus dem Cache nehmen"
-                    variant="ghost"
-                    onPress={() => {
-                      update((p) => cacheDrop(p, shardEntry));
-                      setShardId(null);
-                    }}
-                  />
-                ) : cache.length < CACHE_SLOTS ? (
-                  <Button
-                    label="Merken (in den Cache)"
-                    onPress={() => {
-                      update((p) => cacheAdd(p, shardEntry));
-                      setShardId(null);
-                    }}
-                  />
+                  <>
+                    <Text style={styles.fragText}>{shard.text}</Text>
+                    <Button
+                      label="Wegwerfen (endgültig)"
+                      variant="ghost"
+                      onPress={() => {
+                        update((p) => cacheDrop(p, shardEntry));
+                        setShardId(null);
+                      }}
+                    />
+                  </>
                 ) : (
                   <>
-                    <Text style={styles.cardSub}>Cache voll. Tausche gegen:</Text>
-                    {cached.map((c) => (
+                    <Text style={styles.cardSub}>
+                      Was darin steht, siehst du erst, wenn das Teil im Cache liegt.
+                    </Text>
+                    {cache.length < CACHE_SLOTS ? (
                       <Button
-                        key={`${c.questionId}:${c.id}`}
-                        label={c.hint}
-                        variant="ghost"
+                        label="Mitnehmen"
                         onPress={() => {
-                          update((p) => cacheSwap(p, { questionId: c.questionId, fragmentId: c.id }, shardEntry));
+                          update((p) => cacheAdd(p, shardEntry));
                           setShardId(null);
                         }}
                       />
-                    ))}
+                    ) : (
+                      <>
+                        <Text style={styles.cardSub}>Cache voll. Tausche gegen eines, das dann endgültig weg ist:</Text>
+                        {cached.map((c) => (
+                          <Button
+                            key={`${c.questionId}:${c.id}`}
+                            label={c.hint}
+                            variant="ghost"
+                            onPress={() => {
+                              update((p) => cacheSwap(p, { questionId: c.questionId, fragmentId: c.id }, shardEntry));
+                              setShardId(null);
+                            }}
+                          />
+                        ))}
+                      </>
+                    )}
                   </>
                 )}
                 <Button label="Liegen lassen" variant="ghost" onPress={() => setShardId(null)} />
@@ -271,7 +317,7 @@ export default function Home() {
                       <Text style={styles.cardLabel}>{(f?.hint ?? '').toUpperCase()} · IM CACHE</Text>
                       <Text style={styles.fragText}>{f?.text}</Text>
                       <Button
-                        label="Verwerfen"
+                        label="Wegwerfen (endgültig)"
                         variant="ghost"
                         onPress={() => {
                           update((p) => cacheDrop(p, cacheView));
@@ -283,6 +329,39 @@ export default function Home() {
                   );
                 })()
               : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* integrity 0: the network is unstable */}
+      <Modal transparent animationType="fade" visible={unstable} onRequestClose={() => setUnstable(false)}>
+        <Pressable style={styles.center} onPress={() => setUnstable(false)}>
+          <Pressable style={styles.card} onPress={() => undefined}>
+            <Text style={[styles.cardLabel, { color: colors.bad }]}>NETZ INSTABIL</Text>
+            <Text style={styles.fragText}>
+              Zu viele Störungen: Neue Knoten bleiben gesperrt. Repariere beschädigte Knoten, denn jede gelungene
+              Reparatur gibt 1 Integrität zurück.
+            </Text>
+            <Button
+              label="Video ansehen: +1 Integrität"
+              variant="ghost"
+              onPress={async () => {
+                const s = getState();
+                const ok = await ads.showRewarded({ personalized: s.profile.ageGroup === 'adult' && s.profile.consent });
+                if (ok) update((p) => ({ ...p, integrity: Math.min(5, p.integrity + 1) }));
+              }}
+            />
+            <Button
+              variant="gem"
+              label={`Netz heilen · ${HEAL_COST} 💎`}
+              sub={`Du hast ${gems} Gems`}
+              disabled={gems < HEAL_COST || integrity >= 5}
+              onPress={() => {
+                update((p) => healIntegrity(p));
+                setUnstable(false);
+              }}
+            />
+            <Button label="Schließen" onPress={() => setUnstable(false)} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -346,7 +425,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.warn,
   },
+  bannerBad: { backgroundColor: 'rgba(58,16,16,0.92)', borderColor: colors.bad },
   bannerText: { color: colors.warn, fontWeight: '700' },
+  topicLabel: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 },
+  topic: { color: colors.text, fontSize: 22, fontWeight: '900' },
   tip: {
     position: 'absolute',
     left: 12,

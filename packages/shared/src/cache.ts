@@ -23,20 +23,26 @@ export function cacheHas(p: PlayerState, e: CacheEntry): boolean {
   return p.cache.some((c) => same(c, e));
 }
 
-/** Adds a fragment. Returns null when the cache is full or the fragment is already in it. */
+export function isSpent(p: PlayerState, e: CacheEntry): boolean {
+  return p.spent.some((c) => same(c, e));
+}
+
+/** Adds a fragment. Returns null when the cache is full, the fragment is already in it or was thrown away. */
 export function cacheAdd(p: PlayerState, e: CacheEntry): PlayerState | null {
-  if (cacheHas(p, e) || p.cache.length >= CACHE_SLOTS) return null;
+  if (cacheHas(p, e) || isSpent(p, e) || p.cache.length >= CACHE_SLOTS) return null;
   return { ...p, cache: [...p.cache, e] };
 }
 
-/** Replaces `out` with `incoming` – the way to make room when the cache is full. */
+/** Replaces `out` with `incoming`. The fragment that goes out is lost for this attempt. */
 export function cacheSwap(p: PlayerState, out: CacheEntry, incoming: CacheEntry): PlayerState | null {
-  if (!cacheHas(p, out) || cacheHas(p, incoming)) return null;
-  return { ...p, cache: p.cache.map((c) => (same(c, out) ? incoming : c)) };
+  if (!cacheHas(p, out) || cacheHas(p, incoming) || isSpent(p, incoming)) return null;
+  return { ...p, cache: p.cache.map((c) => (same(c, out) ? incoming : c)), spent: [...p.spent, out] };
 }
 
+/** Throws a fragment away. It does not come back during this attempt. */
 export function cacheDrop(p: PlayerState, e: CacheEntry): PlayerState {
-  return { ...p, cache: p.cache.filter((c) => !same(c, e)) };
+  if (!cacheHas(p, e)) return p;
+  return { ...p, cache: p.cache.filter((c) => !same(c, e)), spent: [...p.spent, e] };
 }
 
 /** Resolves the cache entries to fragments (entries of unknown questions are skipped). */

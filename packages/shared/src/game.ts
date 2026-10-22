@@ -12,6 +12,7 @@ import {
   Pool,
   completeNode,
   createNetwork,
+  growMissing,
   reviewNode,
   unlockDebris,
   type SpawnContext,
@@ -42,11 +43,15 @@ export interface PlayerState {
   bits: number;
   gems: number;
   energy: number;
+  /** When the energy last started to refill (null while it is full). */
+  energyAt: number | null;
   integrity: number;
   streak: { count: number; lastDay: string | null; freezes: number };
   unlockedAreas: string[];
   /** Fragments carried from debris fields; see `cache.ts`. Emptied after every attempt. */
   cache: CacheEntry[];
+  /** Fragments thrown away during this attempt; they are gone until it ends. */
+  spent: CacheEntry[];
   /** fragmentId → day first collected */
   codex: Record<string, string>;
   ownedCosmetics: string[];
@@ -82,10 +87,12 @@ export function initialPlayer(
     bits: 0,
     gems: 5,
     energy: MAX_ENERGY,
+    energyAt: null,
     integrity: MAX_INTEGRITY,
     streak: { count: 0, lastDay: null, freezes: 2 },
     unlockedAreas: initialUnlockedAreas(),
     cache: [],
+    spent: [],
     codex: {},
     ownedCosmetics: ['cyan'],
     activeCosmetic: 'cyan',
@@ -124,6 +131,7 @@ export function recordWrong(p: PlayerState, pool: Pool, nodeId: string): PlayerS
     },
     integrity: Math.max(0, p.integrity - 1),
     cache: [],
+    spent: [],
     skill: {
       ...p.skill,
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false),
@@ -143,6 +151,8 @@ export interface CorrectResult {
   spawned: string[];
   reward: Reward;
   closedCircle: boolean;
+  /** All key fragments were carried and the cache stayed closed. */
+  prepared: boolean;
 }
 
 function collect(p: PlayerState, pool: Pool, questionId: string, today: string) {
@@ -162,7 +172,7 @@ export function recordCorrect(
 ): CorrectResult {
   const n = p.network.nodes[nodeId];
   if (!n || n.state !== 'open') {
-    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false };
+    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false };
   }
   const q = pool.get(n.questionId);
   const attempts = n.attempts + 1;
@@ -173,12 +183,18 @@ export function recordCorrect(
     today,
     ctxFor(p, pool, `${nodeId}:${attempts}`),
   );
+  const keys = q.fragments.filter((f) => f.kind === 'key');
+  const prepared =
+    rewinds === 0 &&
+    keys.length > 0 &&
+    keys.every((k) => p.cache.some((c) => c.questionId === q.id && c.fragmentId === k.id));
   let reward = rewardFor({
     difficulty: q.difficulty,
     attempts,
     rewinds,
     kind: n.kind,
     closedCircle: grown.closedCircle,
+    prepared,
   });
   if (p.integrity === 0) {
     reward = { xp: Math.round(reward.xp / 2), bits: Math.round(reward.bits / 2), gems: 0 };
@@ -190,7 +206,6 @@ export function recordCorrect(
     xp: p.xp + reward.xp,
     bits: p.bits + reward.bits,
     gems: p.gems + reward.gems,
-    energy: Math.min(MAX_ENERGY, p.energy + 1),
     integrity: Math.min(MAX_INTEGRITY, p.integrity + 1),
     streak: { count: st.streak, lastDay: today, freezes: st.freezes },
     skill: {
@@ -199,6 +214,7 @@ export function recordCorrect(
     },
     interest: recordResult(p.interest, q.area, true),
     cache: [],
+    spent: [],
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
@@ -207,6 +223,7 @@ export function recordCorrect(
     spawned: grown.spawned.map((s) => s.id),
     reward,
     closedCircle: grown.closedCircle,
+    prepared,
   };
 }
 
@@ -216,19 +233,26 @@ export function recordReviewResult(
   nodeId: string,
   correct: boolean,
   today: string,
-): { player: PlayerState; reward: Reward } {
+): { player: PlayerState; reward: Reward; spawned: string[] } {
   const n = p.network.nodes[nodeId];
-  if (!n || n.state !== 'damaged') return { player: p, reward: { xp: 0, bits: 0, gems: 0 } };
+  if (!n || n.state !== 'damaged') return { player: p, reward: { xp: 0, bits: 0, gems: 0 }, spawned: [] };
   const q = pool.get(n.questionId);
   const reward = correct
     ? rewardFor({ difficulty: q.difficulty, attempts: 1, rewinds: 0, kind: 'review' })
     : { xp: 0, bits: 0, gems: 0 };
+  const reviewed = reviewNode(p.network, nodeId, correct, today);
+  const grown = correct
+    ? growMissing(reviewed, nodeId, ctxFor(p, pool, `${nodeId}:repair`))
+    : { state: reviewed, spawned: [] };
   return {
     reward,
+    spawned: grown.spawned.map((s) => s.id),
     player: {
       ...p,
-      network: reviewNode(p.network, nodeId, correct, today),
+      network: grown.state,
+      integrity: correct ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
       cache: [],
+      spent: [],
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
       skill: {
@@ -245,8 +269,48 @@ export function dueReviews(p: PlayerState, today: string): string[] {
     .map((n) => n.id);
 }
 
-export function spendRewind(p: PlayerState): PlayerState | null {
-  return p.energy > 0 ? { ...p, energy: p.energy - 1 } : null;
+/** Minutes it takes for one point of energy to come back. */
+export const ENERGY_REGEN_MS = 20 * 60 * 1000;
+
+/** Adds the energy that has refilled since it last started to (pure; pass the current time). */
+export function regenEnergy(p: PlayerState, now: number): PlayerState {
+  if (p.energy >= MAX_ENERGY) return p.energyAt === null ? p : { ...p, energyAt: null };
+  const base = p.energyAt ?? now;
+  const gained = Math.floor((now - base) / ENERGY_REGEN_MS);
+  if (gained <= 0) return p.energyAt === null ? { ...p, energyAt: now } : p;
+  const energy = Math.min(MAX_ENERGY, p.energy + gained);
+  return { ...p, energy, energyAt: energy >= MAX_ENERGY ? null : base + gained * ENERGY_REGEN_MS };
+}
+
+/** Milliseconds until the next point of energy, or null while it is full. */
+export function msToNextEnergy(p: PlayerState, now: number): number | null {
+  if (p.energy >= MAX_ENERGY || p.energyAt === null) return null;
+  return Math.max(0, p.energyAt + ENERGY_REGEN_MS - now);
+}
+
+/** Opens the sealed cache during a question: costs one energy. */
+export function spendRewind(p: PlayerState, now: number = Date.now()): PlayerState | null {
+  const r = regenEnergy(p, now);
+  if (r.energy <= 0) return null;
+  return { ...r, energy: r.energy - 1, energyAt: r.energyAt ?? now };
+}
+
+/** At integrity 0 the network is unstable: new nodes stay closed, repairs are always allowed. */
+export function canStartNode(p: PlayerState, nodeId: string): boolean {
+  const n = p.network.nodes[nodeId];
+  if (!n || n.locked) return false;
+  if (n.state === 'damaged') return true;
+  return n.state === 'open' && p.integrity > 0;
+}
+
+export const HEAL_COST = 3;
+
+/** Restores the network's integrity completely for gems. */
+export function healIntegrity(p: PlayerState): PlayerState | null {
+  if (p.integrity >= MAX_INTEGRITY) return null;
+  const r = trySpend(p.gems, HEAL_COST);
+  if (!r.ok) return null;
+  return { ...p, gems: r.balance, integrity: MAX_INTEGRITY };
 }
 
 export function unlockArea(p: PlayerState, areaId: string): PlayerState | null {

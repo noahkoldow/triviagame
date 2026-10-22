@@ -9,6 +9,7 @@ import {
   areaCost,
   buildField,
   completeNode,
+  growMissing,
   createNetwork,
   decideAds,
   initialUnlockedAreas,
@@ -285,11 +286,32 @@ describe('network growth', () => {
     expect(run()).toEqual(run());
   });
 
-  it('marks nodes needing three attempts as damaged but still grows the network', () => {
-    const net = createNetwork(pool, ROOT_QUESTIONS);
-    const r = completeNode(net, 'n0', 3, '2026-10-01', ctxFor());
+  it('first try grows deepening and bridge', () => {
+    const r = completeNode(createNetwork(pool, ROOT_QUESTIONS), 'n0', 1, '2026-10-01', ctxFor());
+    expect(r.state.nodes['n0']!.state).toBe('solved');
+    expect(r.spawned.map((n) => n.kind)).toEqual(expect.arrayContaining(['deepen', 'bridge']));
+  });
+
+  it('second try only grows the deepening and withholds the bridge', () => {
+    const r = completeNode(createNetwork(pool, ROOT_QUESTIONS), 'n0', 2, '2026-10-01', ctxFor());
     expect(r.state.nodes['n0']!.state).toBe('damaged');
-    expect(r.spawned.length).toBeGreaterThan(0);
+    expect(r.state.nodes['n0']!.missing).toEqual(['bridge']);
+    expect(r.spawned.map((n) => n.kind)).toEqual(['deepen']);
+  });
+
+  it('three attempts damage the node and grow nothing until it is repaired', () => {
+    const r = completeNode(createNetwork(pool, ROOT_QUESTIONS), 'n0', 3, '2026-10-01', ctxFor());
+    expect(r.state.nodes['n0']!.state).toBe('damaged');
+    expect(r.spawned).toHaveLength(0);
+    expect(r.state.nodes['n0']!.missing).toEqual(['deepen', 'bridge']);
+  });
+
+  it('grows the withheld children after a repair', () => {
+    const net = completeNode(createNetwork(pool, ROOT_QUESTIONS), 'n0', 3, '2026-10-01', ctxFor()).state;
+    const g = growMissing(net, 'n0', ctxFor());
+    expect(g.spawned.length).toBeGreaterThan(0);
+    expect(g.state.nodes['n0']!.missing).toBeUndefined();
+    expect(growMissing(g.state, 'n0', ctxFor()).spawned).toHaveLength(0);
   });
 });
 

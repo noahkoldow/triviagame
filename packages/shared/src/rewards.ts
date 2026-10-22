@@ -12,6 +12,8 @@ export interface RewardInput {
   attempts: number; // attempts including the successful one
   rewinds: number;
   kind: 'root' | 'deepen' | 'bridge' | 'debris' | 'review';
+  /** All key fragments were in the cache when answering, and the cache was not opened. */
+  prepared?: boolean;
   /** A bridge that hits an already solved neighbourhood closes a circle. */
   closedCircle?: boolean;
 }
@@ -21,6 +23,7 @@ export function rewardFor(i: RewardInput): Reward {
   let xp = 10 * i.difficulty + (first ? 10 : 0);
   let bits = 5 + 3 * i.difficulty + (i.rewinds === 0 ? 3 : 0);
   let gems = 0;
+  if (i.prepared) bits += 6;
   if (first && i.difficulty >= 4) gems += 1;
   if (i.closedCircle) {
     gems += 1;

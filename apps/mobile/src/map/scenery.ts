@@ -19,6 +19,8 @@ export interface Site {
   area: string;
   sector: Sector;
   state: 'open' | 'solved' | 'damaged' | 'locked' | 'preview';
+  /** MORPH disturbs the ground around nodes that were answered wrongly or are damaged. */
+  noise?: boolean;
 }
 
 /** Tints within a sector so neighbouring areas still look different. */

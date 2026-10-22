@@ -131,6 +131,7 @@ export function NetMap({
         area,
         sector: sectorOfArea(area),
         state: n.locked ? 'locked' : n.state,
+        noise: n.state === 'damaged' || (n.state === 'open' && n.attempts > 0),
       };
     });
     return [...real, ...strand];

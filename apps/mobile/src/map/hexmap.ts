@@ -102,6 +102,17 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     }
   }
 
+  // MORPH's noise: the ground around disturbed nodes flickers in broken colours
+  for (const site of sites) {
+    if (!site.noise) continue;
+    const c0 = worldToHex(site.x, site.y);
+    for (const cell of cells.values()) {
+      if (hexDistance(cell.hex, c0) > 2) continue;
+      const k = hashString(`noise:${hexKey(cell.hex)}`) % 3;
+      cell.color = mix(cell.color, k === 0 ? '#FF4B8B' : k === 1 ? '#1A0C24' : '#7A35B0', 0.6);
+    }
+  }
+
   // 2. traces: a chain of lit cells between connected places
   const traceLines: { color: string; cells: Hex[] }[] = [];
   for (const e of edges) {

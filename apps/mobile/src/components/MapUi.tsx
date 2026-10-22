@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   CACHE_SLOTS,
   MAX_ENERGY,
   MAX_INTEGRITY,
   levelFromXp,
+  msToNextEnergy,
   sectorOfArea,
   type CacheEntry,
 } from '@nexus/shared';
@@ -25,7 +27,14 @@ export function MapHud() {
   const gems = useGame((p) => p.gems);
   const bits = useGame((p) => p.bits);
   const energy = useGame((p) => p.energy);
+  const energyAt = useGame((p) => p.energyAt);
   const integrity = useGame((p) => p.integrity);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
+  const wait = msToNextEnergy({ energy, energyAt } as Parameters<typeof msToNextEnergy>[0], now);
   const streak = useGame((p) => p.streak.count);
   const lv = levelFromXp(xp);
   return (
@@ -37,8 +46,18 @@ export function MapHud() {
         </View>
       </View>
       <Stat icon="🔥" value={`${streak}`} color="#FF9600" />
-      <Stat icon="⚡" value={`${energy}/${MAX_ENERGY}`} color="#FFC800" label={`Energie ${energy} von ${MAX_ENERGY}`} />
-      <Stat icon="❤" value={`${integrity}/${MAX_INTEGRITY}`} color={integrity === 0 ? colors.dim : colors.bad} label={`Integrität ${integrity} von ${MAX_INTEGRITY}`} />
+      <Stat
+        icon="⚡"
+        value={wait === null ? `${energy}/${MAX_ENERGY}` : `${energy}/${MAX_ENERGY} · ${Math.ceil(wait / 60000)}m`}
+        color="#FFC800"
+        label={`Energie ${energy} von ${MAX_ENERGY}`}
+      />
+      <View style={styles.stat} accessible accessibilityLabel={`Integrität ${integrity} von ${MAX_INTEGRITY}`}>
+        <Text style={[styles.statValue, { color: colors.bad, letterSpacing: 1 }]}>
+          {'❤'.repeat(integrity)}
+          <Text style={{ color: colors.line }}>{'❤'.repeat(MAX_INTEGRITY - integrity)}</Text>
+        </Text>
+      </View>
       <Stat icon="◈" value={`${bits}`} color={colors.bit} />
       <Stat icon="💎" value={`${gems}`} color={colors.gem} />
     </View>

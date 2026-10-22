@@ -158,26 +158,34 @@ export function completeNode(
   if (node.state !== 'open') return { state, spawned: [], closedCircle: false };
   const parentQ = ctx.pool.get(node.questionId);
 
-  let solved: NetNode = { ...node, attempts, state: 'solved' };
-  if (attempts >= 3) solved = markDamaged(solved, today);
+  // wrong answers slow the network down: first try grows everything, the second
+  // only the deepening, from the third on nothing until a repair run succeeds
+  const withheld: ('deepen' | 'bridge')[] =
+    node.kind === 'debris' ? [] : attempts >= 3 ? ['deepen', 'bridge'] : attempts === 2 ? ['bridge'] : [];
+  let solved: NetNode = { ...node, attempts, state: 'solved', missing: withheld.length ? withheld : undefined };
+  if (attempts >= 2) solved = markDamaged(solved, today);
   let next: NetworkState = { ...state, nodes: { ...state.nodes, [nodeId]: solved } };
   const spawned: NetNode[] = [];
 
   if (node.kind !== 'debris') {
-    const dq = pickDeepen(parentQ, next, ctx);
-    if (dq) {
-      const r = addNode(next, solved, dq, 'deepen');
-      next = r.state;
-      spawned.push(r.node);
+    if (!withheld.includes('deepen')) {
+      const dq = pickDeepen(parentQ, next, ctx);
+      if (dq) {
+        const r = addNode(next, solved, dq, 'deepen');
+        next = r.state;
+        spawned.push(r.node);
+      }
     }
-    const bq = pickBridge(parentQ, next, ctx);
-    if (bq) {
-      const r = addNode(next, solved, bq, 'bridge');
-      next = r.state;
-      spawned.push(r.node);
+    if (!withheld.includes('bridge')) {
+      const bq = pickBridge(parentQ, next, ctx);
+      if (bq) {
+        const r = addNode(next, solved, bq, 'bridge');
+        next = r.state;
+        spawned.push(r.node);
+      }
     }
     const drng = seededRng(`debris:${nodeId}`);
-    if (drng() < DEBRIS_CHANCE) {
+    if (attempts <= 1 && drng() < DEBRIS_CHANCE) {
       const sector = sectorOfArea(parentQ.area);
       const used = new Set(next.usedQuestions);
       const cands = ctx.pool.list.filter((q) => !used.has(q.id) && sectorOfArea(q.area) === sector);
@@ -205,6 +213,37 @@ export function closesCircle(state: NetworkState, node: NetNode, radius = 110): 
       Math.hypot(n.pos.x - node.pos.x, n.pos.y - node.pos.y) < radius &&
       polar(n.pos).r > 0,
   );
+}
+
+/** After a successful repair the children that were withheld grow. */
+export function growMissing(
+  state: NetworkState,
+  nodeId: string,
+  ctx: SpawnContext,
+): { state: NetworkState; spawned: NetNode[] } {
+  const node = state.nodes[nodeId];
+  if (!node?.missing?.length) return { state, spawned: [] };
+  const parentQ = ctx.pool.get(node.questionId);
+  const cleared: NetNode = { ...node, missing: undefined };
+  let next: NetworkState = { ...state, nodes: { ...state.nodes, [nodeId]: cleared } };
+  const spawned: NetNode[] = [];
+  if (node.missing.includes('deepen')) {
+    const dq = pickDeepen(parentQ, next, ctx);
+    if (dq) {
+      const r = addNode(next, cleared, dq, 'deepen');
+      next = r.state;
+      spawned.push(r.node);
+    }
+  }
+  if (node.missing.includes('bridge')) {
+    const bq = pickBridge(parentQ, next, ctx);
+    if (bq) {
+      const r = addNode(next, cleared, bq, 'bridge');
+      next = r.state;
+      spawned.push(r.node);
+    }
+  }
+  return { state: next, spawned };
 }
 
 export function unlockDebris(state: NetworkState, nodeId: string): NetworkState {

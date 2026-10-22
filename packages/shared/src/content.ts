@@ -18,10 +18,46 @@ type Common = {
   bridge?: string[];
 };
 
+const TOPICS: Record<string, string> = {
+  'sci-light': 'Lichtgeschwindigkeit',
+  'sci-relativity': 'Relativitätstheorie',
+  'sci-gravwaves': 'Gravitationswellen',
+  'sci-water': 'Wasser & Moleküle',
+  'sci-ph': 'Säuren & Basen',
+  'sci-binary': 'Zahlensysteme',
+  'sci-algo': 'Suchalgorithmen',
+  'sci-vaccine': 'Geschichte der Impfung',
+  'sci-penicillin': 'Antibiotika',
+  'nat-photosynthesis': 'Photosynthese',
+  'nat-chloroplast': 'Die Pflanzenzelle',
+  'nat-everest': 'Höchste Berge',
+  'nat-tectonic': 'Gebirgsbildung',
+  'nat-rainforest': 'Große Flüsse',
+  'nat-bee': 'Tierkommunikation',
+  'nat-octopus': 'Tintenfische',
+  'nat-climate': 'Treibhausgase',
+  'cul-guitar': 'Saiteninstrumente',
+  'cul-bach': 'Barockmusik',
+  'cul-mona': 'Renaissance-Malerei',
+  'cul-impression': 'Impressionismus',
+  'cul-faust': 'Deutsche Klassik',
+  'cul-grimm': 'Märchen & Wörterbücher',
+  'cul-language': 'Weltsprachen',
+  'his-pyramid': 'Altes Ägypten',
+  'his-rosetta': 'Hieroglyphen',
+  'his-rome': 'Ende der Antike',
+  'his-timeline': 'Zeitreihenfolge',
+  'his-printing': 'Medienrevolution',
+  'his-wall': 'Deutsche Teilung',
+  'his-states': 'Föderalismus',
+  'his-euro': 'Europäische Währung',
+};
+
 function base(c: Common) {
   return {
     id: c.id,
     area: c.area,
+    topic: TOPICS[c.id] ?? c.area,
     side: c.side,
     stem: c.stem,
     fragments: frags(c.id, c.f),
