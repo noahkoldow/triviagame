@@ -5,7 +5,7 @@ import { seededRng } from '@nexus/shared';
 const N = 12;
 
 /** MORPH: a face made of flickering noise that keeps re-forming. */
-export function Morph({ size = 120, color = '#F472B6' }: { size?: number; color?: string }) {
+export function Morph({ size = 120, color = '#FF86D0' }: { size?: number; color?: string }) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 160);

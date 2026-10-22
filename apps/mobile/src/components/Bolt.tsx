@@ -25,7 +25,7 @@ export type Mood = 'happy' | 'think' | 'sad' | 'wow' | 'wink';
 export function Bolt({
   size = 96,
   mood = 'happy',
-  color = '#22D3EE',
+  color = '#1CB0F6',
 }: {
   size?: number;
   mood?: Mood;

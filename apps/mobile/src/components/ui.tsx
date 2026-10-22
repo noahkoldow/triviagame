@@ -103,6 +103,38 @@ export function P({
   return <Text style={[styles.p, style]}>{children}</Text>;
 }
 
+/** Top bar of the secondary screens: round back button and a title. */
+export function BackBar({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <View style={styles.bar}>
+      <Pressable
+        onPress={() => {
+          tap();
+          onBack();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Zurück"
+        hitSlop={10}
+        style={({ pressed }) => [styles.backBtn, pressed && { transform: [{ translateY: 2 }], borderBottomWidth: 2 }]}
+      >
+        <Text style={styles.backGlyph}>✕</Text>
+      </Pressable>
+      <Text style={styles.barTitle} accessibilityRole="header">
+        {title}
+      </Text>
+    </View>
+  );
+}
+
+/** Rounded stat chip, e.g. for balances and rewards. */
+export function Chip({ label, color }: { label: string; color: string }) {
+  return (
+    <View style={[styles.chip, { borderColor: color }]}>
+      <Text style={[styles.chipText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
 export function Pill({ label, color }: { label: string; color: string }) {
   return (
     <View style={[styles.pill, { borderColor: color }]}>
@@ -134,6 +166,29 @@ const styles = StyleSheet.create({
   },
   h1: { color: colors.text, fontSize: 26, fontWeight: '900' },
   p: { color: colors.dim, fontSize: 15, lineHeight: 22 },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backGlyph: { color: colors.dim, fontSize: 18, fontWeight: '900' },
+  barTitle: { color: colors.text, fontSize: 24, fontWeight: '900', flex: 1 },
+  chip: {
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: colors.panel,
+  },
+  chipText: { fontSize: 16, fontWeight: '900' },
   pill: { borderWidth: 2, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 3 },
   pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
 });

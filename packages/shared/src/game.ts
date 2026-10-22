@@ -56,10 +56,10 @@ export interface PlayerState {
 }
 
 export const COSMETICS: { id: string; de: string; color: string; cost: number }[] = [
-  { id: 'cyan', de: 'Klassik-Cyan', color: '#22D3EE', cost: 0 },
-  { id: 'lime', de: 'Neon-Limette', color: '#A3E635', cost: 60 },
-  { id: 'rose', de: 'Funken-Rosa', color: '#FB7185', cost: 90 },
-  { id: 'gold', de: 'Archiv-Gold', color: '#FBBF24', cost: 150 },
+  { id: 'cyan', de: 'Klassik-Blau', color: '#1CB0F6', cost: 0 },
+  { id: 'lime', de: 'Limette', color: '#58CC02', cost: 60 },
+  { id: 'rose', de: 'Funken-Rosa', color: '#FF86D0', cost: 90 },
+  { id: 'gold', de: 'Archiv-Gold', color: '#FFC800', cost: 150 },
 ];
 
 export function initialPlayer(

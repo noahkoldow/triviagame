@@ -66,6 +66,11 @@ export default function Onboarding() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {step < STORY.length ? (
             <>
+              <View style={styles.dots}>
+                {STORY.map((_, i) => (
+                  <View key={i} style={[styles.dot, i <= step && { backgroundColor: colors.primary }]} />
+                ))}
+              </View>
               <View style={styles.hero}>
                 {STORY[step]!.morph ? (
                   <Morph size={110} />
@@ -125,6 +130,8 @@ export default function Onboarding() {
                   <Switch
                     value={consent}
                     onValueChange={setConsent}
+                    trackColor={{ true: colors.primary, false: colors.line }}
+                    thumbColor="#FFFFFF"
                     accessibilityLabel="Personalisierte Werbung erlauben"
                   />
                 </View>
@@ -147,24 +154,31 @@ export default function Onboarding() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: 20, gap: 16, flexGrow: 1, justifyContent: 'center' },
+  dots: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  dot: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.line },
   hero: { alignItems: 'center', paddingVertical: 8 },
-  speaker: { color: colors.accent, fontWeight: '800', marginBottom: 6, letterSpacing: 0.5 },
+  speaker: { color: colors.accent, fontWeight: '900', marginBottom: 6, letterSpacing: 0.5 },
   input: {
     backgroundColor: colors.panel,
     borderColor: colors.line,
-    borderWidth: 1,
+    borderWidth: 2,
+    borderBottomWidth: 4,
     color: colors.text,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     fontSize: 17,
+    fontWeight: '700',
   },
   consent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     backgroundColor: colors.panel,
-    borderRadius: 16,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    borderColor: colors.line,
     padding: 14,
   },
-  consentTitle: { color: colors.text, fontWeight: '700', marginBottom: 2 },
+  consentTitle: { color: colors.text, fontWeight: '900', marginBottom: 2 },
 });

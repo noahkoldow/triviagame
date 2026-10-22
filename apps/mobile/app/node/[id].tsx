@@ -213,8 +213,9 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         accessibilityRole="button"
         accessibilityLabel="Zurück zum Netz"
         hitSlop={12}
+        style={styles.close}
       >
-        <Text style={styles.back}>‹ Netz</Text>
+        <Text style={styles.closeGlyph}>✕</Text>
       </Pressable>
       <View style={styles.headerPills}>
         <Pill label={areaById(q.area).de} color={color} />
@@ -255,7 +256,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                   accessibilityState={{ selected: choice === i }}
                   style={[
                     styles.option,
-                    choice === i && { borderColor: color, backgroundColor: color + '22' },
+                    choice === i && { borderColor: colors.accent, backgroundColor: colors.accent + '26' },
                   ]}
                 >
                   <Text style={styles.optionText}>{o}</Text>
@@ -294,7 +295,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
                     }}
                     style={[
                       styles.option,
-                      idx >= 0 && { borderColor: color, backgroundColor: color + '22' },
+                      idx >= 0 && { borderColor: colors.accent, backgroundColor: colors.accent + '26' },
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={idx >= 0 ? `${it}, Platz ${idx + 1}` : it}
@@ -468,7 +469,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   headerPills: { flexDirection: 'row', gap: 6 },
-  back: { color: colors.accent, fontSize: 18, fontWeight: '700' },
+  close: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeGlyph: { color: colors.dim, fontSize: 18, fontWeight: '900' },
   body: { padding: 16, gap: 14 },
   cacheRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   cacheLabel: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
@@ -509,35 +521,40 @@ const styles = StyleSheet.create({
   fragText: { color: colors.text, fontSize: 18, lineHeight: 26 },
   qTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   lock: { color: colors.dim, fontWeight: '700' },
-  stem: { color: colors.text, fontSize: 20, fontWeight: '700', lineHeight: 28 },
+  stem: { color: colors.text, fontSize: 21, fontWeight: '800', lineHeight: 29 },
   option: {
     backgroundColor: colors.panel,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderBottomWidth: 5,
     borderColor: colors.line,
     padding: 14,
-    minHeight: 52,
+    minHeight: 56,
     justifyContent: 'center',
   },
-  optionText: { color: colors.text, fontSize: 16 },
+  optionText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   input: {
     backgroundColor: colors.panel,
     borderColor: colors.line,
-    borderWidth: 1.5,
+    borderWidth: 2,
+    borderBottomWidth: 4,
     color: colors.text,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     fontSize: 18,
   },
   rewards: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
   rewardChip: {
     color: colors.accent,
-    fontWeight: '800',
+    fontWeight: '900',
     fontSize: 16,
     backgroundColor: colors.panel,
-    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    borderColor: colors.line,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   pathLine: { color: colors.text, fontSize: 15 },

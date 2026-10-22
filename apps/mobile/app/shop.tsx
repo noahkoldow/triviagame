@@ -12,7 +12,7 @@ import {
   grantGems,
   unlockArea,
 } from '@nexus/shared';
-import { Button, Card, H1, P, tap } from '../src/components/ui';
+import { BackBar, Button, Card, Chip, P, tap } from '../src/components/ui';
 import { ads } from '../src/services/ads';
 import { PRODUCTS, purchases } from '../src/services/purchases';
 import { getState, update, useGame } from '../src/state/store';
@@ -57,16 +57,10 @@ export default function Shop() {
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <Button
-          label="‹ Zurück"
-          variant="ghost"
-          onPress={() => router.back()}
-          style={{ alignSelf: 'flex-start' }}
-        />
-        <H1>Shop</H1>
+        <BackBar title="Shop" onBack={() => router.back()} />
         <View style={styles.balance}>
-          <Text style={[styles.bal, { color: colors.gem }]}>💎 {gems}</Text>
-          <Text style={[styles.bal, { color: colors.bit }]}>◈ {bits}</Text>
+          <Chip label={`💎 ${gems}`} color={colors.gem} />
+          <Chip label={`◈ ${bits}`} color={colors.bit} />
         </View>
         <P>
           Gems öffnen neue Bereiche in den Sektoren. Alles hier ist auch erspielbar, Gems sparen nur
@@ -170,19 +164,18 @@ export default function Shop() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   body: { padding: 16, gap: 12 },
-  balance: { flexDirection: 'row', gap: 20 },
-  bal: { fontSize: 20, fontWeight: '800' },
+  balance: { flexDirection: 'row', gap: 10 },
   section: {
     color: colors.dim,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 1.2,
     marginTop: 10,
   },
   sectorTitle: { fontSize: 16, fontWeight: '800' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   rowText: { color: colors.text, fontSize: 16 },
-  open: { color: colors.good, fontWeight: '700' },
+  open: { color: colors.good, fontWeight: '900' },
   smallBtn: { minHeight: 40, paddingVertical: 4, paddingHorizontal: 14 },
   dot: { width: 22, height: 22, borderRadius: 11 },
 });

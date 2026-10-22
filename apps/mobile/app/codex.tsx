@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SECTORS, areaById, sectorOfArea, type Fragment } from '@nexus/shared';
 import { Bolt } from '../src/components/Bolt';
-import { Button, Card, H1, P } from '../src/components/ui';
+import { BackBar, Card, P } from '../src/components/ui';
 import { pool } from '../src/services/content';
 import { useGame } from '../src/state/store';
 import { de } from '../src/strings';
@@ -29,13 +29,7 @@ export default function Codex() {
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <Button
-          label="‹ Zurück"
-          variant="ghost"
-          onPress={() => router.back()}
-          style={{ alignSelf: 'flex-start' }}
-        />
-        <H1>Codex</H1>
+        <BackBar title="Codex" onBack={() => router.back()} />
         <P>Alle Fragmente, die du wiederhergestellt hast. {total} gesammelt.</P>
         {total === 0 ? (
           <Card style={{ alignItems: 'center', gap: 8 }}>

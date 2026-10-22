@@ -3,7 +3,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SECTORS, areasOfSector, levelFromXp, sectorOfArea } from '@nexus/shared';
 import { Bolt } from '../src/components/Bolt';
-import { Button, Card, H1, P } from '../src/components/ui';
+import { BackBar, Button, Card, H1, P } from '../src/components/ui';
 import { pool } from '../src/services/content';
 import { resetGame, useGame } from '../src/state/store';
 import { de } from '../src/strings';
@@ -32,12 +32,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <Button
-          label="‹ Zurück"
-          variant="ghost"
-          onPress={() => router.back()}
-          style={{ alignSelf: 'flex-start' }}
-        />
+        <BackBar title="Profil" onBack={() => router.back()} />
         <View style={{ alignItems: 'center', gap: 6 }}>
           <Bolt size={90} mood="happy" />
           <H1>{profile.name}</H1>
@@ -108,9 +103,9 @@ function Meter({ label, value, color }: { label: string; value: number; color: s
         <View
           style={{
             width: `${Math.round(value * 100)}%`,
-            height: 8,
+            height: 12,
             backgroundColor: color,
-            borderRadius: 4,
+            borderRadius: 6,
           }}
         />
       </View>
@@ -121,15 +116,15 @@ function Meter({ label, value, color }: { label: string; value: number; color: s
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   body: { padding: 16, gap: 14 },
-  title: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 18, fontWeight: '900' },
   sector: { fontSize: 13, fontWeight: '800' },
   meterRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   meterLabel: { color: colors.dim, width: 50, fontSize: 12 },
   meterTrack: {
     flex: 1,
-    height: 8,
+    height: 12,
     backgroundColor: colors.line,
-    borderRadius: 4,
+    borderRadius: 6,
     overflow: 'hidden',
   },
 });
