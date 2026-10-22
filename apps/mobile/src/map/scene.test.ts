@@ -16,11 +16,12 @@ vi.mock('@shopify/react-native-skia', () => {
       detach: () => ({ calls }),
     };
   };
-  return { Skia: { PathBuilder: { Make: builder } }, PaintStyle: { Fill: 0, Stroke: 1 } };
+  return { Skia: { PathBuilder: { Make: builder }, Color: (c: string) => c }, PaintStyle: { Fill: 0, Stroke: 1 } };
 });
 vi.mock('react-native-reanimated', () => ({ useDerivedValue: (f: () => unknown) => ({ value: f() }) }));
 
 import {
+  AREAS,
   MOCK_QUESTIONS,
   Pool,
   initialPlayer,
@@ -30,6 +31,7 @@ import {
   snapToHex,
 } from '@nexus/shared';
 import { buildHexScene, type TraceEdge } from './hexmap';
+import { drawAreaProp, type Pen } from './propAtlas';
 import { buildStrand, type Site } from './scenery';
 
 const pool = new Pool(MOCK_QUESTIONS);
@@ -91,5 +93,37 @@ describe('map scene', () => {
     // no two tiles in the same cell
     const keys = new Set(s.tiles.map((t) => `${Math.round(t.x)},${Math.round(t.y)}`));
     expect(keys.size).toBe(s.tiles.length);
+  });
+
+  it('puts scenery on single tiles: bare near the core, more of it further out', () => {
+    let p = initialPlayer(pool);
+    p = recordCorrect(p, pool, 'n0', '2026-10-01', 0).player;
+    p = recordCorrect(p, pool, 'n1', '2026-10-01', 0).player;
+    const { sites, edges } = sitesAndEdges(p);
+    const s = buildHexScene([...sites, ...buildStrand()], edges);
+    expect(s.props.length).toBeGreaterThan(10);
+    expect(s.props.length).toBeLessThan(s.tiles.length * 0.3);
+    for (const pr of s.props) {
+      expect(pr.sprite).toBeGreaterThanOrEqual(0);
+      expect(pr.sprite).toBeLessThan(32);
+    }
+    const share = (from: number, to: number) => {
+      const t = s.tiles.filter((x) => Math.hypot(x.x, x.y) >= from && Math.hypot(x.x, x.y) < to).length;
+      const q = s.props.filter((x) => Math.hypot(x.x, x.y) >= from && Math.hypot(x.x, x.y) < to).length;
+      return t === 0 ? 0 : q / t;
+    };
+    expect(share(0, 350)).toBeLessThan(share(900, 3000));
+  });
+
+  it('can draw the scenery object of every topic area', () => {
+    for (const a of AREAS) {
+      let paths = 0;
+      const pen = {
+        c: { drawPath: () => paths++ },
+        fill: { setColor: () => undefined },
+      } as unknown as Pen;
+      expect(() => drawAreaProp(a.id, pen, 28, '#58CC02'), a.id).not.toThrow();
+      expect(paths, a.id).toBeGreaterThan(2);
+    }
   });
 });

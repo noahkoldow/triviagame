@@ -14,6 +14,7 @@ import {
 import { colors, mix } from '../theme';
 import { SQUASH } from './camera';
 import { LIFT } from './hexAtlas';
+import { propSprite } from './propAtlas';
 import { areaTint, type Site } from './scenery';
 import { computerness } from './style';
 
@@ -45,8 +46,18 @@ export interface Circuit {
   path: SkPath;
 }
 
+/** A small standing object on a hexagon, fitting the area around it. */
+export interface Prop {
+  x: number;
+  y: number;
+  level: number;
+  sprite: number;
+}
+
 export interface HexScene {
   tiles: Tile[];
+  /** Trees, crystals, columns … on single tiles, back to front. */
+  props: Prop[];
   ghosts: Ghost[];
   traces: Trace[];
   circuit: Circuit[];
@@ -83,6 +94,10 @@ interface Cell {
   hex: Hex;
   color: string;
   sector: Sector | 'core';
+  /** The topic area that owns this cell (none for the core and the trace chains). */
+  area?: string;
+  /** Disturbed ground (outposts, MORPH noise): no scenery grows there. */
+  noisy?: boolean;
   trace: boolean;
   flat: boolean;
 }
@@ -105,7 +120,15 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   const owner = new Map<string, number>();
 
   // 1. land around every place; where places overlap, the closer one decides the colour
-  const places: { c: Hex; r: number; color: string; sector: Sector | 'core'; seed: string }[] = [
+  const places: {
+    c: Hex;
+    r: number;
+    color: string;
+    sector: Sector | 'core';
+    seed: string;
+    area?: string;
+    noisy?: boolean;
+  }[] = [
     { c: { q: 0, r: 0 }, r: CORE_CELLS, color: landColor('core'), sector: 'core', seed: 'core' },
     ...sites.map((s) => ({
       c: worldToHex(s.x, s.y),
@@ -113,6 +136,8 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
       color: landColor(s.sector, s.area),
       sector: s.sector as Sector | 'core',
       seed: s.id,
+      area: s.area,
+      noisy: !!s.noise,
     })),
   ];
   for (const p of places) {
@@ -126,7 +151,7 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
         const score = d / (p.r + 0.5);
         if ((owner.get(k) ?? Infinity) <= score) continue;
         owner.set(k, score);
-        cells.set(k, { hex, color: p.color, sector: p.sector, trace: false, flat: false });
+        cells.set(k, { hex, color: p.color, sector: p.sector, area: p.area, noisy: p.noisy, trace: false, flat: false });
       }
     }
   }
@@ -188,6 +213,19 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     tiles.push({ x: w.x, y: w.y, level, color: lit });
   }
   tiles.sort((a, b) => a.y - b.y || a.x - b.x);
+
+  // 4b. scenery: single tiles get a little 3D object that fits their topic. The circuit
+  // board near the core stays bare; the further out, the more nature, stone and instruments.
+  const props: Prop[] = [];
+  for (const c of cells.values()) {
+    if (c.trace || c.flat || c.noisy || !c.area) continue;
+    const w = hexToWorld(c.hex);
+    const chance = 0.22 * (1 - 0.8 * computerness(w.x, w.y));
+    const h = hashString(`prop:${hexKey(c.hex)}`);
+    if (h % 1000 >= chance * 1000) continue;
+    props.push({ x: w.x, y: w.y, level: levelOf.get(hexKey(c.hex)) ?? 0, sprite: propSprite(c.area, (h >>> 5) % 2) });
+  }
+  props.sort((a, b) => a.y - b.y || a.x - b.x);
 
   // 5. fog: faint outlines fading outward from the edge of the land
   const ghosts: Ghost[] = [];
@@ -275,7 +313,7 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     }
   }
 
-  return { tiles, ghosts, traces, circuit, noise: noiseB.map((b) => b.detach()) };
+  return { tiles, props, ghosts, traces, circuit, noise: noiseB.map((b) => b.detach()) };
 }
 
 export const ghostColor = (band: number) => `#6F93B8${BAND_ALPHA[band] ?? '00'}`;

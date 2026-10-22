@@ -193,7 +193,7 @@ export default function Home() {
         focusKey={focusKey}
         focusId={focusId}
         focusZoom={debrisId ? 1.15 : undefined}
-        focusLift={debrisId ? 0.28 : 0}
+        focusLift={debrisId ? 0.25 : 0}
         outposts={outposts}
         onOutpost={(id) => {
           tap();

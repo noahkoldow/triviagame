@@ -40,6 +40,7 @@ import {
   project,
 } from './camera';
 import { LIFT, makeHexAtlas } from './hexAtlas';
+import { makePropAtlas } from './propAtlas';
 import { buildHexScene, ghostColor, type TraceEdge } from './hexmap';
 import {
   CoreTile,
@@ -116,6 +117,7 @@ function NetMapBase({
   const family = Platform.select({ ios: 'Helvetica', default: 'sans-serif' }) as string;
   const font = useMemo(() => matchFont({ fontFamily: family, fontSize: 13, fontWeight: '800' }), [family]);
   const atlas = useMemo(() => makeHexAtlas(), []);
+  const propAtlas = useMemo(() => makePropAtlas(), []);
 
   // every node sits on a hexagon cell
   const placed = useMemo(
@@ -193,6 +195,16 @@ function NetMapBase({
       colors: scene.tiles.map((t) => Skia.Color(t.color)),
     };
   }, [atlas, scene.tiles]);
+  // the little objects on the tiles, in one call as well
+  const propDraw = useMemo(() => {
+    if (!propAtlas) return null;
+    return {
+      sprites: scene.props.map((p) => propAtlas.rects[p.sprite]!),
+      transforms: scene.props.map((p) =>
+        Skia.RSXform(1, 0, p.x - propAtlas.anchorX, p.y * SQUASH - LIFT[p.level]! - propAtlas.anchorY),
+      ),
+    };
+  }, [propAtlas, scene.props]);
   const ghostDraw = useMemo(() => {
     if (!atlas) return null;
     const outline = atlas.rects[atlas.rects.length - 1]!;
@@ -375,6 +387,15 @@ function NetMapBase({
     };
   }, [atlas, debris?.center.x, debris?.center.y, scene.tiles]);
 
+  const focusProps = useMemo(() => {
+    if (!propAtlas || !debris) return null;
+    const near = scene.props.filter((p) => Math.hypot(p.x - debris.center.x, p.y - debris.center.y) <= 205);
+    return {
+      sprites: near.map((p) => propAtlas.rects[p.sprite]!),
+      transforms: near.map((p) => Skia.RSXform(1, 0, p.x - propAtlas.anchorX, p.y * SQUASH - LIFT[p.level]! - propAtlas.anchorY)),
+    };
+  }, [propAtlas, debris?.center.x, debris?.center.y, scene.props]);
+
   const transform = useDerivedValue(() => cameraTransform(cx.value, cy.value, zoom.value, width, height));
 
   // things standing on the map, back to front
@@ -418,6 +439,10 @@ function NetMapBase({
           {/* land: all hexagon tiles in one call */}
           {atlas && tileDraw ? (
             <Atlas image={atlas.image} sprites={tileDraw.sprites} transforms={tileDraw.transforms} colors={tileDraw.colors} colorBlendMode="modulate" />
+          ) : null}
+
+          {propAtlas && propDraw ? (
+            <Atlas image={propAtlas.image} sprites={propDraw.sprites} transforms={propDraw.transforms} />
           ) : null}
 
           {/* the circuit board: strong around the core, thinning out */}
@@ -488,6 +513,9 @@ function NetMapBase({
             <Group>
               {atlas && focusTiles ? (
                 <Atlas image={atlas.image} sprites={focusTiles.sprites} transforms={focusTiles.transforms} colors={focusTiles.colors} colorBlendMode="modulate" />
+              ) : null}
+              {propAtlas && focusProps ? (
+                <Atlas image={propAtlas.image} sprites={focusProps.sprites} transforms={focusProps.transforms} />
               ) : null}
               <Circle cx={debris.center.x} cy={debris.center.y * SQUASH} r={120} style="stroke" strokeWidth={3} color={debris.color} opacity={0.6}>
                 <DashPathEffect intervals={[10, 9]} />
