@@ -17,7 +17,6 @@ import {
   Easing,
   useDerivedValue,
   useSharedValue,
-  withDelay,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
@@ -102,8 +101,8 @@ export function NetMap({
   const pulse = useSharedValue(0);
   /** Runs 0 → 1 over 8 s; the noise reads it in a few steps, so it ticks slowly instead of gliding. */
   const glitch = useSharedValue(0);
-  /** 1 while the map rests, 0 while it is dragged or zoomed: the veil only shows when it rests. */
-  const calm = useSharedValue(1);
+  /** 1 = the rest of the map is veiled. Set by a tap on a point, cleared when the map is moved. */
+  const dim = useSharedValue(0);
 
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }), -1, true);
@@ -249,10 +248,6 @@ export function NetMap({
       let gBase = { dx: 0, dy: 0 };
       let pinch: { d0: number; s0: number } | null = null;
       let moved = false;
-      const settle = () => {
-        // back to calm shortly after the finger lifts
-        calm.value = withDelay(400, withTiming(1, { duration: 350 }));
-      };
       return PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
@@ -265,7 +260,7 @@ export function NetMap({
         onPanResponderMove: (e, g) => {
           if (!moved && Math.abs(g.dx) + Math.abs(g.dy) > 8) {
             moved = true;
-            calm.value = withTiming(0, { duration: 150 });
+            dim.value = withTiming(0, { duration: 200 });
           }
           const t = e.nativeEvent.touches;
           if (t.length >= 2) {
@@ -277,7 +272,7 @@ export function NetMap({
             setCam(cam.current.cx, cam.current.cy, s);
             base = { cx: cam.current.cx, cy: cam.current.cy };
             gBase = { dx: g.dx, dy: g.dy };
-            if (!moved) calm.value = withTiming(0, { duration: 150 });
+            if (!moved) dim.value = withTiming(0, { duration: 200 });
             moved = true;
           } else {
             pinch = null;
@@ -286,14 +281,8 @@ export function NetMap({
             setCam(c.x, c.y, cam.current.s);
           }
         },
-        onPanResponderTerminate: () => {
-          if (moved) settle();
-        },
         onPanResponderRelease: (e) => {
-          if (moved) {
-            settle();
-            return;
-          }
+          if (moved) return;
           const { width: w, height: h } = sizeRef.current;
           const { cx: x, cy: y, s } = cam.current;
           const tx = e.nativeEvent.locationX;
@@ -348,14 +337,13 @@ export function NetMap({
   const shiftC = useDerivedValue(() => [{ translateY: ((step(glitch.value) * 11) % 3) - 1 }]);
 
   // while a node is being scavenged the rest of the map fades back, so nothing lies on top of the pieces
-  const dim = useSharedValue(0);
   const scavenging = !!debris;
+  // every tap on a point (it changes focusKey) veils the rest again
   useEffect(() => {
     dim.value = withTiming(scavenging ? 1 : 0, { duration: 300 });
-  }, [scavenging, dim]);
-  // a dark veil over everything while a node is scavenged and the map rests
-  const veilOpacity = useDerivedValue(() => 0.92 * dim.value * calm.value);
-  const focusOpacity = useDerivedValue(() => dim.value);
+  }, [scavenging, focusKey, dim]);
+  // a dark veil over everything but the scavenged node
+  const veilOpacity = useDerivedValue(() => 0.92 * dim.value);
 
   // the land right around the scavenged node, drawn again at full strength
   const focusTiles = useMemo(() => {
@@ -477,7 +465,7 @@ export function NetMap({
         {/* the scavenged node with its pieces, at full strength on top of the veil */}
         {debris ? (
           <Group transform={transform}>
-            <Group opacity={focusOpacity}>
+            <Group>
               {atlas && focusTiles ? (
                 <Atlas image={atlas.image} sprites={focusTiles.sprites} transforms={focusTiles.transforms} colors={focusTiles.colors} colorBlendMode="modulate" />
               ) : null}
