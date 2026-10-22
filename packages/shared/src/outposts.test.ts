@@ -72,6 +72,16 @@ describe('outposts', () => {
     expect(fresh.some((n) => pool.get(n.questionId).area === 'chemistry')).toBe(true);
   });
 
+  it('replace the locked debris fields: no locked nodes spawn any more', () => {
+    let p = initialPlayer(pool);
+    for (let i = 0; i < 12; i++) {
+      const open = Object.values(p.network.nodes).find((n) => n.state === 'open');
+      if (!open) break;
+      p = recordCorrect(p, pool, open.id, '2026-10-01', 0).player;
+    }
+    expect(Object.values(p.network.nodes).filter((n) => n.locked || n.kind === 'debris')).toHaveLength(0);
+  });
+
   it('can be connected with gems', () => {
     const p = { ...initialPlayer(pool), gems: 100 };
     const u = unlockArea(p, 'chemistry', pool)!;

@@ -204,12 +204,10 @@ export function outpostsReachedBy(state: NetworkState, node: NetNode): string[] 
     .map((o) => o.id);
 }
 
-/** Chance that a solved node reveals a (locked) debris field. */
-export const DEBRIS_CHANCE = 0.35;
-
 /**
  * Marks a node as solved (or damaged when it needed many attempts) and spawns
- * its two children: a deepening and a bridge, plus occasionally a debris field.
+ * its children: a deepening and a bridge (fewer after wrong answers). Locked debris
+ * fields no longer spawn: the disturbed outposts took their place (see outposts.ts).
  */
 export function completeNode(
   state: NetworkState,
@@ -246,21 +244,6 @@ export function completeNode(
       const bq = pickBridge(parentQ, next, ctx);
       if (bq) {
         const r = addNode(next, solved, bq, 'bridge', {}, 0.3);
-        next = r.state;
-        spawned.push(r.node);
-      }
-    }
-    const drng = seededRng(`debris:${nodeId}`);
-    // the first encrypted field is guaranteed early, so players meet the gem mechanic
-    const solvedCount = Object.values(next.nodes).filter((n) => n.state !== 'open').length;
-    const hasDebris = Object.values(next.nodes).some((n) => n.kind === 'debris');
-    if (attempts <= 1 && (drng() < DEBRIS_CHANCE || (!hasDebris && solvedCount >= 2))) {
-      const sector = sectorOfArea(parentQ.area);
-      const used = new Set(next.usedQuestions);
-      const cands = ctx.pool.list.filter((q) => !used.has(q.id) && sectorOfArea(q.area) === sector);
-      const pick = cands[Math.floor(drng() * cands.length)];
-      if (pick) {
-        const r = addNode(next, solved, pick, 'debris', { locked: true });
         next = r.state;
         spawned.push(r.node);
       }
