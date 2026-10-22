@@ -19,7 +19,9 @@ export type IconName =
   | 'down'
   | 'link'
   | 'shard'
-  | 'cache';
+  | 'cache'
+  | 'folder'
+  | 'folder-empty';
 
 export function Icon({
   name,
@@ -121,6 +123,25 @@ export function Icon({
           <Polygon points="12,3 19.5,7.5 19.5,16.5 12,21 4.5,16.5 4.5,7.5" fill="none" stroke={color} strokeWidth={2.4} strokeLinejoin="round" />
           <Polygon points="12,8.5 15,10.3 15,13.7 12,15.5 9,13.7 9,10.3" fill={color} />
         </>
+      ) : null}
+      {name === 'folder' ? (
+        <>
+          <Path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h5l2 2.2h8A1.5 1.5 0 0 1 21 7.7V9H3z" fill={m('#E5A210')} />
+          <Rect x={3} y={7} width={18} height={12.5} rx={2} fill={m('#F2B91A')} />
+          <Rect x={5} y={8} width={14} height={4.5} rx={0.8} fill="#FFFFFF" opacity={muted ? 0.4 : 1} />
+          <Path d="M3 10.5A1.5 1.5 0 0 1 4.5 9h15a1.5 1.5 0 0 1 1.5 1.5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill={m('#FFD54A')} />
+          <Path d="M4.6 10.2h14.8" stroke="#FFFFFF" strokeWidth={1.2} strokeLinecap="round" opacity={muted ? 0 : 0.5} />
+        </>
+      ) : null}
+      {name === 'folder-empty' ? (
+        <Path
+          d="M3 5.5A1.5 1.5 0 0 1 4.5 4h5l2 2.2h8A1.5 1.5 0 0 1 21 7.7V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+          fill="none"
+          stroke="#37464F"
+          strokeWidth={1.8}
+          strokeDasharray="3 2.4"
+          strokeLinejoin="round"
+        />
       ) : null}
       {name === 'cache' ? (
         <>

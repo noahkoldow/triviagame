@@ -394,7 +394,7 @@ export interface Shard {
   taken: boolean;
 }
 
-/** A piece of debris: a small hexagon gem on the ground with a floating tag. */
+/** A piece of debris, drawn as a folder like on a desktop: icon on top, its name underneath. */
 function ShardTileBase({
   shard,
   color,
@@ -404,27 +404,31 @@ function ShardTileBase({
   color: string;
   font: SkFont;
 }) {
-  const face = shard.taken ? '#34475A' : color;
-  const text = shard.hint;
-  const w = font.getTextWidth(text) + 20;
-  const h = 26;
-  const up = SHARD_DEPTH + 36;
-  const chip = shard.taken ? '#25354A' : '#FFFFFF';
+  const taken = shard.taken;
+  const w = font.getTextWidth(shard.hint) + 20;
+  const tab = taken ? '#4D5C6A' : '#E5A210';
+  const back = taken ? '#5B6B7A' : '#F2B91A';
+  const front = taken ? '#7B8B9A' : '#FFD54A';
   return (
     <Group transform={[{ translateX: shard.x }, { translateY: shard.y * SQUASH }]}>
-      <Group transform={[{ translateY: 2 }]} opacity={0.5}>
+      <Group transform={[{ translateY: 2 }, { scale: 1.25 }]} opacity={0.45}>
         <Path path={SHARD.top} color="#02060C" />
       </Group>
-      <Group transform={[{ translateY: -SHARD_DEPTH }]}>
-        <Solid parts={SHARD} face={face} edge={shade(face, 0.4)} />
+      <Group transform={[{ translateY: -5 }]}>
+        <RoundedRect x={-21} y={-37} width={18} height={9} r={3} color={tab} />
+        <RoundedRect x={-21} y={-32} width={42} height={27} r={3} color={back} />
+        <Rect x={-17} y={-30} width={34} height={10} color="#FFFFFF" opacity={taken ? 0.45 : 1} />
+        <RoundedRect x={-21} y={-25} width={42} height={20} r={3} color={front} />
+        <RoundedRect x={-19.5} y={-23.5} width={39} height={17} r={2.5} style="stroke" strokeWidth={1.2} color="#FFFFFF" opacity={taken ? 0.15 : 0.45} />
+        {/* a thin stripe in the colour of the topic */}
+        <Rect x={-21} y={-9} width={42} height={4} color={taken ? '#5B6B7A' : color} opacity={0.9} />
       </Group>
-      <Rect x={-1.5} y={-up + h / 2} width={3} height={up - h / 2 - SHARD_DEPTH} color={shade(color, 0.2)} opacity={0.7} />
-      <RoundedRect x={-w / 2} y={-up - h / 2 + 4} width={w} height={h} r={13} color={mix(shard.taken ? '#1B2A3C' : color, '#000000', 0.2)} />
-      <RoundedRect x={-w / 2} y={-up - h / 2} width={w} height={h} r={13} color={chip} />
-      <SkText x={-w / 2 + 10} y={-up + 5} text={text} font={font} color={shard.taken ? colors.dim : '#2B3A47'} />
+      <RoundedRect x={-w / 2} y={5} width={w} height={21} r={10.5} color={taken ? '#25354A' : '#0A1220'} opacity={0.94} />
+      <SkText x={-w / 2 + 10} y={20} text={shard.hint} font={font} color={taken ? colors.dim : '#FFFFFF'} />
     </Group>
   );
 }
+
 
 export const NodeTile = memo(NodeTileBase);
 export const SiteTile = memo(SiteTileBase);

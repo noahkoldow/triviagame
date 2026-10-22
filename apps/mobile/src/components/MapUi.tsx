@@ -113,9 +113,14 @@ export function CacheBar({ onSlot }: { onSlot: (entry: CacheEntry) => void }) {
             accessibilityLabel={f ? `Cache-Platz ${i + 1}: ${f.hint}` : `Cache-Platz ${i + 1} leer`}
             style={[styles.slot, f ? { borderColor: color, backgroundColor: color + '22' } : styles.slotEmpty]}
           >
-            <Text style={[styles.slotText, f ? { color } : null]} numberOfLines={1}>
-              {f ? f.hint : '·'}
-            </Text>
+            <View style={styles.slotRow}>
+              <Icon name={f ? 'folder' : 'folder-empty'} size={f ? 20 : 18} />
+              {f ? (
+                <Text style={[styles.slotText, { color }]} numberOfLines={1}>
+                  {f.hint}
+                </Text>
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
@@ -181,6 +186,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   slotEmpty: { borderColor: colors.line, borderStyle: 'dashed', borderBottomWidth: 2 },
+  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '100%' },
   slotText: { color: colors.dim, fontSize: 12, fontWeight: '800' },
   dock: { flexDirection: 'row', borderRadius: 24, padding: 5, gap: 4 },
   dockItem: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 18, gap: 1 },

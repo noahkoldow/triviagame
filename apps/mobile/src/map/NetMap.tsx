@@ -318,7 +318,7 @@ function NetMapBase({
           let sBest: Shard | null = null;
           let sd = Infinity;
           for (const sh of shardsRef.current) {
-            const p = project(x, y, s, w, h, sh.x, sh.y, 40);
+            const p = project(x, y, s, w, h, sh.x, sh.y, 22);
             const d = Math.hypot(p.x - tx, p.y - ty);
             if (d < sd) {
               sd = d;
