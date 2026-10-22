@@ -6,6 +6,7 @@ import {
   answerText,
   areaById,
   cacheFragments,
+  fragmentFiles,
   decideAds,
   isCorrect,
   noteInterstitialShown,
@@ -18,6 +19,7 @@ import {
   type Reward,
 } from '@nexus/shared';
 import { Bolt } from '../../src/components/Bolt';
+import { CacheExplorer } from '../../src/components/CacheExplorer';
 import { Icon } from '../../src/components/Icon';
 import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
 import { Morph } from '../../src/components/Morph';
@@ -236,7 +238,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
               variant="ghost"
               sub={
                 energy > 0
-                  ? `Kostet 1 Energie (du hast ${energy}). Sonst ist der Cache in der Frage zu.`
+                  ? `Durchsuche deine Ordner. Kostet 1 Energie (du hast ${energy}), die Suche selbst ist frei.`
                   : 'Keine Energie. Lösche Knoten, um sie aufzuladen'
               }
               disabled={energy <= 0 || cache.length === 0}
@@ -252,16 +254,10 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
           onRequestClose={() => setRewindOpen(false)}
         >
           <View style={styles.modalBack}>
-            <Card style={{ gap: 12 }}>
-              <Text style={styles.cacheLabel}>BLITZ · DEIN CACHE</Text>
-              {cachedFragments.map((f) => (
-                <View key={f.id} style={{ gap: 2 }}>
-                  <Text style={[styles.cacheLabel, { color }]}>{f.hint}</Text>
-                  <Text style={styles.fragText}>{f.text}</Text>
-                </View>
-              ))}
-              <Button label="Zurück zur Frage" onPress={() => setRewindOpen(false)} />
-            </Card>
+            <CacheExplorer
+              folders={cachedFragments.map((f) => ({ name: f.hint, files: fragmentFiles(f) }))}
+              onClose={() => setRewindOpen(false)}
+            />
           </View>
         </Modal>
       </SafeAreaView>

@@ -1,3 +1,4 @@
+import { validateFiles } from './files';
 import { hashString } from './rng';
 import { AREAS, areaById } from './taxonomy';
 import type { Fragment, FragmentKind, Question, QuestionType, Sector } from './types';
@@ -62,7 +63,7 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
     '{ "area": "' + req.area + '", "difficulty": ' + req.difficulty + ', "topic": "<keyword, 3-40 chars, does NOT give the answer>",',
     '  "intro": "<1-2 sentences about the topic, 20-160 chars, does NOT give the answer>", "stem": "<the question or statement, max 220 chars>",',
     '  "explanation": "<why the answer is right, 10-400 chars>",',
-    '  "fragments": [ { "kind": "key" | "context" | "decoy", "hint": "<label, max 18 chars>", "text": "<one fact, max 200 chars>" } ],',
+    '  "fragments": [ { "kind": "key" | "context" | "decoy", "hint": "<label, max 18 chars>", "text": "<one fact, max 200 chars>", "files": [ <optional, see below> ] } ],',
     '  …plus the fields of the type below }',
     '',
     `Type fields: ${SHAPES[req.type]}`,
@@ -73,6 +74,16 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
     '- 4 to 6 fragments: 1 to 3 "key" fragments (together they let a player solve the question), 1 or 2 "context", at least 1 "decoy" (plausible, true or false, but irrelevant to the answer). Hints are short labels and must not reveal the answer.',
     '- No fragment, topic or intro may state the answer outright where it would make the question trivial: key fragments contain the knowledge, not the literal solution word.',
     '- Neutral, family-friendly content. No people from the news, no medical or legal advice.',
+    '',
+    'Files (optional, for key and context fragments): the folder of a fragment can hold 1 to 5 files that the player has to search. The fact of the fragment must be in at least one file; other files add context or are plausible but irrelevant. Each file:',
+    '  { "name": "Notizen.txt", "kind": "note", "text": "<10-400 chars>" }',
+    '  { "name": "Artikel.txt", "kind": "article", "text": "<3-4 short paragraphs separated by a blank line, max 900 chars; the fact sits inside, not in a headline>", "source": "<where it is from>" }',
+    '  { "name": "Diagramm.png", "kind": "image", "alt": "<what it shows, 10-200 chars>", "chart": <one of:',
+    '      { "chart": "bars", "title": "…", "unit": "…", "items": [ { "label": "…", "value": <number> } ] }   // 2-6 bars',
+    '      { "chart": "timeline", "title": "…", "events": [ { "label": "…", "year": <whole number> } ] }   // 2-6 events',
+    '      { "chart": "table", "title": "…", "columns": ["…", "…"], "rows": [ ["…", "…"] ] }   // 2-5 columns, 1-6 rows',
+    '  > }',
+    'Images are drawn from this description, so use real, checkable numbers. File names must not give the answer away.',
   ]
     .filter((l) => l !== '')
     .join('\n');
@@ -197,7 +208,13 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
     if (text.length < 10 || text.length > 200) errors.push(`fragment ${i + 1}: text must be 10 to 200 characters`);
     if (hints.has(norm(hint))) errors.push(`fragment ${i + 1}: duplicate hint "${hint}"`);
     hints.add(norm(hint));
-    fragments.push({ id: `f${i + 1}`, kind, hint, text });
+    let files: Fragment['files'];
+    if (o['files'] !== undefined) {
+      const v = validateFiles(o['files']);
+      v.errors.forEach((e) => errors.push(`fragment ${i + 1}: ${e}`));
+      files = v.files;
+    }
+    fragments.push({ id: `f${i + 1}`, kind, hint, text, ...(files && files.length ? { files } : {}) });
   });
   const keys = fragments.filter((f) => f.kind === 'key').length;
   if (keys < 1 || keys > 3) errors.push('1 to 3 key fragments are needed (the cache holds three)');

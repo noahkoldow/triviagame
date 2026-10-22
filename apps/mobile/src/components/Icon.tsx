@@ -21,7 +21,10 @@ export type IconName =
   | 'shard'
   | 'cache'
   | 'folder'
-  | 'folder-empty';
+  | 'folder-empty'
+  | 'file'
+  | 'image'
+  | 'search';
 
 export function Icon({
   name,
@@ -142,6 +145,28 @@ export function Icon({
           strokeDasharray="3 2.4"
           strokeLinejoin="round"
         />
+      ) : null}
+      {name === 'file' ? (
+        <>
+          <Path d="M6 2h8l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill={m('#F4F6F8')} stroke="#8FA3AD" strokeWidth={1.2} />
+          <Path d="M14 2v5h5z" fill={m('#C9D3DB')} />
+          <Rect x={7} y={11} width={10} height={1.6} rx={0.8} fill="#5B6B7A" />
+          <Rect x={7} y={14.2} width={10} height={1.6} rx={0.8} fill="#5B6B7A" />
+          <Rect x={7} y={17.4} width={6} height={1.6} rx={0.8} fill="#5B6B7A" />
+        </>
+      ) : null}
+      {name === 'image' ? (
+        <>
+          <Rect x={2.5} y={4} width={19} height={16} rx={2} fill={m('#7CD4FF')} stroke="#1487BF" strokeWidth={1.2} />
+          <Circle cx={8} cy={9} r={2} fill={m('#FFD54A')} />
+          <Path d="M2.5 18l6-6 4 4 3-3 6 6v1a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 2.5 20z" fill={m('#58CC02')} />
+        </>
+      ) : null}
+      {name === 'search' ? (
+        <>
+          <Circle cx={10} cy={10} r={6} fill="none" stroke={color === '#8FA3AD' ? '#101820' : color} strokeWidth={2.6} />
+          <Path d="M14.6 14.6L21 21" stroke={color === '#8FA3AD' ? '#101820' : color} strokeWidth={3} strokeLinecap="round" />
+        </>
       ) : null}
       {name === 'cache' ? (
         <>

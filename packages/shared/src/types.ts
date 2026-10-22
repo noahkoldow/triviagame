@@ -2,12 +2,36 @@ export type Sector = 'science' | 'nature' | 'culture' | 'history';
 
 export type FragmentKind = 'key' | 'context' | 'decoy';
 
+export type FileKind = 'note' | 'article' | 'image';
+
+/** An image the game draws itself from a small description (no photos, no image model). */
+export type ChartSpec =
+  | { chart: 'bars'; title: string; unit?: string; items: { label: string; value: number }[] }
+  | { chart: 'timeline'; title: string; events: { label: string; year: number }[] }
+  | { chart: 'table'; title: string; columns: string[]; rows: string[][] };
+
+/** One file inside a cache folder: a note, a short article or an image. */
+export interface FragmentFile {
+  name: string;
+  kind: FileKind;
+  /** Notes and articles; paragraphs of an article are separated by a blank line. */
+  text?: string;
+  /** Where an article comes from. */
+  source?: string;
+  /** Images. */
+  chart?: ChartSpec;
+  /** What an image shows, for screen readers and for the search. */
+  alt?: string;
+}
+
 export interface Fragment {
   id: string;
   /** Short label shown on the debris piece so players can choose what to collect. */
   hint: string;
   text: string;
   kind: FragmentKind;
+  /** What lies in the folder in a question. Without files the folder holds one note with `text`. */
+  files?: FragmentFile[];
 }
 
 export type QuestionType = 'choice' | 'estimate' | 'order' | 'truefalse' | 'match' | 'cloze';

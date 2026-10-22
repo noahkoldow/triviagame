@@ -59,3 +59,16 @@ Ein Test prüft, dass alle vorhandenen Fragen diese Regeln bestehen, damit die R
 - Meldefunktion in der App.
 - Verzweigungen (`deepen`/`bridge`) und Bereichs-Nachbarschaft für KI-Fragen vorschlagen lassen; bisher wählt das Spiel selbst per Bereichs-Links.
 - Weitere Fragetypen, die zum Windows-95-Stil passen, etwa „In Ordner sortieren“ oder „Fehler im Text finden“.
+
+## Dateien in Cache-Ordnern
+
+Fragmente können `files` tragen (siehe `validateFiles` in `packages/shared/src/files.ts`). Die KI bekommt dafür im Prompt die Formen von Notiz, Artikel und Bild und muss sie liefern wie die Fragen selbst; die Prüfung lehnt Fehler ab.
+
+- **Notiz:** 10 bis 400 Zeichen. **Artikel:** drei bis vier kurze Absätze (bis 900 Zeichen, mit Leerzeile getrennt), mit Quelle. **Bild:** `alt` (10 bis 200 Zeichen) und ein `chart`:
+  - `bars`: 2 bis 6 Balken mit Beschriftung und Zahl, optional Einheit.
+  - `timeline`: 2 bis 6 Ereignisse mit ganzer Jahreszahl.
+  - `table`: 2 bis 5 Spalten, 1 bis 6 Zeilen, jede Zeile so lang wie die Kopfzeile.
+- 1 bis 5 Dateien pro Ordner, Dateinamen eindeutig und ohne die Antwort zu verraten.
+- Der Fakt des Fragments muss in mindestens einer Datei stehen; die anderen geben Kontext oder sind plausible, aber unwichtige Köder.
+
+Offen: Der Prüfer sollte auch kontrollieren, dass Zahlen im Diagramm stimmen und der Fakt nicht in jeder Datei steht (dann gäbe es nichts zu suchen).

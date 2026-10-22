@@ -1,9 +1,243 @@
-import type { Fragment, FragmentKind, Question, Sector } from './types';
+import type { Fragment, FragmentFile, FragmentKind, Question, Sector } from './types';
 
 type F = [FragmentKind, string, string]; // kind, hint, text
 
+/**
+ * The files in some of the cache folders. The key is the fragment id (question id, "-f", position).
+ * Only some folders have files; the others hold one note with their fact. The fact of a fragment is
+ * always in one of its files, the other files give context or are red herrings.
+ */
+const SRC = 'Nexus-Archiv';
+const FILES: Record<string, FragmentFile[]> = {
+  // --- Lichtgeschwindigkeit
+  'sci-light-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Die Sonne ist rund 150 Millionen km von der Erde entfernt.' },
+    {
+      name: 'Planeten.png',
+      kind: 'image',
+      alt: 'Balkendiagramm: Entfernung von Merkur, Venus, Erde und Mars zur Sonne in Millionen Kilometern.',
+      chart: {
+        chart: 'bars',
+        title: 'Entfernung zur Sonne',
+        unit: 'Mio. km',
+        items: [
+          { label: 'Merkur', value: 58 },
+          { label: 'Venus', value: 108 },
+          { label: 'Erde', value: 150 },
+          { label: 'Mars', value: 228 },
+        ],
+      },
+    },
+    { name: 'Mondlicht.txt', kind: 'note', text: 'Der Mond leuchtet nicht selbst. Er wirft das Licht der Sonne zurück.' },
+  ],
+  'sci-light-f2': [
+    {
+      name: 'Sonnenlicht.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Wenn du die Sonne ansiehst, siehst du sie so, wie sie vor einigen Minuten war.\n\nDas Licht muss nämlich erst zu uns kommen. Es braucht dafür etwa 8 Minuten, also rund 500 Sekunden.\n\nWie schnell Licht ist, lässt sich aus Strecke und Zeit berechnen: Strecke geteilt durch Zeit.\n\nDas Licht des Mondes ist dagegen nur gut eine Sekunde unterwegs.',
+    },
+  ],
+  'sci-light-f4': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Schall legt in Luft etwa 343 Meter pro Sekunde zurück.' },
+    {
+      name: 'Schall.png',
+      kind: 'image',
+      alt: 'Tabelle: Schallgeschwindigkeit in Luft, Wasser und Stahl.',
+      chart: {
+        chart: 'table',
+        title: 'Schallgeschwindigkeit',
+        columns: ['Stoff', 'm/s'],
+        rows: [['Luft', '343'], ['Wasser', '1.480'], ['Stahl', '5.900']],
+      },
+    },
+  ],
+
+  // --- Sprachen
+  'cul-language-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Mandarin hat über 900 Millionen Muttersprachler.' },
+    {
+      name: 'Sprecher.png',
+      kind: 'image',
+      alt: 'Balkendiagramm: Muttersprachler von Mandarin, Spanisch, Englisch und Hindi in Millionen, gerundet.',
+      chart: {
+        chart: 'bars',
+        title: 'Muttersprachler (gerundet)',
+        unit: 'Mio.',
+        items: [
+          { label: 'Mandarin', value: 940 },
+          { label: 'Spanisch', value: 485 },
+          { label: 'Englisch', value: 380 },
+          { label: 'Hindi', value: 345 },
+        ],
+      },
+    },
+  ],
+  'cul-language-f2': [
+    {
+      name: 'Englisch.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Englisch hört man auf allen Kontinenten, im Flugverkehr, in der Wissenschaft und im Internet.\n\nWer Englisch von klein auf lernt, hat es als Muttersprache, etwa 380 Millionen Menschen. Dazu kommen sehr viele, die es später als zweite Sprache lernen.\n\nIn der Summe sprechen es mehr als eine Milliarde Menschen, aber das sagt nichts darüber, wie viele es als Muttersprache haben.',
+    },
+  ],
+
+  // --- Berge
+  'nat-everest-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Eine gemeinsame Messung von Nepal und China ergab 2020 eine Höhe von 8.849 Metern.' },
+    {
+      name: 'Gipfel.png',
+      kind: 'image',
+      alt: 'Balkendiagramm: Höhe der vier höchsten Berge der Erde in Metern. Everest, K2, Kangchendzönga, Lhotse.',
+      chart: {
+        chart: 'bars',
+        title: 'Die höchsten Berge',
+        unit: 'm',
+        items: [
+          { label: 'Everest', value: 8849 },
+          { label: 'K2', value: 8611 },
+          { label: 'Kangchendzönga', value: 8586 },
+          { label: 'Lhotse', value: 8516 },
+        ],
+      },
+    },
+  ],
+
+  // --- Flüsse
+  'nat-rainforest-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Der Amazonas bringt etwa ein Fünftel des gesamten Flusswassers der Erde ins Meer.' },
+    {
+      name: 'Wassermenge.png',
+      kind: 'image',
+      alt: 'Balkendiagramm: Wassermenge von Amazonas, Kongo, Ganges und Orinoco in tausend Kubikmetern pro Sekunde, gerundet.',
+      chart: {
+        chart: 'bars',
+        title: 'Wassermenge (gerundet)',
+        unit: '1.000 m³/s',
+        items: [
+          { label: 'Amazonas', value: 209 },
+          { label: 'Kongo', value: 41 },
+          { label: 'Ganges', value: 38 },
+          { label: 'Orinoco', value: 37 },
+        ],
+      },
+    },
+  ],
+
+  // --- Berliner Mauer
+  'his-wall-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Am 9. November wurde die Grenze zwischen Ost- und West-Berlin geöffnet.' },
+    {
+      name: 'Berlin.png',
+      kind: 'image',
+      alt: 'Zeitleiste zu Berlin: 1961 Bau der Mauer, 1989 Öffnung der Grenze, 1990 Wiedervereinigung.',
+      chart: {
+        chart: 'timeline',
+        title: 'Berlin und die Mauer',
+        events: [
+          { label: 'Mauerbau', year: 1961 },
+          { label: 'Grenze geöffnet', year: 1989 },
+          { label: 'Einheit', year: 1990 },
+        ],
+      },
+    },
+  ],
+
+  // --- Binärzahlen
+  'sci-binary-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Die Stellenwerte im Binärsystem sind von rechts 1, 2, 4, 8, 16, …' },
+    {
+      name: 'Stellen.png',
+      kind: 'image',
+      alt: 'Tabelle: die vier Stellenwerte einer Binärzahl von links nach rechts 8, 4, 2, 1.',
+      chart: {
+        chart: 'table',
+        title: 'Stellenwerte (4 Bit)',
+        columns: ['Stelle', '4.', '3.', '2.', '1.'],
+        rows: [['Wert', '8', '4', '2', '1']],
+      },
+    },
+  ],
+
+  // --- Photosynthese
+  'nat-photosynthesis-f1': [
+    {
+      name: 'Photosynthese.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Pflanzen ernähren sich selbst.\n\nIn den grünen Blättern sitzt der Farbstoff Chlorophyll. Er fängt Sonnenlicht ein und liefert die Energie.\n\nAus der Luft nehmen die Pflanzen Kohlenstoffdioxid auf, aus dem Boden Wasser. Daraus bauen sie Zucker, ihren Baustoff und Treibstoff.\n\nAls Abfallprodukt entsteht Sauerstoff, den die Pflanze an die Luft abgibt.',
+    },
+    { name: 'Atmung.txt', kind: 'note', text: 'Tiere und Menschen atmen Sauerstoff ein und Kohlenstoffdioxid aus.' },
+  ],
+
+  // --- Penicillin
+  'sci-penicillin-f1': [
+    {
+      name: 'Entdeckung.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        '1928 räumte der Arzt Alexander Fleming in London sein Labor auf. Er fand eine vergessene Schale mit Bakterien, auf der ein Schimmelpilz gewachsen war.\n\nRund um den Pilz waren die Bakterien abgestorben. Fleming schloss daraus, dass der Schimmel einen Stoff bildet, der Bakterien tötet.\n\nErst in den 1940er-Jahren gelang es Howard Florey und Ernst Chain, das Mittel in großen Mengen herzustellen.',
+    },
+  ],
+
+  // --- Pyramide
+  'his-pyramid-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Die Große Pyramide entstand um 2560 v. Chr.' },
+    {
+      name: 'Gizeh.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Bei Gizeh, am Rand des heutigen Kairo, stehen drei große Pyramiden.\n\nDie größte ließ sich ein Pharao der 4. Dynastie als Grabmal bauen. Sie war ursprünglich etwa 146 Meter hoch und blieb Jahrtausende das höchste Bauwerk der Welt.\n\nDie Steinblöcke wurden mit Rampen und Schlitten an ihren Platz gebracht.',
+    },
+  ],
+
+  // --- Impfung
+  'sci-vaccine-f1': [
+    {
+      name: 'Jenner.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Im 18. Jahrhundert töteten die Pocken viele Menschen. In England fiel einem Landarzt etwas auf: Melkerinnen, die sich bei Kühen mit den harmlosen Kuhpocken angesteckt hatten, erkrankten selten an den gefährlichen Menschenpocken.\n\nDer Arzt hieß Edward Jenner. 1796 brachte er Material aus einer Kuhpocken-Pustel in kleine Schnitte am Arm eines achtjährigen Jungen.\n\nSpäter blieb der Junge bei den Menschenpocken gesund. Vom lateinischen Wort für Kuh, vacca, stammt das Wort Vakzine.',
+    },
+  ],
+
+  // --- Buchdruck
+  'his-printing-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Der Mainzer Johannes Gutenberg goss Buchstaben aus Metall.' },
+    {
+      name: 'Vorher.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Vor dem Buchdruck wurden Bücher von Hand abgeschrieben. Das dauerte Monate und war teuer, deshalb besaßen nur wenige Menschen Bücher.\n\nUm 1450 entwickelte ein Mainzer ein Verfahren, bei dem Buchstaben einzeln aus Metall gegossen und zu Seiten zusammengesetzt wurden.\n\nMit der Druckerpresse ließen sich von einer Seite viele Abzüge machen.',
+    },
+  ],
+
+  // --- Bach
+  'cul-bach-f2': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Der Komponist war Thomaskantor in Leipzig.' },
+    {
+      name: 'Leipzig.txt',
+      kind: 'article',
+      source: SRC,
+      text:
+        'Er wurde 1685 in Eisenach geboren und stammte aus einer Familie von Musikern.\n\nIn Leipzig leitete er mehr als zwei Jahrzehnte lang den Chor der Thomaskirche. Dort schrieb er einen großen Teil seiner Kirchenmusik.\n\nSeine Werke für Tasteninstrumente gelten bis heute als Maßstab für Pianistinnen und Pianisten.',
+    },
+  ],
+};
+
 function frags(id: string, list: F[]): Fragment[] {
-  return list.map(([kind, hint, text], i) => ({ id: `${id}-f${i + 1}`, kind, hint, text }));
+  return list.map(([kind, hint, text], i) => {
+    const fid = `${id}-f${i + 1}`;
+    const files = FILES[fid];
+    return { id: fid, kind, hint, text, ...(files ? { files } : {}) };
+  });
 }
 
 type Common = {
