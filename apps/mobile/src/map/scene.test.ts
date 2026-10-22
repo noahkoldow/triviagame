@@ -126,4 +126,25 @@ describe('map scene', () => {
       expect(paths, a.id).toBeGreaterThan(2);
     }
   });
+
+  it('blends neighbouring topics: the overlap grows objects and colours of both', () => {
+    const site = (id: string, x: number, area: string): Site => ({
+      id,
+      x,
+      y: -700,
+      area,
+      sector: sectorOfArea(area),
+      state: 'solved',
+    });
+    const a = site('a', -60, 'physics');
+    const b = site('b', 60, 'biology');
+    const s = buildHexScene([a, b], []);
+    const areaOf = (sprite: number) => AREAS[Math.floor(sprite / 2)]!.id;
+    const near = s.props.filter((p) => Math.abs(p.x) < 80);
+    const kinds = new Set(near.map((p) => areaOf(p.sprite)));
+    expect(kinds.has('physics') && kinds.has('biology')).toBe(true);
+    // colours: some tiles are neither pure physics nor pure biology ground
+    const colours = new Set(s.tiles.map((t) => t.color));
+    expect(colours.size).toBeGreaterThan(4);
+  });
 });

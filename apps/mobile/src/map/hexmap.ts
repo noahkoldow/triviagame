@@ -94,8 +94,8 @@ interface Cell {
   hex: Hex;
   color: string;
   sector: Sector | 'core';
-  /** The topic area that owns this cell (none for the core and the trace chains). */
-  area?: string;
+  /** Every topic area that reaches this cell, with its weight (closer = more). None for the core and trace chains. */
+  areas?: { area: string; w: number }[];
   /** Disturbed ground (outposts, MORPH noise): no scenery grows there. */
   noisy?: boolean;
   trace: boolean;
@@ -117,9 +117,9 @@ function hexPoly(b: PB, x: number, y: number, lift: number, R: number) {
 
 export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   const cells = new Map<string, Cell>();
-  const owner = new Map<string, number>();
 
-  // 1. land around every place; where places overlap, the closer one decides the colour
+  // 1. land around every place. Where places overlap, they blend: colour and scenery come from
+  // all of them, closer places counting more, so topics flow into each other instead of ending at a line
   const places: {
     c: Hex;
     r: number;
@@ -140,7 +140,8 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
       noisy: !!s.noise,
     })),
   ];
-  for (const p of places) {
+  const cover = new Map<string, { hex: Hex; parts: { p: number; w: number }[] }>();
+  places.forEach((p, pi) => {
     for (let dq = -p.r; dq <= p.r; dq++) {
       for (let dr = Math.max(-p.r, -dq - p.r); dr <= Math.min(p.r, -dq + p.r); dr++) {
         const hex = { q: p.c.q + dq, r: p.c.r + dr };
@@ -148,12 +149,32 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
         // ragged edge: the outermost ring is only partly there
         if (d === p.r && p.r > 1 && hashString(`${p.seed}:${hexKey(hex)}`) % 100 < 38) continue;
         const k = hexKey(hex);
-        const score = d / (p.r + 0.5);
-        if ((owner.get(k) ?? Infinity) <= score) continue;
-        owner.set(k, score);
-        cells.set(k, { hex, color: p.color, sector: p.sector, area: p.area, noisy: p.noisy, trace: false, flat: false });
+        const w = (1 - d / (p.r + 0.5)) ** 2 + 0.04;
+        const e = cover.get(k) ?? { hex, parts: [] };
+        e.parts.push({ p: pi, w });
+        cover.set(k, e);
       }
     }
+  });
+  for (const [k, e] of cover) {
+    e.parts.sort((x, y) => y.w - x.w);
+    const lead = places[e.parts[0]!.p]!;
+    let color = lead.color;
+    let acc = e.parts[0]!.w;
+    for (const part of e.parts.slice(1)) {
+      acc += part.w;
+      color = mix(color, places[part.p]!.color, part.w / acc);
+    }
+    const areas = e.parts.filter((x) => places[x.p]!.area).map((x) => ({ area: places[x.p]!.area!, w: x.w }));
+    cells.set(k, {
+      hex: e.hex,
+      color,
+      sector: lead.sector,
+      areas,
+      noisy: e.parts.some((x) => places[x.p]!.noisy),
+      trace: false,
+      flat: false,
+    });
   }
 
   // 1b. the computer look: near the core the ground turns into a circuit board whose
@@ -218,12 +239,19 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   // board near the core stays bare; the further out, the more nature, stone and instruments.
   const props: Prop[] = [];
   for (const c of cells.values()) {
-    if (c.trace || c.flat || c.noisy || !c.area) continue;
+    if (c.trace || c.flat || c.noisy || !c.areas?.length) continue;
     const w = hexToWorld(c.hex);
     const chance = 0.22 * (1 - 0.8 * computerness(w.x, w.y));
     const h = hashString(`prop:${hexKey(c.hex)}`);
     if (h % 1000 >= chance * 1000) continue;
-    props.push({ x: w.x, y: w.y, level: levelOf.get(hexKey(c.hex)) ?? 0, sprite: propSprite(c.area, (h >>> 5) % 2) });
+    const total = c.areas.reduce((t, x) => t + x.w, 0);
+    let pick = (((h >>> 8) % 1000) / 1000) * total;
+    let area = c.areas[0]!.area;
+    for (const x of c.areas) {
+      area = x.area;
+      if ((pick -= x.w) <= 0) break;
+    }
+    props.push({ x: w.x, y: w.y, level: levelOf.get(hexKey(c.hex)) ?? 0, sprite: propSprite(area, (h >>> 5) % 2) });
   }
   props.sort((a, b) => a.y - b.y || a.x - b.x);
 
