@@ -4,7 +4,7 @@ Lies `docs/CONCEPT.md` (Konzept) und `docs/PROGRESS.md` (Stand, TODOs) zu Beginn
 
 ## Stack
 
-pnpm workspaces. `apps/mobile` (Expo SDK 58, Expo Router, React Native Skia, Expo Go-tauglich), `packages/shared` (reine Logik, Vitest).
+pnpm workspaces. `apps/mobile` (Expo SDK 57, Expo Router, React Native Skia, Expo Go-tauglich), `packages/shared` (reine Logik, Vitest).
 
 ## Konventionen
 

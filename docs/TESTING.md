@@ -1,6 +1,6 @@
 # Testen in Expo Go
 
-Voraussetzung: Expo Go (SDK 58) auf dem Handy, Node >= 22, pnpm.
+Voraussetzung: Expo Go (SDK 57) auf dem Handy, Node >= 22, pnpm.
 
 ## A) Lokal (schnellster Weg)
 
