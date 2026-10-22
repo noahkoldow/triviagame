@@ -205,7 +205,7 @@ export function outpostsReachedBy(state: NetworkState, node: NetNode): string[] 
 }
 
 /** Chance that a solved node reveals a (locked) debris field. */
-export const DEBRIS_CHANCE = 0.25;
+export const DEBRIS_CHANCE = 0.35;
 
 /**
  * Marks a node as solved (or damaged when it needed many attempts) and spawns
@@ -251,7 +251,10 @@ export function completeNode(
       }
     }
     const drng = seededRng(`debris:${nodeId}`);
-    if (attempts <= 1 && drng() < DEBRIS_CHANCE) {
+    // the first encrypted field is guaranteed early, so players meet the gem mechanic
+    const solvedCount = Object.values(next.nodes).filter((n) => n.state !== 'open').length;
+    const hasDebris = Object.values(next.nodes).some((n) => n.kind === 'debris');
+    if (attempts <= 1 && (drng() < DEBRIS_CHANCE || (!hasDebris && solvedCount >= 2))) {
       const sector = sectorOfArea(parentQ.area);
       const used = new Set(next.usedQuestions);
       const cands = ctx.pool.list.filter((q) => !used.has(q.id) && sectorOfArea(q.area) === sector);

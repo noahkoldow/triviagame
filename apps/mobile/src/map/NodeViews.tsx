@@ -149,6 +149,14 @@ const checkPath = unitPath((p) => {
   p.lineTo(-0.2, 0.55);
   p.lineTo(0.75, -0.55);
 });
+const diamond = unitPath((p) => {
+  p.moveTo(-0.55, -0.85);
+  p.lineTo(0.55, -0.85);
+  p.lineTo(0.95, -0.2);
+  p.lineTo(0, 0.95);
+  p.lineTo(-0.95, -0.2);
+  p.close();
+});
 const lockBody = unitPath((p) => {
   p.moveTo(-0.62, -0.05);
   p.lineTo(0.62, -0.05);
@@ -166,7 +174,7 @@ const lockShackle = unitPath((p) => {
 
 function faceOf(info: NodeInfo): string {
   const { node } = info;
-  if (node.locked) return '#4D6173';
+  if (node.locked) return colors.gem;
   if (node.state === 'damaged') return colors.warn;
   return info.color;
 }
@@ -222,10 +230,7 @@ export function NodeTile({
           {node.state === 'solved' ? (
             <Path path={checkPath} style="stroke" strokeWidth={0.36} strokeCap="round" strokeJoin="round" color="#FFFFFF" />
           ) : locked ? (
-            <>
-              <Path path={lockBody} color="#FFFFFF" />
-              <Path path={lockShackle} style="stroke" strokeWidth={0.26} strokeCap="round" color="#FFFFFF" />
-            </>
+            <Path path={diamond} color="#FFFFFF" />
           ) : node.state === 'damaged' ? (
             <>
               <Rect x={-0.12} y={-0.8} width={0.24} height={1.05} color="#FFFFFF" />
