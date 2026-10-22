@@ -31,7 +31,7 @@ import {
   snapToHex,
 } from '@nexus/shared';
 import { buildHexScene, type TraceEdge } from './hexmap';
-import { drawAreaProp, type Pen } from './propAtlas';
+import { PROP_VARIANTS, drawAreaProp, type Pen } from './propAtlas';
 import { buildStrand, type Site } from './scenery';
 
 const pool = new Pool(MOCK_QUESTIONS);
@@ -102,10 +102,10 @@ describe('map scene', () => {
     const { sites, edges } = sitesAndEdges(p);
     const s = buildHexScene([...sites, ...buildStrand()], edges);
     expect(s.props.length).toBeGreaterThan(10);
-    expect(s.props.length).toBeLessThan(s.tiles.length * 0.3);
+    expect(s.props.length).toBeLessThan(s.tiles.length * 1.5);
     for (const pr of s.props) {
       expect(pr.sprite).toBeGreaterThanOrEqual(0);
-      expect(pr.sprite).toBeLessThan(32);
+      expect(pr.sprite).toBeLessThan(48);
     }
     const share = (from: number, to: number) => {
       const t = s.tiles.filter((x) => Math.hypot(x.x, x.y) >= from && Math.hypot(x.x, x.y) < to).length;
@@ -139,7 +139,7 @@ describe('map scene', () => {
     const a = site('a', -60, 'physics');
     const b = site('b', 60, 'biology');
     const s = buildHexScene([a, b], []);
-    const areaOf = (sprite: number) => AREAS[Math.floor(sprite / 2)]!.id;
+    const areaOf = (sprite: number) => AREAS[Math.floor(sprite / PROP_VARIANTS)]!.id;
     const near = s.props.filter((p) => Math.abs(p.x) < 80);
     const kinds = new Set(near.map((p) => areaOf(p.sprite)));
     expect(kinds.has('physics') && kinds.has('biology')).toBe(true);

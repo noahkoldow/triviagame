@@ -8,12 +8,13 @@ import {
   type SkRect,
 } from '@shopify/react-native-skia';
 import { AREAS, sectorOfArea } from '@nexus/shared';
-import { colors, mix, shade } from '../theme';
+import { colors, mix } from '../theme';
 
 /**
- * Small standing objects for the hexagons (trees, crystals, columns, notes …),
- * one set per topic area. They are drawn once into an image, with their own
- * light and shade, and then placed by the thousand in a single `<Atlas>` call.
+ * Small low-poly objects for the hexagons (trees, crystals, columns, notes …),
+ * one set per topic area. Every object is built from a few flat facets that
+ * are lit from the upper left, which gives the plastic look. They are drawn
+ * once into an image and then placed by the hundred in a single `<Atlas>` call.
  */
 export interface PropAtlas {
   image: SkImage;
@@ -22,14 +23,22 @@ export interface PropAtlas {
   anchorY: number;
 }
 
-const PW = 64;
-const PH = 84;
+const PW = 44;
+const PH = 56;
 const AX = PW / 2;
-const AY = 70; // the object's base point inside a sprite
+const AY = 46; // the object's base point inside a sprite
 const COLS = 8;
-export const PROP_VARIANTS = 2;
 
-/** Sprite index of an area's object; variant 0 or 1 is a bit smaller and mirrored. */
+/** Three sizes per area; the middle one is mirrored so neighbours do not look alike. */
+const VARIANTS = [
+  { k: 1.1, mirror: false },
+  { k: 0.8, mirror: true },
+  { k: 0.62, mirror: false },
+];
+export const PROP_VARIANTS = VARIANTS.length;
+const BASE_SIZE = 17;
+
+/** Sprite index of an area's object in one of its sizes. */
 export function propSprite(areaId: string, variant: number): number {
   const i = AREAS.findIndex((a) => a.id === areaId);
   return (i < 0 ? 0 : i) * PROP_VARIANTS + (variant % PROP_VARIANTS);
@@ -50,151 +59,178 @@ function polyPath(pts: Pt[]): SkPath {
   return b.detach();
 }
 
-function poly(p: Pen, color: string, pts: Pt[]) {
+/** One flat facet. */
+function facet(p: Pen, color: string, pts: Pt[]) {
   p.fill.setColor(Skia.Color(color));
   p.c.drawPath(polyPath(pts), p.fill);
 }
 
-function ell(p: Pen, color: string, cu: number, cv: number, ru: number, rv: number) {
-  const pts: Pt[] = [];
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
-    pts.push([cu + Math.cos(a) * ru, cv + Math.sin(a) * rv]);
-  }
-  poly(p, color, pts);
-}
+/** Lighter (k > 0) or darker (k < 0) version of a colour: the light comes from the upper left. */
+const tone = (c: string, k: number) => (k >= 0 ? mix(c, '#FFFFFF', k) : mix(c, '#000000', -k));
 
-const rect = (p: Pen, color: string, u0: number, v0: number, u1: number, v1: number) =>
-  poly(p, color, [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]);
-
-/** Soft contact shadow on the ground (flat, so squashed). */
+/** Soft contact shadow on the ground. */
 function shadow(p: Pen, r: number) {
   p.fill.setColor(Skia.Color('#02060C66'));
   const pts: Pt[] = [];
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * Math.PI * 2;
-    pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.5 * 0.62 * 1.6]);
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.32]);
   }
   p.c.drawPath(polyPath(pts), p.fill);
 }
 
-const light = (c: string) => mix(c, '#FFFFFF', 0.4);
-const dark = (c: string) => shade(c, 0.34);
+/** A faceted dome / bipyramid: the building block of crowns, bushes, orbs and stones. */
+function gem(p: Pen, c: string, cx: number, cy: number, rw: number, rh: number) {
+  const T: Pt = [cx, cy + rh];
+  const L: Pt = [cx - rw, cy];
+  const R: Pt = [cx + rw, cy];
+  const B: Pt = [cx, cy - rh * 0.7];
+  const C: Pt = [cx + rw * 0.08, cy + rh * 0.12];
+  facet(p, tone(c, 0.3), [T, L, C]);
+  facet(p, c, [T, C, R]);
+  facet(p, tone(c, -0.2), [L, B, C]);
+  facet(p, tone(c, -0.42), [C, B, R]);
+}
+
+/** An upright box seen from above-front: light top, base front-left, dark right. */
+function box(p: Pen, c: string, cx: number, vb: number, w: number, h: number, d: number) {
+  facet(p, tone(c, -0.12), [[cx - w, vb + h], [cx, vb + h - d], [cx, vb - d], [cx - w, vb]]);
+  facet(p, tone(c, -0.4), [[cx + w, vb + h], [cx, vb + h - d], [cx, vb - d], [cx + w, vb]]);
+  facet(p, tone(c, 0.34), [[cx, vb + h + d], [cx + w, vb + h], [cx, vb + h - d], [cx - w, vb + h]]);
+}
+
+/** A prism with a lit left, a plain middle and a dark right facet. */
+function prism(p: Pen, c: string, cx: number, v0: number, v1: number, w: number) {
+  facet(p, tone(c, 0.28), [[cx - w, v0], [cx - w * 0.3, v0], [cx - w * 0.3, v1], [cx - w, v1]]);
+  facet(p, c, [[cx - w * 0.3, v0], [cx + w * 0.3, v0], [cx + w * 0.3, v1], [cx - w * 0.3, v1]]);
+  facet(p, tone(c, -0.38), [[cx + w * 0.3, v0], [cx + w, v0], [cx + w, v1], [cx + w * 0.3, v1]]);
+}
+
 const WOOD = '#8B5A2B';
 
 type Draw = (p: Pen, s: number, base: string) => void;
 
 const KINDS: Record<string, Draw> = {
   tree(p, s, base) {
-    shadow(p, s * 0.5);
-    rect(p, WOOD, -s * 0.08, 0, s * 0.08, s * 0.5);
-    ell(p, dark(base), 0, s * 0.8, s * 0.46, s * 0.42);
-    ell(p, base, -s * 0.05, s * 0.86, s * 0.38, s * 0.35);
-    ell(p, light(base), -s * 0.14, s * 0.95, s * 0.2, s * 0.17);
+    shadow(p, s * 0.55);
+    prism(p, WOOD, 0, 0, s * 0.5, s * 0.09);
+    gem(p, base, 0, s * 0.6, s * 0.52, s * 0.5);
+    gem(p, base, 0, s * 1.0, s * 0.36, s * 0.42);
   },
   pine(p, s, base) {
-    shadow(p, s * 0.42);
-    rect(p, WOOD, -s * 0.06, 0, s * 0.06, s * 0.25);
+    shadow(p, s * 0.5);
+    prism(p, WOOD, 0, 0, s * 0.25, s * 0.07);
     for (let i = 0; i < 3; i++) {
-      const w = s * (0.46 - i * 0.1);
-      const v = s * (0.2 + i * 0.3);
-      poly(p, dark(base), [[-w, v], [w, v], [0, v + s * 0.55]]);
-      poly(p, base, [[-w, v], [0, v], [0, v + s * 0.55]]);
+      const w = s * (0.5 - i * 0.12);
+      const v = s * (0.2 + i * 0.32);
+      const apex: Pt = [0, v + s * 0.6];
+      facet(p, tone(base, 0.3), [[-w, v], [0, v], apex]);
+      facet(p, tone(base, -0.3), [[0, v], [w, v], apex]);
     }
   },
   bush(p, s, base) {
-    shadow(p, s * 0.5);
-    ell(p, dark(base), 0, s * 0.25, s * 0.5, s * 0.3);
-    ell(p, base, -s * 0.08, s * 0.34, s * 0.34, s * 0.24);
-    ell(p, '#FF6B6B', s * 0.2, s * 0.4, s * 0.07, s * 0.06);
-    ell(p, '#FFD166', -s * 0.2, s * 0.3, s * 0.06, s * 0.05);
+    shadow(p, s * 0.55);
+    gem(p, base, -s * 0.12, s * 0.3, s * 0.4, s * 0.36);
+    gem(p, base, s * 0.22, s * 0.26, s * 0.32, s * 0.3);
+    facet(p, '#FF6B6B', [[s * 0.1, s * 0.52], [s * 0.18, s * 0.5], [s * 0.15, s * 0.6]]);
+    facet(p, '#FFD166', [[-s * 0.3, s * 0.4], [-s * 0.22, s * 0.38], [-s * 0.26, s * 0.48]]);
   },
   rock(p, s, base) {
     const stone = mix(base, '#8793A0', 0.6);
-    shadow(p, s * 0.6);
-    poly(p, dark(stone), [[-s * 0.6, 0], [s * 0.6, 0], [0, s * 1.1]]);
-    poly(p, light(stone), [[-s * 0.6, 0], [0, 0], [0, s * 1.1]]);
-    poly(p, '#FFFFFF', [[-s * 0.18, s * 0.8], [s * 0.18, s * 0.8], [0, s * 1.1]]);
+    shadow(p, s * 0.62);
+    const P: Pt = [s * 0.05, s * 1.1];
+    const L: Pt = [-s * 0.6, 0];
+    const R: Pt = [s * 0.6, 0];
+    const M: Pt = [-s * 0.05, s * 0.42];
+    const B: Pt = [0, 0];
+    facet(p, tone(stone, 0.3), [P, L, M]);
+    facet(p, stone, [P, M, R]);
+    facet(p, tone(stone, -0.25), [L, M, B]);
+    facet(p, tone(stone, -0.45), [M, R, B]);
+    facet(p, '#FFFFFF', [[-s * 0.12, s * 0.78], [s * 0.2, s * 0.8], P]);
   },
   crystal(p, s, base) {
-    shadow(p, s * 0.45);
-    const w = s * 0.34;
-    poly(p, dark(base), [[-w, s * 0.28], [0, 0], [0, s * 1.3]]);
-    poly(p, light(base), [[0, 0], [w, s * 0.28], [0, s * 1.3]]);
-    poly(p, '#FFFFFF', [[-w * 0.55, s * 0.6], [-w * 0.2, s * 0.52], [-w * 0.32, s * 0.95]]);
-    // a smaller one beside it
-    poly(p, base, [[w * 1.1, 0], [w * 1.9, s * 0.2], [w * 1.3, s * 0.75], [w * 0.9, s * 0.22]]);
+    shadow(p, s * 0.5);
+    const spire = (cx: number, k: number) => {
+      const T: Pt = [cx, s * 1.3 * k];
+      const L: Pt = [cx - s * 0.3 * k, s * 0.3 * k];
+      const R: Pt = [cx + s * 0.3 * k, s * 0.3 * k];
+      const M: Pt = [cx + s * 0.02, s * 0.4 * k];
+      const B: Pt = [cx, 0];
+      facet(p, tone(base, 0.4), [T, L, M]);
+      facet(p, base, [T, M, R]);
+      facet(p, tone(base, -0.25), [L, B, M]);
+      facet(p, tone(base, -0.45), [M, B, R]);
+    };
+    spire(s * 0.38, 0.6);
+    spire(-s * 0.05, 1);
   },
   flask(p, s, base) {
-    shadow(p, s * 0.42);
-    rect(p, '#DDEBF2', -s * 0.11, s * 0.5, s * 0.11, s * 1.05);
-    poly(p, '#DDEBF2', [[-s * 0.42, 0], [s * 0.42, 0], [s * 0.11, s * 0.55], [-s * 0.11, s * 0.55]]);
-    poly(p, light(base), [[-s * 0.36, s * 0.03], [s * 0.36, s * 0.03], [s * 0.23, s * 0.32], [-s * 0.23, s * 0.32]]);
-    ell(p, '#FFFFFF', -s * 0.05, s * 0.2, s * 0.05, s * 0.04);
+    shadow(p, s * 0.5);
+    const glassL = '#E8F4FA';
+    const glassR = '#B7CFDD';
+    facet(p, glassL, [[-s * 0.12, s * 0.5], [0, s * 0.5], [0, s * 1.05], [-s * 0.12, s * 1.05]]);
+    facet(p, glassR, [[0, s * 0.5], [s * 0.12, s * 0.5], [s * 0.12, s * 1.05], [0, s * 1.05]]);
+    facet(p, glassL, [[-s * 0.46, 0], [0, 0], [0, s * 0.52], [-s * 0.12, s * 0.52]]);
+    facet(p, glassR, [[0, 0], [s * 0.46, 0], [s * 0.12, s * 0.52], [0, s * 0.52]]);
+    facet(p, tone(base, 0.2), [[-s * 0.4, s * 0.02], [0, s * 0.02], [0, s * 0.3], [-s * 0.24, s * 0.3]]);
+    facet(p, tone(base, -0.3), [[0, s * 0.02], [s * 0.4, s * 0.02], [s * 0.24, s * 0.3], [0, s * 0.3]]);
   },
   cube(p, s, base) {
-    shadow(p, s * 0.55);
-    const w = s * 0.44;
-    const d = s * 0.2;
-    const h = s * 0.7;
-    poly(p, dark(base), [[-w, h], [0, h - d], [0, -d], [-w, 0]]);
-    poly(p, base, [[w, h], [0, h - d], [0, -d], [w, 0]]);
-    poly(p, light(base), [[0, h + d], [w, h], [0, h - d], [-w, h]]);
+    shadow(p, s * 0.6);
+    box(p, base, 0, 0, s * 0.46, s * 0.62, s * 0.22);
+    box(p, tone(base, 0.12), s * 0.05, s * 0.62 + s * 0.22, s * 0.2, s * 0.26, s * 0.1);
   },
   cross(p, s, base) {
-    shadow(p, s * 0.42);
-    rect(p, WOOD, -s * 0.05, 0, s * 0.05, s * 0.4);
-    rect(p, dark(base), -s * 0.14, s * 0.4, s * 0.14, s * 1.15);
-    rect(p, dark(base), -s * 0.4, s * 0.68, s * 0.4, s * 0.9);
-    rect(p, light(base), -s * 0.11, s * 0.44, s * 0.11, s * 1.11);
-    rect(p, light(base), -s * 0.36, s * 0.71, s * 0.36, s * 0.87);
+    shadow(p, s * 0.5);
+    prism(p, WOOD, 0, 0, s * 0.4, s * 0.06);
+    prism(p, base, 0, s * 0.4, s * 1.2, s * 0.15);
+    prism(p, base, 0, s * 0.68, s * 0.92, s * 0.42);
   },
   note(p, s, base) {
-    shadow(p, s * 0.42);
-    rect(p, dark(base), s * 0.12, s * 0.15, s * 0.24, s * 1.2);
-    poly(p, dark(base), [[s * 0.24, s * 1.2], [s * 0.68, s * 0.88], [s * 0.24, s * 0.94]]);
-    ell(p, light(base), 0, s * 0.18, s * 0.28, s * 0.18);
-    ell(p, '#FFFFFF', -s * 0.1, s * 0.22, s * 0.07, s * 0.05);
+    shadow(p, s * 0.45);
+    prism(p, base, s * 0.18, s * 0.18, s * 1.25, s * 0.07);
+    facet(p, tone(base, -0.25), [[s * 0.25, s * 1.25], [s * 0.72, s * 0.9], [s * 0.25, s * 0.96]]);
+    gem(p, tone(base, 0.1), 0, s * 0.18, s * 0.3, s * 0.2);
   },
   books(p, s, base) {
-    shadow(p, s * 0.55);
-    rect(p, dark(base), -s * 0.5, 0, s * 0.5, s * 0.28);
-    rect(p, base, -s * 0.42, s * 0.28, s * 0.44, s * 0.54);
-    rect(p, light(base), -s * 0.46, s * 0.54, s * 0.38, s * 0.78);
-    rect(p, '#FFFFFF', -s * 0.5, s * 0.1, -s * 0.42, s * 0.18);
+    shadow(p, s * 0.6);
+    box(p, tone(base, -0.1), 0, 0, s * 0.5, s * 0.24, s * 0.2);
+    box(p, base, -s * 0.04, s * 0.24 + s * 0.2, s * 0.42, s * 0.22, s * 0.18);
+    box(p, tone(base, 0.2), s * 0.03, s * 0.46 + s * 0.38, s * 0.36, s * 0.2, s * 0.16);
   },
   splat(p, s) {
-    shadow(p, s * 0.42);
-    rect(p, WOOD, -s * 0.04, 0, s * 0.04, s * 0.22);
+    shadow(p, s * 0.55);
     const pal = ['#FF86D0', '#FFC800', '#1CB0F6', '#58CC02'];
-    pal.forEach((c, i) => {
-      const a = (i / 4) * Math.PI * 2 + 0.6;
-      ell(p, c, Math.cos(a) * s * 0.3, s * 0.45 + Math.sin(a) * s * 0.22, s * 0.22, s * 0.19);
-    });
+    gem(p, pal[0]!, -s * 0.3, s * 0.22, s * 0.26, s * 0.24);
+    gem(p, pal[2]!, s * 0.32, s * 0.2, s * 0.24, s * 0.22);
+    gem(p, pal[1]!, 0, s * 0.42, s * 0.28, s * 0.26);
+    gem(p, pal[3]!, -s * 0.02, s * 0.14, s * 0.2, s * 0.16);
   },
   bubble(p, s, base) {
-    shadow(p, s * 0.38);
-    rect(p, WOOD, -s * 0.05, 0, s * 0.05, s * 0.45);
-    rect(p, dark(base), -s * 0.55, s * 0.4, s * 0.55, s * 1.1);
-    rect(p, light(base), -s * 0.5, s * 0.46, s * 0.5, s * 1.1);
-    for (let i = -1; i <= 1; i++) ell(p, '#FFFFFF', i * s * 0.26, s * 0.78, s * 0.07, s * 0.06);
+    shadow(p, s * 0.45);
+    prism(p, WOOD, 0, 0, s * 0.45, s * 0.06);
+    box(p, base, 0, s * 0.42, s * 0.52, s * 0.52, s * 0.14);
+    for (let i = -1; i <= 1; i++) {
+      facet(p, '#FFFFFF', [[i * s * 0.2 - s * 0.06, s * 0.62], [i * s * 0.2 + s * 0.06, s * 0.62], [i * s * 0.2, s * 0.74]]);
+    }
   },
   column(p, s, base) {
-    shadow(p, s * 0.5);
+    shadow(p, s * 0.55);
     const stone = mix(base, '#E8DCC0', 0.7);
-    rect(p, dark(stone), -s * 0.36, 0, s * 0.36, s * 0.13);
-    rect(p, stone, -s * 0.22, s * 0.13, s * 0.22, s * 1.0);
-    rect(p, dark(stone), 0, s * 0.13, s * 0.22, s * 1.0);
-    rect(p, light(stone), -s * 0.34, s * 1.0, s * 0.34, s * 1.17);
+    box(p, tone(stone, -0.05), 0, 0, s * 0.36, s * 0.12, s * 0.14);
+    prism(p, stone, 0, s * 0.12, s * 1.0, s * 0.22);
+    box(p, tone(stone, 0.1), 0, s * 1.0, s * 0.34, s * 0.14, s * 0.13);
   },
   coins(p, s, base) {
-    shadow(p, s * 0.55);
-    for (let i = 0; i < 3; i++) {
-      const u = (i - 1) * s * 0.36;
+    shadow(p, s * 0.6);
+    [-0.4, 0, 0.4].forEach((o, i) => {
+      const cx = o * s;
       const h = s * (0.26 + i * 0.14);
-      rect(p, dark(base), u - s * 0.16, 0, u + s * 0.16, h);
-      ell(p, light(base), u, h, s * 0.16, s * 0.08);
-    }
+      const w = s * 0.17;
+      prism(p, base, cx, 0, h, w);
+      facet(p, tone(base, 0.4), [[cx - w, h], [cx - w * 0.5, h + s * 0.07], [cx + w * 0.5, h + s * 0.07], [cx + w, h], [cx + w * 0.5, h - s * 0.05], [cx - w * 0.5, h - s * 0.05]]);
+    });
   },
 };
 
@@ -230,18 +266,18 @@ export function makePropAtlas(): PropAtlas | null {
 
   const rects: SkRect[] = [];
   AREAS.forEach((area) => {
-    for (let v = 0; v < PROP_VARIANTS; v++) {
-      const idx = propSprite(area.id, v);
+    VARIANTS.forEach((v, vi) => {
+      const idx = propSprite(area.id, vi);
       const col = idx % COLS;
       const row = Math.floor(idx / COLS);
       const base = colors.sector[sectorOfArea(area.id)];
       canvas.save();
       canvas.translate(col * PW + AX, row * PH + AY);
-      if (v === 1) canvas.scale(-0.82, 0.82); // a smaller, mirrored variant
-      KINDS[KIND_OF_AREA[area.id] ?? 'bush']!(pen, 28, base);
+      if (v.mirror) canvas.scale(-1, 1);
+      KINDS[KIND_OF_AREA[area.id] ?? 'bush']!(pen, BASE_SIZE * v.k, base);
       canvas.restore();
       rects[idx] = Skia.XYWHRect(col * PW, row * PH, PW, PH);
-    }
+    });
   });
   surface.flush();
   return { image: surface.makeImageSnapshot(), rects, anchorX: AX, anchorY: AY };

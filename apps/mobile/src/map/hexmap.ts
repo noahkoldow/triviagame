@@ -14,7 +14,7 @@ import {
 import { colors, mix } from '../theme';
 import { SQUASH } from './camera';
 import { LIFT } from './hexAtlas';
-import { propSprite } from './propAtlas';
+import { PROP_VARIANTS, propSprite } from './propAtlas';
 import { areaTint, type Site } from './scenery';
 import { computerness } from './style';
 
@@ -235,23 +235,35 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   }
   tiles.sort((a, b) => a.y - b.y || a.x - b.x);
 
-  // 4b. scenery: single tiles get a little 3D object that fits their topic. The circuit
-  // board near the core stays bare; the further out, the more nature, stone and instruments.
+  // 4b. scenery: tiles get a few small low-poly objects that fit their topic, set a little off
+  // the tile centre. The circuit board near the core stays bare; the further out, the more of it.
   const props: Prop[] = [];
   for (const c of cells.values()) {
     if (c.trace || c.flat || c.noisy || !c.areas?.length) continue;
     const w = hexToWorld(c.hex);
-    const chance = 0.22 * (1 - 0.8 * computerness(w.x, w.y));
+    const chance = 0.55 * (1 - 0.8 * computerness(w.x, w.y));
     const h = hashString(`prop:${hexKey(c.hex)}`);
     if (h % 1000 >= chance * 1000) continue;
+    const n = 1 + (h % 3 === 0 ? 1 : 0) + (h % 5 === 0 ? 1 : 0);
     const total = c.areas.reduce((t, x) => t + x.w, 0);
-    let pick = (((h >>> 8) % 1000) / 1000) * total;
-    let area = c.areas[0]!.area;
-    for (const x of c.areas) {
-      area = x.area;
-      if ((pick -= x.w) <= 0) break;
+    for (let i = 0; i < n; i++) {
+      const hi = hashString(`prop:${hexKey(c.hex)}:${i}`);
+      let pick = (((hi >>> 8) % 1000) / 1000) * total;
+      let area = c.areas[0]!.area;
+      for (const x of c.areas) {
+        area = x.area;
+        if ((pick -= x.w) <= 0) break;
+      }
+      // inside the hexagon, away from its border
+      const ox = ((((hi >>> 3) % 1000) / 1000) - 0.5) * 2 * 13;
+      const oy = ((((hi >>> 13) % 1000) / 1000) - 0.5) * 2 * 11;
+      props.push({
+        x: w.x + ox,
+        y: w.y + oy,
+        level: levelOf.get(hexKey(c.hex)) ?? 0,
+        sprite: propSprite(area, (hi >>> 5) % PROP_VARIANTS),
+      });
     }
-    props.push({ x: w.x, y: w.y, level: levelOf.get(hexKey(c.hex)) ?? 0, sprite: propSprite(area, (h >>> 5) % 2) });
   }
   props.sort((a, b) => a.y - b.y || a.x - b.x);
 
