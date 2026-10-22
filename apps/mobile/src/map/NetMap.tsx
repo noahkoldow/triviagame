@@ -71,7 +71,7 @@ interface Props {
   outposts?: Outpost[];
   onOutpost?: (id: string) => void;
   /** Debris field of the node the player is currently scavenging. */
-  debris?: { center: { x: number; y: number }; color: string; shards: Shard[] };
+  debris?: { nodeId: string; center: { x: number; y: number }; color: string; shards: Shard[] };
   onShard?: (fragmentId: string) => void;
   onSelect: (id: string) => void;
 }
@@ -330,6 +330,26 @@ export function NetMap({
   const shiftB = useDerivedValue(() => [{ translateX: 1 - ((step(glitch.value) * 13) % 3) }]);
   const shiftC = useDerivedValue(() => [{ translateY: ((step(glitch.value) * 11) % 3) - 1 }]);
 
+  // while a node is being scavenged the rest of the map fades back, so nothing lies on top of the pieces
+  const dim = useSharedValue(0);
+  const scavenging = !!debris;
+  useEffect(() => {
+    dim.value = withTiming(scavenging ? 1 : 0, { duration: 300 });
+  }, [scavenging, dim]);
+  const restOpacity = useDerivedValue(() => 1 - 0.8 * dim.value);
+  const focusOpacity = useDerivedValue(() => dim.value);
+
+  // the land right around the scavenged node, drawn again at full strength
+  const focusTiles = useMemo(() => {
+    if (!atlas || !debris) return null;
+    const near = scene.tiles.filter((t) => Math.hypot(t.x - debris.center.x, t.y - debris.center.y) <= 205);
+    return {
+      sprites: near.map((t) => atlas.rects[t.level]!),
+      transforms: near.map((t) => Skia.RSXform(1, 0, t.x - atlas.anchorX, t.y * SQUASH - LIFT[t.level]! - atlas.anchorY)),
+      colors: near.map((t) => Skia.Color(t.color)),
+    };
+  }, [atlas, debris?.center.x, debris?.center.y, scene.tiles]);
+
   const transform = useDerivedValue(() => cameraTransform(cx.value, cy.value, zoom.value, width, height));
 
   // things standing on the map, back to front
@@ -339,12 +359,19 @@ export function NetMap({
         .filter((o) => !o.connected)
         .map((o) => ({ ...o, ...snapToHex(o.x, o.y) }))
         .map((o) => ({ y: o.y, outpost: o })),
-      ...placed.map((n) => ({ y: n.pos.y, node: n })),
+      ...placed.filter((n) => n.id !== debris?.nodeId).map((n) => ({ y: n.pos.y, node: n })),
       ...strand.map((s) => ({ y: s.y, site: s })),
+    ];
+    return list.sort((a, b) => a.y - b.y);
+  }, [placed, strand, debris?.nodeId, outposts]);
+
+  const focusStack = useMemo(() => {
+    const list: { y: number; node?: NetNode; shard?: Shard }[] = [
+      ...placed.filter((n) => n.id === debris?.nodeId).map((n) => ({ y: n.pos.y, node: n })),
       ...(debris?.shards ?? []).map((sh) => ({ y: sh.y, shard: sh })),
     ];
     return list.sort((a, b) => a.y - b.y);
-  }, [placed, strand, debris, outposts]);
+  }, [placed, debris]);
 
   return (
     <View
@@ -359,6 +386,7 @@ export function NetMap({
         </Rect>
 
         <Group transform={transform}>
+          <Group opacity={restOpacity}>
           {/* fog: faint outlines fading outward */}
           {atlas && ghostDraw ? (
             <Atlas image={atlas.image} sprites={ghostDraw.sprites} transforms={ghostDraw.transforms} colors={ghostDraw.colors} colorBlendMode="modulate" />
@@ -400,12 +428,6 @@ export function NetMap({
             </Group>
           ))}
 
-          {debris ? (
-            <Circle cx={debris.center.x} cy={debris.center.y * SQUASH} r={120} style="stroke" strokeWidth={3} color={debris.color} opacity={0.6}>
-              <DashPathEffect intervals={[10, 9]} />
-            </Circle>
-          ) : null}
-
           <CoreTile />
           {stack.map((b) =>
             b.outpost ? (
@@ -418,8 +440,6 @@ export function NetMap({
                 font={font}
                 glitch={glitch}
               />
-            ) : b.shard ? (
-              <ShardTile key={`s-${b.shard.id}`} shard={b.shard} color={debris!.color} font={font} />
             ) : b.node ? (
               <NodeTile
                 key={`n-${b.node.id}`}
@@ -432,6 +452,32 @@ export function NetMap({
               <SiteTile key={`p-${b.site!.id}`} x={b.site!.x} y={b.site!.y} color={SECTOR_COLOR[b.site!.sector]} />
             ),
           )}
+          </Group>
+
+          {/* the scavenged node with its pieces, at full strength on top */}
+          {debris ? (
+            <Group opacity={focusOpacity}>
+              {atlas && focusTiles ? (
+                <Atlas image={atlas.image} sprites={focusTiles.sprites} transforms={focusTiles.transforms} colors={focusTiles.colors} colorBlendMode="modulate" />
+              ) : null}
+              <Circle cx={debris.center.x} cy={debris.center.y * SQUASH} r={120} style="stroke" strokeWidth={3} color={debris.color} opacity={0.6}>
+                <DashPathEffect intervals={[10, 9]} />
+              </Circle>
+              {focusStack.map((b) =>
+                b.shard ? (
+                  <ShardTile key={`s-${b.shard.id}`} shard={b.shard} color={debris.color} font={font} />
+                ) : (
+                  <NodeTile
+                    key={`n-${b.node!.id}`}
+                    info={infos[b.node!.id]!}
+                    pulse={pulse}
+                    highlighted={highlight.includes(b.node!.id)}
+                    font={font}
+                  />
+                ),
+              )}
+            </Group>
+          ) : null}
         </Group>
 
         {/* soft edges of the screen */}

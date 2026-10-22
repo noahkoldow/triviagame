@@ -193,7 +193,7 @@ export default function Home() {
         }}
         debris={
           debrisNode
-            ? { center: snapToHex(debrisNode.pos.x, debrisNode.pos.y), color: debrisColor, shards }
+            ? { nodeId: debrisNode.id, center: snapToHex(debrisNode.pos.x, debrisNode.pos.y), color: debrisColor, shards }
             : undefined
         }
         onShard={(id) => {
