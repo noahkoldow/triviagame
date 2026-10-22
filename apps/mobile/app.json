@@ -8,9 +8,35 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#070B16",
     "newArchEnabled": true,
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": false },
-    "ios": { "supportsTablet": false, "bundleIdentifier": "app.nexus.game" },
-    "android": { "package": "app.nexus.game" }
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.nexus.game"
+    },
+    "android": {
+      "package": "app.nexus.game"
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "000b6747-1417-4824-933e-19d62471e4e9"
+      }
+    },
+    "owner": "noehxpo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/000b6747-1417-4824-933e-19d62471e4e9"
+    }
   }
 }
