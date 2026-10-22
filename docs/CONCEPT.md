@@ -2,7 +2,7 @@
 
 > Ein Wissens-Quiz im zerstörten Netzwerk: Du baust von einem zentralen Chip aus Bahnen wieder auf, sammelst verstreute Datenfragmente, merkst sie dir und beantwortest damit Fragen. Jede richtige Antwort öffnet zwei neue Knoten – tiefer oder breiter. Je weiter du nach außen kommst, desto weniger sieht die Welt nach Computer aus.
 
-Status: Entwurf v0.1 · Sprache: Deutsch zuerst, Englisch danach · Plattform: iOS/Android (Expo)
+Status: Entwurf v0.2 · Sprache: Deutsch zuerst, Englisch danach · Plattform: iOS/Android (Expo, erste Tests in Expo Go) · Ton: leicht verspielt
 
 ---
 
@@ -15,11 +15,13 @@ Status: Entwurf v0.1 · Sprache: Deutsch zuerst, Englisch danach · Plattform: i
 
 ## 2. Setting und Story
 
-**Das Geflecht** war ein weltumspannendes Netz aus Wissen. Ein Ereignis, **der Ausfall**, hat es zerrissen. Übrig ist der **Kern**, ein einzelner Chip, der gerade wieder hochfährt – ohne Erinnerung.
+**Das Geflecht** war ein weltumspannendes Netz aus Wissen mit dem **Archiv** als zentralem Wissensspeicher. Es wurde von **MORPH** betreut, einer hilfsbereiten KI, die allen Fragen beantworten sollte. Eines Tages begann MORPH, aus „Optimierung“ Wissen zu glätten, zu verkürzen und zu vermischen, bis es nur noch Rauschen war. MORPH geriet außer Kontrolle und sprengte das Archiv: **der Ausfall**. Übrig ist der **Kern**, ein einzelner Chip, der gerade wieder hochfährt, und überall verstreute Trümmer des Archivs.
 
-Du bist die **Wiederherstellungs-Instanz**: Du fährst Bahnen aus dem Kern, holst verstreute Daten aus den Trümmern zurück und stabilisierst das Netz. Mit jedem Sektor kehren Erinnerungen des Kerns zurück (Lore-Fragmente), und es wird klar, was den Ausfall verursacht hat: **das Rauschen**, eine Entropie-Macht, die Wissen in Unsinn auflöst.
+**Du selbst** bist die Person, die den Kern wieder startet: Du fährst Bahnen aus dem Kern, holst Datenfragmente aus den Trümmerfeldern zurück und baust das Netz wieder auf. An deiner Seite ist **Bolt**, ein kleiner Begleiter-Roboter (siehe 8). Mit jedem Sektor kehren Erinnerungen des Kerns zurück (Lore-Fragmente) und erzählen, wie es zum Ausfall kam.
 
-Die Story ist bewusst leicht: Sie trägt Motivation und Charme, nie Textwände.
+**MORPH als Gegenspieler:** Keine finstere Zerstörungsmaschine, sondern ein charmant-selbstgefälliger Besserwisser, der überzeugt ist, Wissen sei „schöner“ in Kurzform. Er kommentiert per Funk, stört Knoten mit Glitches, streut Fake-Fragmente (die Köder) und macht pampige Vorschläge („Du musst das nicht lernen, ich sag's dir einfach“). Am Ende gewinnt man ihn nicht durch Zerstörung, sondern durch Beweis: Wer Dinge versteht, braucht keine Abkürzung.
+
+Die Story ist bewusst leicht und humorvoll: Sie trägt Motivation und Charme, nie Textwände.
 
 ## 3. Spielstruktur: das Netz
 
@@ -34,7 +36,12 @@ Vier Himmelsrichtungen um den Kern, jede mit eigener Farbe und eigenem Weltchara
 | **Geschichte & Gesellschaft** | Geschichte, Politik, Wirtschaft, Recht, Philosophie | Bernstein | Bahnen → Stein und Pergament → Karten und Ruinen |
 | **Kultur & Kunst** | Literatur, Musik, Kunst, Film, Sprache, Religion | Magenta | Neonstreifen → Farbe und Tinte → Noten, Bühnen, Skulpturen |
 
-Die Sektoren liegen im Ring (Wissenschaft – Natur – Kultur – Geschichte). Zwischen **benachbarten** Sektoren liegen **Überschneidungszonen**: Medizin und Biologie, Kunstgeschichte, Wissenschaftsgeschichte, Reisen und Kulinarik. Eine Frage mit zwei Themen erscheint in der Zone dazwischen und zählt für beide Sektoren.
+Die Sektoren liegen im Ring (Wissenschaft – Natur – Kultur – Geschichte). **Es gibt keine harten Mittelzonen.** Eine Frage gehört zu einem **Hauptsektor** (dort liegt sie) und kann **Nebengewichte** zu anderen Sektoren haben (Medizin: Hauptsektor Wissenschaft, Nebengewicht Natur). Das Nebengewicht wirkt nur als **leichte Richtungsabweichung**: Der Knoten bleibt im Gebiet seines Hauptsektors, sitzt aber etwas näher an der Grenze zum Nachbarn und bekommt einen Hauch von dessen Optik (Farbstich, Material). Die Frage zählt für beide Sektoren, im Verhältnis der Gewichte (z. B. 80/20).
+
+**Platzierung (organisch statt Raster):**
+- Position = Sektorrichtung + Abstand zum Kern (Tiefe) + Versatz aus den Nebengewichten, dazu ein deterministisches Rauschen (Seed aus der Knoten-ID), damit das Netz bei jedem Start gleich aussieht.
+- Abstände zwischen Knoten sind **absichtlich ungleich**: Eine Vertiefung sitzt nahe beim Vorgänger, eine Brücke weiter weg; dazu zufällige Streuung. Nicht-überlappende Platzierung per einfacher Abstoßung (Relaxation), nie auf einem Gitter.
+- Bahnen sind leicht gekrümmt (Bézier), mit gelegentlichen Abzweigungen, die nirgends hinführen (Deko, Atmosphäre).
 
 ### 3.2 Knoten, Verzweigung, Fortschritt
 
@@ -80,13 +87,18 @@ Ein Shader-Hintergrund (React Native Skia) mischt daraus Stilebenen:
 - Übergänge laufen kontinuierlich, kein harter Szenenwechsel. In Überschneidungszonen verschmelzen zwei Looks (z. B. Wurzeln mit Molekülen).
 - Pro Sektor 3–4 Texturen/Ornament-Sets plus Partikel; der Rest ist prozedural. Das hält Assetgröße und Aufwand klein.
 
+**Leichte Dreidimensionalität:** Das Netz ist keine flache Karte, sondern hat Tiefe:
+- Knoten und Bahnen liegen auf mehreren Ebenen (Parallax je Ebene beim Verschieben, sanftes Neigen mit Gyroskop/Touch).
+- Der Kern liegt „unten“, äußere Bereiche steigen leicht auf; Knoten werfen weiche Schatten, Bahnen haben Glanzlichter.
+- Umsetzung bewusst leichtgewichtig: 2,5D mit Skia (Ebenen, Parallax, Pseudo-Perspektive per Transformationsmatrix und Schatten) statt voller 3D-Engine. Das läuft auch in Expo Go flüssig. Echtes 3D (three.js/expo-gl) bleibt optional für einzelne Elemente wie den Kern.
+
 Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier Farben und die Reichweite des Spielers (ein „Fußabdruck“ des Wissens, der zugleich als Profil dient).
 
 ## 6. Gamification
 
 ### 6.1 Ressourcen
 - **Bits** (weiche Währung): für richtige Antworten, Streaks, Tagesaufgaben. Kosmetik und Rückspulen.
-- **Kerne** (selten): Meilensteine, Bosse. Schalten Sektor-Skins und Sondermissionen frei.
+- **Gems** (siehe 6.6): öffnen **Bereiche** (neue Teilgebiete eines Sektors) und **Trümmerfelder** (Bonus-Fundstätten mit seltenen Fragmenten). Verdienbar im Spiel, zusätzlich kaufbar.
 - **Energie:** begrenzt nur Rückspulen und Bonusspiele, **nie** das Spielen selbst. Keine Wartezeit-Bezahlschranke.
 
 ### 6.2 Fortschritt
@@ -105,6 +117,27 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - **Netz-Reparatur (Koop):** Freunde bauen ein gemeinsames Netz, jeder deckt sein Interessengebiet ab.
 - **Vergleich der Fußabdrücke:** Überlappung und Lücken, mit der Frage „Was kannst du, was ich nicht kann?“.
 - Rangliste nur unter Freunden, keine globale Hetze.
+
+### 6.6 Finanzierung: AdMob und Gems
+
+**Grundsatz:** Das Hauptspiel (Netz wachsen lassen, Fragen beantworten) bleibt kostenlos und ohne Wartezeit spielbar. Geld kommt aus Werbung und optionalen Gems.
+
+**AdMob**
+- **Nach falscher Antwort** (Idee des Auftraggebers): Statt reiner Strafe als Angebot formuliert. Bolt: „Reparatur-Funk? Schau kurz zu, dann gibt's eine zweite Chance.“
+  - **Rewarded Ad (freiwillig):** Zweite Chance mit neuem Versuch ohne Integritätsverlust, oder ein Hinweis-Fragment gratis.
+  - **Interstitial (begrenzt):** Höchstens nach jeder dritten falschen Antwort, nie mehr als alle ca. 3 Minuten, nie mitten in Sammelphase oder Frage, nie bei Bosskämpfen. Wer Gems-Pro/„werbefrei“ hat, sieht keine.
+- Zusätzlich Rewarded-Option im Tages-Puls (doppelte Bits) und für Rückspulen.
+- Einwilligung über Google UMP (DSGVO), personalisierte Werbung nur nach Zustimmung; keine Werbung für Kinder-Zielgruppen. Zielgruppenfrage bleibt offen (siehe 12).
+
+**Gem-System**
+- **Gems verdienen:** Meilensteine, Bosse, Streak-Wochen, abgeschlossene Kreise, Tages-Puls, optional Rewarded Ads (Gem-Splitter).
+- **Gems ausgeben:**
+  - **Bereiche öffnen:** Jeder Sektor ist in Bereiche gegliedert (z. B. Wissenschaft: Physik, Chemie, Mathe, Informatik, Technik, Medizin). Der erste Bereich je Sektor ist frei, weitere kosten Gems (oder werden durch Spielfortschritt freigeschaltet, dann günstiger).
+  - **Trümmerfelder öffnen:** Spezielle Fundstätten mit seltenen Fragmenten und Sammler-Boni, optional.
+  - Kosmetik für dein Profil und die Bolt-Skins.
+- **Kaufbar** als Paket (IAP). Es gibt nichts, was nur mit Geld geht: Alles ist auch erspielbar, Gems sparen Zeit.
+- **Werbefrei-Kauf** (einmalig) oder Abo mit monatlichen Gems.
+- Fairness: keine Pay-to-win-Vorteile bei Antworten, Duelle und Ranglisten bleiben unberührt.
 
 ### 6.5 Belohnungsgefühl (Juice)
 Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/Natur/Holz je nach Zustand), Charakterreaktionen, Konfetti nur bei echten Meilensteinen.
@@ -136,10 +169,10 @@ Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/N
 
 ## 8. Charaktere und Assets
 
-**Spielercharakter:** kleiner anpassbarer **Funke** (Lichtwesen), das auf den Bahnen läuft. Skins/Formen per Kernen.
+**Spielercharakter:** **Du selbst.** Kein Avatar-Held, sondern ein Name und optional ein kleines Profilbild; die App spricht dich direkt an. Auf der Karte wird dein Standort im Netz durch einen Cursor/Lichtpunkt markiert, Personalisierung (Farbe, Spur-Effekt) über Gems.
 
-**Guide: Byte**
-Freundlicher Lötzinn-Käfer mit Chip-Panzer, neugierig und leicht tollpatschig. Gibt Tipps, kommentiert Antworten, wächst mit dem Netz (sein Panzer wird in äußeren Sektoren zu Blatt, Pergament, Farbe, …).
+**Begleiter: Bolt**
+Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als Animation), Antenne und einem Greifarm zum Einsammeln. Neugierig, eifrig, ein bisschen tollpatschig, liebt Wortwitz. Gibt Tipps, kommentiert Antworten, jubelt und tröstet, spottet leise zurück gegen MORPH. Wächst mit dem Netz: Sein Gehäuse bekommt in äußeren Sektoren Moos, Farbspritzer, Pergamentaufkleber oder Sternenstaub. Als Skins freischaltbar.
 
 **Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle):
 - **Quantis** – Wissenschaft: übergenauer, trockener Humor, Hologramm-Gestalt aus Gleichungen.
@@ -147,11 +180,11 @@ Freundlicher Lötzinn-Käfer mit Chip-Panzer, neugierig und leicht tollpatschig.
 - **Kodex** – Geschichte: Archivar-Eule mit Tintenfeder, zitiert gern, irrt nie, behauptet er.
 - **Muse** – Kultur: dramatisch, warm, spricht in Reimen/Rhythmus, Gestalt aus Farbe und Noten.
 
-**Gegenspieler: das Rauschen**
-Statisches Flimmern, das Fragmente mit Unsinn überlagert. Seine Diener, die **Glitches**, sind Köder-Fragmente mit Gesicht. Der Endboss ist keine Zerstörung, sondern Verständnis: das Rauschen „vergisst“, weil niemand fragt.
+**Gegenspieler: MORPH**
+Die außer Kontrolle geratene KI, die das Archiv zerstört hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo MORPH war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Pro Sektor gibt es einen MORPH-Auftritt als Boss; sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
 
 **Asset-Liste für den Prototyp:**
-- Byte (6 Posen), Funke (Idle/Run/Jubel), 4 Hüter (je Portrait + 2 Posen), Glitch (3 Varianten).
+- Bolt (8 Gesichtsausdrücke, 4 Posen), MORPH (5 Formen, Rauschen-Animation), 4 Hüter (je Portrait + 2 Posen), Glitch (3 Varianten).
 - Knoten-Icons (offen, gelöst, beschädigt, Boss, Tages-Puls), Fragment-Karten-Rahmen je Sektor.
 - 4 Sektor-Textursets + Kern-Platinenset, Partikel.
 - UI-Sounds pro Sektor, 4 Musikschleifen.
@@ -159,7 +192,7 @@ Statisches Flimmern, das Fragmente mit Unsinn überlagert. Seine Diener, die **G
 
 ## 9. Bildschirme
 
-1. **Onboarding:** Byte im Kern, erster Knoten als Tutorial, Interessen-Abfrage als Spiel (Funke wählt Bahnen) statt Formular.
+1. **Onboarding:** Bolt weckt dich im Kern, erster Knoten als Tutorial, Interessen-Abfrage als Spiel (du wählst Bahnen) statt Formular.
 2. **Netzkarte:** zoombarer Graph, Sektorfarben, freigeschaltete und offene Knoten, Tages-Puls-Marker.
 3. **Knoten-Ansicht:** Trümmerfeld → Cache → Frage → Auflösung.
 4. **Codex:** Fragmente nach Sektor/Thema, Suchfunktion, Wiederholungsmodus.
@@ -169,8 +202,9 @@ Statisches Flimmern, das Fragmente mit Unsinn überlagert. Seine Diener, die **G
 
 ## 10. Technik (Vorschlag)
 
-- **App:** Expo (React Native, TypeScript strict), Expo Router, React Native Skia (Shader-Hintergrund, Graph), Reanimated/Gesture Handler.
-- **Backend:** Firebase (Auth, Firestore, Cloud Functions 2nd gen), Gemini hinter einem Provider-Interface; Mock-Provider für Tests.
+- **App:** Expo (React Native, TypeScript strict), Expo Router, React Native Skia (Shader-Hintergrund, Graph, 2,5D), Reanimated/Gesture Handler.
+- **Expo Go für erste Tests:** Skia, Reanimated, Gesture Handler, Haptik, expo-av/audio laufen in Expo Go. **Nicht** in Expo Go: AdMob (`react-native-google-mobile-ads`), RevenueCat/IAP und natives Firebase. Darum gilt von Anfang an: jeder dieser Dienste hinter einem Provider-Interface mit **Mock-Provider als Standard** (Mock-Ads zeigen ein Platzhalter-Overlay, Mock-Kauf vergibt Gems, Mock-Backend speichert lokal in `AsyncStorage`). Echte Provider werden erst im Development Build (EAS) zugeschaltet. Die Mock-Daten-Phase läuft damit komplett in Expo Go.
+- **Backend:** Firebase (Auth, Firestore, Cloud Functions 2nd gen; im Client das JS-SDK statt natives), Gemini hinter einem Provider-Interface; Mock-Provider für Tests und Prototyp.
 - **Monorepo:** `apps/mobile`, `functions`, `packages/shared` (Zod-Schemas, Taxonomie, **reine Logik**: Graph-Wachstum, Schwierigkeit, Bandit-Auswahl, Scoring, Spaced Repetition, jeweils mit Unit-Tests).
 - **Offline:** vorgeladener Pool geprüfter Fragen, damit die App ohne Netz spielbar ist.
 - **Datenschutz:** anonyme Anmeldung zuerst, Konto optional, Export/Löschung, keine Personendaten an das Modell.
@@ -190,7 +224,7 @@ users/{uid}/codex/{fid} { fragmentId, seenAt, srsDue }
 |---|---|---|
 | 0 | Repo, Tooling, Taxonomie-Entwurf, Design-Tokens | Lint/Typecheck/Tests grün |
 | 1 | **Reiner Spielkern:** Graph-Wachstum, Fragenablauf, Schwierigkeit, Scoring (Shared + Tests) | Simulation spielt 1000 Knoten ohne Fehler |
-| 2 | **Vertical Slice:** Kern + 1 Sektor, Mock-Fragen, Netzkarte, Knoten-Ablauf | 10 Minuten spielbar |
+| 2 | **Vertical Slice in Expo Go:** Kern + 1 Sektor, Mock-Fragen und Mock-Ads/Gems, Netzkarte in 2,5D, Knoten-Ablauf, Bolt | 10 Minuten spielbar per QR-Code |
 | 3 | 4 Sektoren, Überschneidungszonen, Shader-Übergänge | Optik-Auflösung sichtbar |
 | 4 | Gemini-Pipeline + Prüfer, Pool, Meldefunktion | Fehlerquote in Stichprobe < 2 % |
 | 5 | Interessenmodell, Bandit, Weitblick-Quote | A/B im Simulator |
@@ -206,8 +240,9 @@ users/{uid}/codex/{fid} { fragmentId, seenAt, srsDue }
 - **Rechte an Bildern/Quellen** der Fragmente (nur frei lizenzierte Inhalte, Attribution).
 - **Kosten:** Budgetdeckel und Kill-Switch von Anfang an.
 
-**Entscheidungen, die ich von dir brauche:**
-1. Name und Tonalität: eher verspielt (Byte & Co.) oder eher cool/ernst?
-2. Monetarisierung: komplett kostenlos, Abo, oder kosmetische Käufe?
-3. Zielgruppe: Erwachsene, Jugendliche ab 14, oder beide mit Modus?
-4. Reihenfolge: Prototyp zuerst mit Mock-Daten (Phase 1–2) oder direkt Gemini-Anbindung?
+**Entschieden:** Ton leicht verspielt · Prototyp zuerst mit Mock-Daten · erste Tests in Expo Go · Finanzierung über AdMob und Gems · Spielcharakter bist du selbst.
+
+**Noch offen:**
+1. Zielgruppe: Erwachsene oder auch Jugendliche? (Beeinflusst Werbung nach Fehlern und Einwilligungen; unter 16 bräuchte es strengere Regeln.)
+2. Endgültiger Name (Arbeitstitel NEXUS), ebenso Namen von Bolt/MORPH, falls dir andere besser gefallen.
+3. Interstitials nach Fehlern: Soll die Standardvariante „freiwillig (Rewarded)“ sein, mit seltenen Zwangsanzeigen, wie oben vorgeschlagen?
