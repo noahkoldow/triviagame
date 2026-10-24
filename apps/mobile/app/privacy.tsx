@@ -8,7 +8,15 @@ import { colors } from '../src/theme';
 const SECTIONS: { title: string; text: string }[] = [
   {
     title: 'Was gespeichert wird',
-    text: 'Dein Spielstand (Name, den du frei wählst, Geburtsjahr, Fortschritt und dein Netz) liegt nur auf deinem Gerät. Es gibt kein Konto, und nichts davon wird an uns übertragen.',
+    text: 'Dein Spielstand (Name, den du frei wählst, Geburtsjahr, Fortschritt und dein Netz) liegt nur auf deinem Gerät. Es gibt kein Konto. Name, Geburtsjahr und Spielstand werden nicht an uns übertragen.',
+  },
+  {
+    title: 'Neue Fragen',
+    text: 'Damit dir die Fragen nie ausgehen, fragt die App unseren Server nach neuen Fragen. Dabei sendet sie nur den Themenbereich, eine Schwierigkeitsstufe und die Kennungen der Fragen, die sie schon hat. Der Server sieht technisch bedingt deine IP-Adresse; wir speichern davon nur einen gekürzten Prüfwert für höchstens zwei Stunden, um Missbrauch zu begrenzen.',
+  },
+  {
+    title: 'Wochenliga (freiwillig)',
+    text: 'Wenn du der Liga beitrittst, speichert der Server eine zufällige Kennung, einen erzeugten Rufnamen, den du auswählst, und deine XP der laufenden Woche. Andere sehen nur Rufname und Wochen-XP. Beim Austreten oder Zurücksetzen des Spielstands wird dein Eintrag gelöscht.',
   },
   {
     title: 'Alter und Werbung',
@@ -20,11 +28,11 @@ const SECTIONS: { title: string; text: string }[] = [
   },
   {
     title: 'Inhalte von KI',
-    text: 'Wenn der Gemini-Dienst aktiv ist, senden wir Google anonyme Themen- und Aufgabentexte, um Quizfragen zu erstellen und zu prüfen. Name, Geburtsjahr, Spielstand und Interessenprofil werden nicht mitgesendet. Angenommene Fragen werden auf deinem Gerät gespeichert. KI-Fehler können trotzdem vorkommen; eine Meldefunktion für falsche Inhalte ist vorgesehen.',
+    text: 'Neue Fragen schreibt unser Server mit Googles KI-Modell Gemini. Ein zweiter Durchgang prüft jede Frage, bevor sie in den gemeinsamen Fragenpool kommt. Dabei werden keine Daten von dir an Google gesendet. KI-Fehler können trotzdem vorkommen; eine Meldefunktion für falsche Inhalte ist vorgesehen.',
   },
   {
     title: 'Deine Rechte',
-    text: 'Im Profil löscht „Spielstand zurücksetzen“ alle lokal gespeicherten Daten dieser App. Da wir keine Daten von dir haben, gibt es bei uns nichts weiter zu löschen.',
+    text: 'Im Profil löscht „Spielstand zurücksetzen“ alle lokal gespeicherten Daten dieser App und deinen Liga-Eintrag auf dem Server. Weitere Daten von dir haben wir nicht.',
   },
 ];
 

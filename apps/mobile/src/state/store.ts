@@ -40,6 +40,7 @@ export async function hydrate(): Promise<void> {
           ads: { ...base.ads, ...saved.ads },
           stats: { ...base.stats, ...saved.stats },
           story: { ...base.story, ...saved.story },
+          league: { ...base.league, ...saved.league },
           network: saved.network?.nodes
             ? {
                 ...saved.network,

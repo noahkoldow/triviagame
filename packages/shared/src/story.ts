@@ -189,6 +189,14 @@ export const STORY_BEATS: StoryBeat[] = [
     when: (f) => f.roots >= SECTORS.length,
   },
   {
+    id: 'league',
+    speaker: 'bolt',
+    mood: 'wink',
+    title: 'Die Wochenliga',
+    text: 'Psst: Unten im Dock gibt es die Wochenliga. Jede Woche trittst du mit bis zu 20 anderen unter einem Rufnamen an, gezählt werden die XP der Woche. Die besten fünf steigen auf. Mitmachen ist freiwillig.',
+    when: (f) => f.roots >= SECTORS.length,
+  },
+  {
     id: 'first-area',
     speaker: 'bolt',
     mood: 'happy',

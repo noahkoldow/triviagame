@@ -7,7 +7,8 @@ import { Bolt } from '../src/components/Bolt';
 import { Radar } from '../src/components/Radar';
 import { BackBar, Button, Card, H1, P } from '../src/components/ui';
 import { pool } from '../src/services/content';
-import { resetGame, useGame } from '../src/state/store';
+import { leagueApi } from '../src/services/league';
+import { getState, resetGame, useGame } from '../src/state/store';
 import { de } from '../src/strings';
 import { colors } from '../src/theme';
 
@@ -110,7 +111,16 @@ export default function Profile() {
               'Dein Netz und alle Fortschritte werden gelöscht.',
               [
                 { text: 'Abbrechen', style: 'cancel' },
-                { text: 'Zurücksetzen', style: 'destructive', onPress: () => resetGame() },
+                {
+                  text: 'Zurücksetzen',
+                  style: 'destructive',
+                  onPress: async () => {
+                    // a league entry on the server goes too, so nothing of this save stays behind
+                    const { playerId, token } = getState().league;
+                    if (playerId && token) await leagueApi.leave({ playerId, token }).catch(() => undefined);
+                    resetGame();
+                  },
+                },
               ],
             )
           }

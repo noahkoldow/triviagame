@@ -1,36 +1,43 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AREAS,
+  BASE_SKILL,
   MOCK_QUESTIONS,
+  POOL_MAX_COUNT,
+  POOL_MAX_HAVE,
   Pool,
-  QUESTION_TYPES,
-  initialUnlockedAreas,
-  validateDraft,
+  acceptServed,
+  targetDifficulty,
   type Question,
+  type SkillMap,
 } from '@nexus/shared';
-import { AI_ENDPOINT } from '../config';
-import { questionSource } from './ai';
+import { API_BASE } from '../config';
+import { questionApi, type QuestionApi } from './ai';
 
-/** Local source of questions; accepted Gemini questions join this pool when configured. */
-export interface ContentProvider {
-  loadQuestions(): Promise<Question[]>;
-}
-
-export const mockContent: ContentProvider = {
-  async loadQuestions() {
-    return MOCK_QUESTIONS;
-  },
-};
-
+/**
+ * The questions on this device: the built-in ones plus everything the backend delivered.
+ * The game is open-ended: whenever an unlocked area runs low on unused questions, more are
+ * fetched, and branches that waited for questions grow (see `growWaitingNodes`).
+ */
 export const pool = new Pool(MOCK_QUESTIONS);
 
 const AI_POOL_KEY = 'nexus:ai-pool:v1';
-const AI_LAST_ATTEMPT_KEY = 'nexus:ai-pool:last-attempt';
-const AI_POOL_TARGET = 12;
-const AI_AREA_TARGET = 3;
-const AI_RETRY_DELAY_MS = 60 * 60 * 1000;
+/** Fetch more for an area once fewer unused questions than this are left. */
+const LOW_WATER = 3;
+/** After a failed or empty answer an area waits this long before asking again. */
+const BACKOFF_MS = 10 * 60 * 1000;
+const builtIn = new Set(MOCK_QUESTIONS.map((q) => q.id));
+const retryAt = new Map<string, number>();
+let running: Promise<number> | null = null;
 
-/** Restore previously validated questions before hydrating nodes that may refer to them. */
+function add(q: Question): boolean {
+  if (pool.byId.has(q.id)) return false;
+  pool.list.push(q);
+  pool.byId.set(q.id, q);
+  return true;
+}
+
+/** Restore delivered questions before hydrating nodes that may refer to them. */
 export async function restoreAiQuestions(): Promise<void> {
   try {
     const raw = await AsyncStorage.getItem(AI_POOL_KEY);
@@ -38,52 +45,55 @@ export async function restoreAiQuestions(): Promise<void> {
     const saved: unknown = JSON.parse(raw);
     if (!Array.isArray(saved)) return;
     for (const item of saved) {
-      if (!item || typeof item !== 'object' || typeof (item as { id?: unknown }).id !== 'string')
-        continue;
-      const checked = validateDraft(item);
-      if (!checked.ok || checked.question.id !== (item as { id: string }).id) continue;
-      const q = checked.question;
-      if (pool.byId.has(q.id)) continue;
-      pool.list.push(q);
-      pool.byId.set(q.id, q);
+      const q = acceptServed(item);
+      if (q) add(q);
     }
   } catch {
-    // Ignore a damaged or unavailable local cache; bundled questions remain playable.
+    // a damaged or unavailable local cache: the built-in questions remain playable
   }
 }
 
-/** Fill a local starter pool with checked questions; the backend enforces the project-wide budget. */
-export async function primeAiPool(): Promise<void> {
-  if (!AI_ENDPOINT) return;
-  try {
-    const lastAttempt = Number(await AsyncStorage.getItem(AI_LAST_ATTEMPT_KEY));
-    if (Number.isFinite(lastAttempt) && Date.now() - lastAttempt < AI_RETRY_DELAY_MS) return;
+export interface RefillInput {
+  unlockedAreas: string[];
+  usedQuestions: string[];
+  skill: SkillMap;
+}
 
-    const areas = AREAS.filter((area) => initialUnlockedAreas().includes(area.id));
-    if (areas.length === 0) return;
-    const dayIndex = Math.floor(Date.now() / 86_400_000);
-    for (const [areaIndex, area] of areas.entries()) {
-      const existing = pool.list.filter((q) => q.id.startsWith('ai-') && q.area === area.id);
-      const count = Math.min(AI_AREA_TARGET - existing.length, AI_POOL_TARGET - pool.list.filter((q) => q.id.startsWith('ai-')).length);
-      if (count <= 0) break;
-      const type = QUESTION_TYPES[(dayIndex + areaIndex) % QUESTION_TYPES.length]!;
-      const request = {
-        area: area.id,
-        difficulty: 1 as const,
-        type,
-        count,
-        avoidTopics: pool.list.filter((q) => q.area === area.id).map((q) => q.topic).slice(-20),
-      };
-      const result = await questionSource(AI_ENDPOINT).fetch(request, new Set(pool.list.map((q) => q.id)));
-      for (const q of result.accepted) {
-        pool.list.push(q);
-        pool.byId.set(q.id, q);
+/**
+ * Tops up every unlocked area that is running low, at the player's level there. Resolves to the
+ * number of new questions (0 offline or on errors; the game never waits for this).
+ */
+export function refillPool(input: RefillInput, api: QuestionApi = questionApi(API_BASE)): Promise<number> {
+  if (!api.live) return Promise.resolve(0);
+  running ??= (async () => {
+    let added = 0;
+    const used = new Set(input.usedQuestions);
+    for (const area of AREAS.filter((a) => input.unlockedAreas.includes(a.id))) {
+      const inArea = pool.list.filter((q) => q.area === area.id);
+      if (inArea.filter((q) => !used.has(q.id)).length >= LOW_WATER) continue;
+      if ((retryAt.get(area.id) ?? 0) > Date.now()) continue;
+      try {
+        const got = await api.fetch({
+          area: area.id,
+          difficulty: targetDifficulty(input.skill[area.id] ?? BASE_SKILL),
+          count: POOL_MAX_COUNT,
+          have: inArea.map((q) => q.id).slice(-POOL_MAX_HAVE),
+        });
+        const fresh = got.filter((q) => q.area === area.id && add(q)).length;
+        added += fresh;
+        if (fresh === 0) retryAt.set(area.id, Date.now() + BACKOFF_MS);
+      } catch {
+        // network, budget or backend down: try this area again later
+        retryAt.set(area.id, Date.now() + BACKOFF_MS);
       }
-      const generated = pool.list.filter((entry) => entry.id.startsWith('ai-'));
-      await AsyncStorage.setItem(AI_POOL_KEY, JSON.stringify(generated));
     }
-    await AsyncStorage.setItem(AI_LAST_ATTEMPT_KEY, String(Date.now()));
-  } catch {
-    // Gemini, network, quota or local storage failures leave the mock pool available.
-  }
+    if (added > 0) {
+      const delivered = pool.list.filter((q) => !builtIn.has(q.id));
+      await AsyncStorage.setItem(AI_POOL_KEY, JSON.stringify(delivered)).catch(() => {});
+    }
+    return added;
+  })().finally(() => {
+    running = null;
+  });
+  return running;
 }

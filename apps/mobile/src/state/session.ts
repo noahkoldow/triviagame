@@ -5,6 +5,11 @@ export function setRecentlySpawned(ids: string[]) {
   recent = ids;
 }
 
+/** Adds nodes that grew in the background (waiting branches) without dropping the others. */
+export function addRecentlySpawned(ids: string[]) {
+  recent = [...recent, ...ids.filter((id) => !recent.includes(id))];
+}
+
 export function takeRecentlySpawned(): string[] {
   const r = recent;
   recent = [];

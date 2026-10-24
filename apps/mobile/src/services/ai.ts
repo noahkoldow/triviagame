@@ -1,84 +1,43 @@
-import {
-  MOCK_QUESTIONS,
-  buildCheckPrompt,
-  generateQuestions,
-  parseCheck,
-  type CheckResult,
-  type GenerationRequest,
-  type GenerationResult,
-  type Question,
-  type QuestionChecker,
-  type QuestionGenerator,
-} from '@nexus/shared';
+import { acceptServed, type PoolRequest, type Question } from '@nexus/shared';
 
 /**
- * The AI providers. All of them return plain text that the shared pipeline parses and
- * validates (`generateQuestions`), so nothing here can put a bad question into the game.
+ * The content API: the app asks our backend for questions by area and level and never sends a
+ * prompt. The backend answers from its shared pool of checked questions and writes new ones
+ * with the model only when needed. Every question that comes back is validated here again
+ * (`acceptServed`), so nothing malformed can reach the game.
  */
 
-type Fetch = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{
-  ok: boolean;
-  status: number;
-  json(): Promise<unknown>;
-}>;
+export type Fetch = (
+  url: string,
+  init: { method: string; headers: Record<string, string>; body: string },
+) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
-async function post(endpoint: string, body: unknown, doFetch: Fetch, token?: string): Promise<string> {
-  const res = await doFetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`backend answered ${res.status}`);
-  const data = (await res.json()) as { text?: unknown };
-  if (typeof data.text !== 'string') throw new Error('backend answer has no text');
-  return data.text;
+export interface QuestionApi {
+  /** True when a backend answers; false offline (built-in questions only). */
+  live: boolean;
+  fetch(req: PoolRequest): Promise<Question[]>;
 }
 
-/**
- * Calls our own backend, which holds the key, picks the model and enforces the daily budget
- * and the kill switch. The app sends only the prompt: no player data.
- */
-export function httpGenerator(endpoint: string, doFetch: Fetch = fetch as unknown as Fetch, token?: string): QuestionGenerator {
-  return { generate: (prompt) => post(endpoint, { task: 'generate', prompt }, doFetch, token) };
-}
-
-/** The second pass (the "checker"), also through the backend. */
-export function httpChecker(endpoint: string, doFetch: Fetch = fetch as unknown as Fetch, token?: string): QuestionChecker {
+export function httpQuestionApi(base: string, doFetch: Fetch = fetch as unknown as Fetch): QuestionApi {
   return {
-    async check(q: Question): Promise<CheckResult> {
-      return parseCheck(await post(endpoint, { task: 'check', prompt: buildCheckPrompt(q) }, doFetch, token));
+    live: true,
+    async fetch(req) {
+      const res = await doFetch(`${base}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ area: req.area, difficulty: req.difficulty, count: req.count, have: req.have }),
+      });
+      if (!res.ok) throw new Error(`backend answered ${res.status}`);
+      const data = (await res.json()) as { questions?: unknown };
+      if (!Array.isArray(data.questions)) throw new Error('backend answer has no questions');
+      return data.questions.map(acceptServed).filter((q): q is Question => q !== null);
     },
   };
 }
 
-/**
- * Offline stand-in: answers in the JSON the model would send, taken from the built-in questions
- * of the asked area and type. Used for development and tests, and while no backend is set up.
- */
-export function mockGenerator(source: Question[] = MOCK_QUESTIONS): QuestionGenerator {
-  return {
-    async generate(_prompt, req) {
-      const hits = source
-        .filter((q) => (!req || (q.area === req.area && q.type === req.type)))
-        .slice(0, req?.count ?? 3)
-        .map((q) => {
-          const { id: _id, fragments, deepen: _d, bridge: _b, ...rest } = JSON.parse(JSON.stringify(q));
-          return { ...rest, fragments: fragments.map(({ id: _f, ...f }: Record<string, unknown>) => f) };
-        });
-      return JSON.stringify(hits);
-    },
-  };
-}
+/** Without a backend there is nothing new to fetch; the built-in questions carry the game. */
+export const offlineQuestionApi: QuestionApi = { live: false, fetch: async () => [] };
 
-/** Asks for questions: through the backend when there is one, otherwise from the built-in set. */
-export function questionSource(endpoint: string, doFetch?: Fetch) {
-  const live = endpoint !== '';
-  const generator = live ? httpGenerator(endpoint, doFetch) : mockGenerator();
-  const checker = live ? httpChecker(endpoint, doFetch) : undefined;
-  return {
-    live,
-    fetch(req: GenerationRequest, known?: Set<string>): Promise<GenerationResult> {
-      return generateQuestions(generator, checker, req, known);
-    },
-  };
+export function questionApi(base: string, doFetch?: Fetch): QuestionApi {
+  return base ? httpQuestionApi(base, doFetch) : offlineQuestionApi;
 }

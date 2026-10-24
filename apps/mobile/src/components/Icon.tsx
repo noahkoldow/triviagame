@@ -24,7 +24,8 @@ export type IconName =
   | 'folder-empty'
   | 'file'
   | 'image'
-  | 'search';
+  | 'search'
+  | 'trophy';
 
 export function Icon({
   name,
@@ -78,6 +79,16 @@ export function Icon({
           <Path d="M6.2 3h11.6L15 9.2H9z" fill={m('#E8C2FF')} />
           <Path d="M2 9.2h7l3 12.3z" fill={m('#A15FD6')} />
           <Path d="M22 9.2h-7l-3 12.3z" fill={m('#B873EB')} />
+        </>
+      ) : null}
+      {name === 'trophy' ? (
+        <>
+          <Path d="M4 4.5h3.2v2.2H6.2c.2 2 1.2 3.2 2.4 3.6l-.6 2C5.6 11.6 4 9.2 4 5.6z" fill={m('#E0A800')} />
+          <Path d="M20 4.5h-3.2v2.2h1c-.2 2-1.2 3.2-2.4 3.6l.6 2c2.4-.7 4-3.1 4-6.7z" fill={m('#E0A800')} />
+          <Path d="M6.5 2.5h11v5.5a5.5 5.5 0 0 1-11 0z" fill={m('#FFC800')} />
+          <Rect x={10.6} y={13} width={2.8} height={4} fill={m('#E0A800')} />
+          <Rect x={7.5} y={17} width={9} height={4} rx={1.2} fill={m('#8E5A00')} />
+          <Path d="M9 4.5h2v4.2a1 1 0 0 1-2 0z" fill="#FFFFFF" opacity={muted ? 0 : 0.5} />
         </>
       ) : null}
       {name === 'book' ? (

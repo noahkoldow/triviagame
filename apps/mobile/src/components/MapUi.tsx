@@ -202,6 +202,7 @@ const styles = StyleSheet.create({
   goalCount: { color: colors.text, fontSize: 15, fontWeight: '900' },
   goalGo: { color: WIN.black, fontSize: 14, fontWeight: '900' },
   dock: { flexDirection: 'row', gap: 4, padding: 3 },
-  dockItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, minHeight: 44 },
-  dockLabel: { color: WIN.text, fontSize: 13, fontWeight: '700' },
+  // icon above the label, so five buttons fit on small phones
+  dockItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 5, minHeight: 48 },
+  dockLabel: { color: WIN.text, fontSize: 12, fontWeight: '700' },
 });

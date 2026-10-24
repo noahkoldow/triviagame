@@ -34,6 +34,7 @@ import {
   maintenanceTargets,
   markSeen,
   pendingBeats,
+  rollWeek,
   seededRng,
   storyFacts,
   type CacheEntry,
@@ -96,7 +97,8 @@ export default function Home() {
   useEffect(() => {
     const tick = () =>
       update((p) => {
-        const r = regenEnergy(p, Date.now());
+        const now = Date.now();
+        const r = rollWeek(regenEnergy(p, now), now);
         return r === p ? null : r;
       });
     tick();
@@ -369,6 +371,7 @@ export default function Home() {
                 { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
                 { label: 'Shop', icon: 'gem', tint: colors.gem, onPress: () => router.push('/shop') },
                 { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
+                { label: 'Liga', icon: 'trophy', onPress: () => router.push('/league') },
                 { label: 'Profil', icon: 'user', onPress: () => router.push('/profile') },
               ]}
             />

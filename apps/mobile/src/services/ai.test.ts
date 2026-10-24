@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { MOCK_QUESTIONS, QUESTION_TYPES } from '@nexus/shared';
-import { httpChecker, httpGenerator, mockGenerator, questionSource } from './ai';
+import { MOCK_QUESTIONS, validateDraft } from '@nexus/shared';
+import { httpQuestionApi, offlineQuestionApi, questionApi } from './ai';
 
-const asDraftText = (qs: typeof MOCK_QUESTIONS) =>
-  JSON.stringify(
-    qs.map((q) => {
-      const { id: _i, fragments, deepen: _d, bridge: _b, ...rest } = JSON.parse(JSON.stringify(q));
-      return { ...rest, fragments: fragments.map(({ id: _f, ...f }: Record<string, unknown>) => f) };
-    }),
-  );
+/** A question as the server stores it: a validated draft with its content-hashed id. */
+function served(type: string) {
+  const v = validateDraft(MOCK_QUESTIONS.find((q) => q.type === type)!);
+  if (!v.ok) throw new Error('mock question must validate');
+  return JSON.parse(JSON.stringify(v.question));
+}
 
 function fakeFetch(answer: unknown, status = 200) {
   const calls: { url: string; body: any; headers: Record<string, string> }[] = [];
@@ -19,72 +18,32 @@ function fakeFetch(answer: unknown, status = 200) {
   return { f, calls };
 }
 
-describe('AI providers', () => {
-  it('the mock answers for every question type in the pool', async () => {
-    const src = questionSource('');
-    expect(src.live).toBe(false);
-    for (const type of QUESTION_TYPES) {
-      const q = MOCK_QUESTIONS.find((x) => x.type === type)!;
-      const r = await src.fetch({ area: q.area, difficulty: q.difficulty, type, count: 1 });
-      expect(r.accepted, type).toHaveLength(1);
-      expect(r.accepted[0]!.type).toBe(type);
-    }
+const req = { area: 'physics', difficulty: 2 as const, count: 2, have: ['sci-light'] };
+
+describe('content API client', () => {
+  it('asks by area and level only: no prompt, nothing about the player', async () => {
+    const { f, calls } = fakeFetch({ questions: [served('match')] });
+    const qs = await httpQuestionApi('https://api.test', f).fetch(req);
+    expect(qs).toHaveLength(1);
+    expect(calls[0]!.url).toBe('https://api.test/questions');
+    expect(Object.keys(calls[0]!.body).sort()).toEqual(['area', 'count', 'difficulty', 'have']);
+    expect(calls[0]!.headers['Authorization']).toBeUndefined();
   });
 
-  it('the mock answers with nothing for an area it has no question for', async () => {
-    const r = await questionSource('').fetch({ area: 'medicine', difficulty: 5, type: 'cloze', count: 1 });
-    expect(r.accepted).toHaveLength(0);
+  it('drops anything that does not validate', async () => {
+    const good = served('cloze');
+    const { f } = fakeFetch({ questions: [good, { ...good, id: 'forged' }, { nope: 1 }, 'x'] });
+    expect((await httpQuestionApi('https://api.test', f).fetch(req)).map((q) => q.id)).toEqual([good.id]);
   });
 
-  it('sends the prompt to the backend and nothing about the player', async () => {
-    const q = MOCK_QUESTIONS.find((x) => x.type === 'match')!;
-    const calls: { url: string; body: any }[] = [];
-    const f = async (url: string, init: { method: string; headers: Record<string, string>; body: string }) => {
-      const body = JSON.parse(init.body);
-      calls.push({ url, body });
-      const text = body.task === 'generate' ? asDraftText([q]) : '{"ok":true,"issues":[]}';
-      return { ok: true, status: 200, json: async () => ({ text }) };
-    };
-    const src = questionSource('https://example.test/ai', f);
-    expect(src.live).toBe(true);
-    const r = await src.fetch({ area: q.area, difficulty: q.difficulty, type: 'match', count: 1 });
-    expect(r.accepted).toHaveLength(1);
-    const gen = calls.find((c) => c.body.task === 'generate')!;
-    expect(gen.url).toBe('https://example.test/ai');
-    expect(Object.keys(gen.body).sort()).toEqual(['prompt', 'task']);
-    expect(gen.body.prompt).toContain('Type: match');
-    // the checker was asked too
-    expect(calls.some((c) => c.body.task === 'check')).toBe(true);
+  it('throws on a broken backend so the caller can back off', async () => {
+    await expect(httpQuestionApi('https://api.test', fakeFetch({}, 503).f).fetch(req)).rejects.toThrow('503');
+    await expect(httpQuestionApi('https://api.test', fakeFetch({ text: 'x' }).f).fetch(req)).rejects.toThrow();
   });
 
-  it('lets the backend checker decide', async () => {
-    const q = MOCK_QUESTIONS.find((x) => x.type === 'cloze')!;
-    const answers: any[] = [{ text: asDraftText([q]) }, { text: '{"ok":false,"issues":["Fakt unsicher"]}' }];
-    const f = async () => ({ ok: true, status: 200, json: async () => answers.shift() });
-    const r = await questionSource('https://example.test/ai', f).fetch({ area: q.area, difficulty: q.difficulty, type: 'cloze', count: 1 });
-    expect(r.accepted).toHaveLength(0);
-    expect(r.rejected[0]!.reasons).toEqual(['Fakt unsicher']);
-  });
-
-  it('survives a backend that is down or answers badly', async () => {
-    const req = { area: 'physics', difficulty: 1 as const, type: 'choice' as const, count: 1 };
-    const down = fakeFetch({}, 503);
-    expect((await questionSource('https://example.test/ai', down.f).fetch(req)).accepted).toHaveLength(0);
-    const odd = fakeFetch({ nope: 1 });
-    const r = await questionSource('https://example.test/ai', odd.f).fetch(req);
-    expect(r.accepted).toHaveLength(0);
-    expect(r.rejected[0]!.reasons.join()).toMatch(/generator failed/);
-  });
-
-  it('sends a token only when it is given', async () => {
-    const a = fakeFetch({ text: '[]' });
-    await httpGenerator('https://x.test', a.f).generate('p');
-    expect(a.calls[0]!.headers['Authorization']).toBeUndefined();
-    const b = fakeFetch({ text: '[]' });
-    await httpGenerator('https://x.test', b.f, 'abc').generate('p');
-    expect(b.calls[0]!.headers['Authorization']).toBe('Bearer abc');
-    const c = fakeFetch({ text: '{"ok":true,"issues":[]}' });
-    expect(await httpChecker('https://x.test', c.f).check(MOCK_QUESTIONS[0]!)).toEqual({ ok: true, issues: [] });
-    expect(typeof mockGenerator().generate).toBe('function');
+  it('works offline without a backend', async () => {
+    expect(questionApi('')).toBe(offlineQuestionApi);
+    expect(await offlineQuestionApi.fetch(req)).toEqual([]);
+    expect(questionApi('https://api.test').live).toBe(true);
   });
 });

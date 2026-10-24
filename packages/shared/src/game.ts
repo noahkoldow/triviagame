@@ -26,6 +26,7 @@ import { seededRng } from './rng';
 import { BASE_SKILL, updateSkill, type SkillMap } from './skill';
 import { isDue } from './srs';
 import { initialStory, storyFacts, type StoryState } from './story';
+import { initialLeague, type LeagueState } from './league';
 import { ROOT_QUESTIONS } from './content';
 import { sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Sector } from './types';
@@ -64,6 +65,8 @@ export interface PlayerState {
   stats: { correct: number; wrong: number; solved: number };
   /** Where the player is in the plot; see `story.ts`. */
   story: StoryState;
+  /** The weekly league; see `league.ts`. */
+  league: LeagueState;
 }
 
 export const COSMETICS: { id: string; de: string; color: string; cost: number }[] = [
@@ -104,6 +107,7 @@ export function initialPlayer(
     ads: { wrongSinceInterstitial: 0, lastInterstitialAt: null },
     stats: { correct: 0, wrong: 0, solved: 0 },
     story: initialStory(),
+    league: initialLeague(),
   };
 }
 

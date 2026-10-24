@@ -7,13 +7,13 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 export const IS_PROTOTYPE = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
- * Our own backend endpoint (a Cloud Function) that asks the AI model for questions. It holds the API key
- * and chooses the model; the app never sees either. Empty = no AI, the built-in questions are used.
+ * Base URL of our backend (Cloud Functions `questions` and `league`). It holds the API key and
+ * chooses the model; the app never sees either and never sends a prompt. Empty = offline: the
+ * built-in questions carry the game and the league is unavailable.
  */
-const DEFAULT_AI_ENDPOINT =
-  'https://europe-west3-nexus-trivia-prod-20261024.cloudfunctions.net/gemini';
-/** Set EXPO_PUBLIC_AI_ENDPOINT to override the production endpoint (for example, the emulator). */
-export const AI_ENDPOINT = process.env.EXPO_PUBLIC_AI_ENDPOINT ?? DEFAULT_AI_ENDPOINT;
+const DEFAULT_API_BASE = 'https://europe-west3-nexus-trivia-prod-20261024.cloudfunctions.net';
+/** Set EXPO_PUBLIC_API_BASE to override it (for example, the emulator). */
+export const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? DEFAULT_API_BASE;
 
 /** Required for the App Store listing: a public URL of the privacy policy. Fill in before submitting. */
 export const PRIVACY_URL = '';
