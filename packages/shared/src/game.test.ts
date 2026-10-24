@@ -56,13 +56,13 @@ describe('player flow', () => {
     expect(Object.keys(r.player.codex).some((id) => id.startsWith('sci-light-f4'))).toBe(false);
   });
 
-  it('wrong answers cost integrity, count attempts and feed the ad counter', () => {
+  it('wrong answers cost integrity and count attempts, but never trigger ads (D55)', () => {
     let p = initialPlayer(pool);
     p = recordWrong(p, pool, 'n0');
     p = recordWrong(p, pool, 'n0');
     expect(p.integrity).toBe(3);
     expect(p.network.nodes['n0']!.attempts).toBe(2);
-    expect(p.ads.wrongSinceInterstitial).toBe(2);
+    expect(p.ads.breaksSinceInterstitial).toBe(0);
     expect(p.skill['physics']!).toBeLessThan(1000);
   });
 

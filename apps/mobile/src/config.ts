@@ -19,3 +19,5 @@ export const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? DEFAULT_API_BASE;
 export const PRIVACY_URL = '';
 /** Support contact shown in the privacy notice. Fill in before submitting. */
 export const SUPPORT_EMAIL = '';
+/** Terms of use for subscriptions (App Store rule 3.1.2): Apple's standard EULA until there are own terms. */
+export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';

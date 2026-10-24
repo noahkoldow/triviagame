@@ -26,11 +26,14 @@ export function AdOverlay() {
       <View style={styles.backdrop}>
         <Window title={IS_PROTOTYPE ? 'Werbung (Test)' : 'Werbung'} icon="warn">
           {IS_PROTOTYPE ? <Text style={styles.badge}>TESTWERBUNG · {rewarded ? 'Belohnung' : 'Anzeige'}</Text> : null}
-          <Text style={styles.title}>{rewarded ? 'Reparatur-Funk' : 'Kurze Unterbrechung'}</Text>
+          <Text style={styles.title}>
+            {rewarded ? 'Reparatur-Funk' : req.kind === 'appOpen' ? 'Willkommen zurück' : 'Kurze Unterbrechung'}
+          </Text>
           <Text style={styles.body}>
             Hier würde AdMob eine {rewarded ? 'Video-Anzeige' : 'Anzeige'} zeigen.
             {req.personalized ? ' (personalisiert)' : ' (nicht personalisiert)'}
           </Text>
+          {rewarded ? null : <Text style={styles.body}>Werbung hält NEXUS kostenlos. Ohne Werbung: NEXUS Plus im Shop.</Text>}
           <Button
             label={left > 0 ? `Noch ${left} s …` : rewarded ? 'Belohnung abholen' : 'Weiter'}
             disabled={left > 0}

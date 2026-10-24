@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AD_POLICY,
   AREAS,
   MOCK_QUESTIONS,
   ROOT_QUESTIONS,
@@ -11,7 +12,10 @@ import {
   completeNode,
   growMissing,
   createNetwork,
-  decideAds,
+  appOpenDue,
+  interstitialDue,
+  logRewarded,
+  rewardedLeft,
   initialUnlockedAreas,
   isCorrect,
   levelFromXp,
@@ -30,6 +34,7 @@ import {
   pickArea,
   type NetNode,
   type NetworkState,
+  type RewardedLog,
   type SpawnContext,
 } from './index';
 
@@ -143,43 +148,47 @@ describe('skill & rewards', () => {
 });
 
 describe('monetization', () => {
+  const P = AD_POLICY;
   const base = {
     ageGroup: 'adult' as const,
-    consent: true,
     adFree: false,
-    wrongSinceInterstitial: 0,
-    lastInterstitialAt: null,
+    solved: P.forcedAfterSolved,
+    breaksSinceInterstitial: P.interstitialEveryBreaks,
+    lastAdAt: null,
+    now: 1_000_000_000,
   };
-  const ctx = { now: 1_000_000_000, phase: 'afterWrong' as const, boss: false };
-  it('offers rewarded after a wrong answer and interstitial only every third', () => {
-    expect(decideAds(base, ctx)).toEqual({
-      offerRewarded: true,
-      showInterstitial: false,
-      personalized: true,
-    });
-    expect(decideAds({ ...base, wrongSinceInterstitial: 3 }, ctx).showInterstitial).toBe(true);
+  it('shows an interstitial every n-th break once the first session is over', () => {
+    expect(interstitialDue(base)).toBe(true);
+    expect(interstitialDue({ ...base, breaksSinceInterstitial: P.interstitialEveryBreaks - 1 })).toBe(false);
+    expect(interstitialDue({ ...base, solved: P.forcedAfterSolved - 1 })).toBe(false);
   });
-  it('respects the minimum gap, premium, bosses and other phases', () => {
-    const s = { ...base, wrongSinceInterstitial: 5, lastInterstitialAt: ctx.now - 60_000 };
-    expect(decideAds(s, ctx).showInterstitial).toBe(false);
-    expect(decideAds({ ...s, lastInterstitialAt: null, adFree: true }, ctx).offerRewarded).toBe(
-      false,
-    );
-    expect(
-      decideAds({ ...base, wrongSinceInterstitial: 5 }, { ...ctx, boss: true }).showInterstitial,
-    ).toBe(false);
-    expect(
-      decideAds({ ...base, wrongSinceInterstitial: 5 }, { ...ctx, phase: 'other' })
-        .showInterstitial,
-    ).toBe(false);
+  it('keeps the gap to the last ad of any kind, respects ad-free and the switch', () => {
+    expect(interstitialDue({ ...base, lastAdAt: base.now - P.interstitialMinGapMs + 1 })).toBe(false);
+    expect(interstitialDue({ ...base, lastAdAt: base.now - P.interstitialMinGapMs })).toBe(true);
+    expect(interstitialDue({ ...base, adFree: true })).toBe(false);
+    expect(interstitialDue(base, { ...P, interstitials: false })).toBe(false);
   });
-  it('treats minors safely: rewarded only, never personalised', () => {
-    const m = { ...base, ageGroup: 'minor' as const, consent: true, wrongSinceInterstitial: 9 };
-    const d = decideAds(m, ctx);
-    expect(d.showInterstitial).toBe(false);
-    expect(d.personalized).toBe(false);
+  it('greets a returning player with an app-open ad, rarely', () => {
+    const open = { ...base, lastAppOpenAt: null, awayMs: null };
+    expect(appOpenDue(open)).toBe(true);
+    expect(appOpenDue({ ...open, awayMs: P.appOpenMinAwayMs - 1 })).toBe(false);
+    expect(appOpenDue({ ...open, lastAppOpenAt: base.now - P.appOpenMinGapMs + 1 })).toBe(false);
+    expect(appOpenDue({ ...open, lastAdAt: base.now - 1000 })).toBe(false);
+    expect(appOpenDue({ ...open, solved: 0 })).toBe(false);
+  });
+  it('treats minors safely: nothing forced', () => {
+    expect(interstitialDue({ ...base, ageGroup: 'minor', breaksSinceInterstitial: 9 })).toBe(false);
+    expect(appOpenDue({ ...base, ageGroup: 'minor', lastAppOpenAt: null, awayMs: null })).toBe(false);
     expect(birthYearToAgeGroup(2015, 2026)).toBe('minor');
     expect(birthYearToAgeGroup(2000, 2026)).toBe('adult');
+  });
+  it('limits rewarded videos per placement and day', () => {
+    let log: RewardedLog = { day: null, counts: {} };
+    for (let i = 0; i < P.rewardedPerDay.gems; i++) log = logRewarded(log, 'gems', '2026-10-24');
+    expect(rewardedLeft(log, 'gems', '2026-10-24')).toBe(0);
+    expect(rewardedLeft(log, 'energy', '2026-10-24')).toBe(P.rewardedPerDay.energy);
+    expect(rewardedLeft(log, 'gems', '2026-10-25')).toBe(P.rewardedPerDay.gems);
+    expect(logRewarded(log, 'gems', '2026-10-25').counts).toEqual({ gems: 1 });
   });
   it('prices areas: first free, then increasing', () => {
     expect(areaCost('physics')).toBe(0);

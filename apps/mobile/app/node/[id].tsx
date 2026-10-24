@@ -8,17 +8,18 @@ import {
   CACHE_FILES_PER_AREA,
   structureOpenCost,
   fragmentFiles,
-  decideAds,
   guardianLine,
   isCorrect,
+  markStarterSeen,
   morphLine,
-  noteInterstitialShown,
   recordCorrect,
   recordMaintenance,
   recordReviewResult,
   recordWrong,
+  rewardedOffer,
   sectorOfArea,
   spendRewind,
+  starterToPresent,
   type Answer,
   type GuardianId,
   type Reward,
@@ -27,13 +28,14 @@ import { Bolt } from '../../src/components/Bolt';
 import { CacheExplorer } from '../../src/components/CacheExplorer';
 import { CacheFiles } from '../../src/components/CacheFiles';
 import { cacheItems, structureView } from '../../src/state/folders';
+import { adBreak, watchRewarded } from '../../src/state/monetize';
 import { Guardian } from '../../src/components/Guardian';
 import { Icon } from '../../src/components/Icon';
 import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
 import { Morph } from '../../src/components/Morph';
 import { QuestionView } from '../../src/components/QuestionView';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
-import { ads } from '../../src/services/ads';
+import { track } from '../../src/services/analytics';
 import { pool } from '../../src/services/content';
 import { clearHint, getHint, setDebrisReturn, setHint, setRecentlySpawned } from '../../src/state/session';
 import { getState, today, update, useGame } from '../../src/state/store';
@@ -106,6 +108,8 @@ function NodeGame({
     guardian?: { who: GuardianId; name: string; text: string } | null;
     morph?: string;
     attempts: number;
+    /** The starter pack became available with this answer (shown once outside the shop). */
+    starter?: boolean;
   } | null>(null);
   const [adBusy, setAdBusy] = useState(false);
 
@@ -146,7 +150,13 @@ function NodeGame({
       setRecentlySpawned(r.spawned);
       clearHint(nodeId);
       tap('success');
+      const starter = starterToPresent(getState());
+      if (starter) {
+        update(markStarterSeen);
+        track({ name: 'offer_shown', offer: 'starter' });
+      }
       setResult({
+        starter,
         correct: true,
         reward: r.reward,
         spawned: r.spawned,
@@ -163,47 +173,17 @@ function NodeGame({
     tap('error');
     setResult({ correct: false, morph, attempts: getState().network.nodes[nodeId]!.attempts });
     setPhase('result');
-
-    // ads after a wrong answer: rewarded is offered (below), interstitial only rarely
-    const s = getState();
-    const decision = decideAds(
-      {
-        ageGroup: s.profile.ageGroup,
-        consent: s.profile.consent,
-        adFree: s.profile.adFree,
-        ...s.ads,
-      },
-      { now: Date.now(), phase: 'afterWrong', boss: false },
-    );
-    if (decision.showInterstitial) {
-      await ads.showInterstitial({ personalized: decision.personalized });
-      update((p) => noteInterstitialShown(p, Date.now()));
-    }
+    // no ad here: a wrong answer is part of learning; ads wait for the break (D55)
   };
 
-  const offerRewarded = (() => {
-    const s = getState();
-    const d = decideAds(
-      {
-        ageGroup: s.profile.ageGroup,
-        consent: s.profile.consent,
-        adFree: s.profile.adFree,
-        ...s.ads,
-      },
-      { now: Date.now(), phase: 'afterWrong', boss: false },
-    );
-    return d.offerRewarded;
-  })();
+  // the second chance after a wrong answer: a video, or at once with Plus; limited per day
+  const second = rewardedOffer(getState(), 'secondChance', today(), Date.now());
 
   const watchForSecondChance = async () => {
     setAdBusy(true);
-    const s = getState();
-    const watched = await ads.showRewarded({
-      personalized: s.profile.ageGroup === 'adult' && s.profile.consent,
-    });
+    const ok = await watchRewarded('secondChance');
     setAdBusy(false);
-    if (!watched) return;
-    update((p) => ({ ...p, integrity: Math.min(5, p.integrity + 1) }));
+    if (!ok) return;
     const key = q.fragments.find((f) => f.kind === 'key');
     if (key) setHint(nodeId, key.text);
     tap('success');
@@ -227,7 +207,11 @@ function NodeGame({
     setRewindOpen(true);
   };
 
-  const leave = () => router.back();
+  /** Back to the map. Leaving a result is a natural break, where an interstitial may come (D55). */
+  const leave = () => {
+    router.back();
+    if (phase === 'result') void adBreak();
+  };
 
   // ------------------------------------------------------------------ UI
   const header = (
@@ -423,6 +407,19 @@ function NodeGame({
                 </P>
               </Card>
             ))}
+            {r.starter ? (
+              <Card style={{ borderColor: colors.gem, gap: 8 }}>
+                <P style={{ color: colors.gem }}>
+                  Startpaket freigeschaltet: 100 Gems und 3 Streak-Schutz zum Einstiegspreis. Einmalig, bleibt im Shop.
+                </P>
+                <Button
+                  variant="gem"
+                  icon="gem"
+                  label="Ansehen"
+                  onPress={() => router.push({ pathname: '/shop', params: { from: 'starter' } })}
+                />
+              </Card>
+            ) : null}
             {r.closedCircle ? (
               <Card style={{ borderColor: colors.gem }}>
                 <P style={{ color: colors.gem }}>
@@ -468,14 +465,25 @@ function NodeGame({
             )}
             {!review ? (
               <>
-                {offerRewarded ? (
-                  <Button
-                    variant="gem"
-                    label="Reparatur-Funk (Video ansehen)"
-                    sub="Zweite Chance: +1 Integrität und ein Hinweis von Bolt"
-                    disabled={adBusy}
-                    onPress={watchForSecondChance}
-                  />
+                {second.left > 0 ? (
+                  <>
+                    <Button
+                      variant="gem"
+                      label={second.instant ? 'Reparatur-Funk (Plus)' : 'Reparatur-Funk (Video ansehen)'}
+                      sub={`Zweite Chance: +1 Integrität und ein Hinweis von Bolt · heute noch ${second.left}`}
+                      disabled={adBusy}
+                      onPress={watchForSecondChance}
+                    />
+                    {second.instant ? null : (
+                      <Pressable
+                        accessibilityRole="link"
+                        hitSlop={8}
+                        onPress={() => router.push({ pathname: '/plus', params: { from: 'secondChance' } })}
+                      >
+                        <Text style={styles.plusLink}>Ohne Video und ohne Werbung: NEXUS Plus</Text>
+                      </Pressable>
+                    )}
+                  </>
                 ) : null}
                 <Button label="Zurück ins Trümmerfeld" onPress={retry} />
                 {r.attempts >= 3 ? (
@@ -501,6 +509,7 @@ function NodeGame({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  plusLink: { color: colors.gem, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingVertical: 6 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

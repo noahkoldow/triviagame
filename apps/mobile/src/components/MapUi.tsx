@@ -222,7 +222,7 @@ function DockGlow() {
 export function Dock({
   items,
 }: {
-  items: { label: string; icon: IconName; onPress: () => void; tint?: string; glow?: boolean }[];
+  items: { label: string; icon: IconName; onPress: () => void; tint?: string; glow?: boolean; badge?: boolean }[];
 }) {
   return (
     <View style={[styles.dock, raised]}>
@@ -234,11 +234,12 @@ export function Dock({
             it.onPress();
           }}
           accessibilityRole="button"
-          accessibilityLabel={it.glow ? `${it.label}, neu` : it.label}
+          accessibilityLabel={it.glow || it.badge ? `${it.label}, neu` : it.label}
           style={({ pressed }) => [styles.dockItem, raised, pressed && pressedIn]}
         >
           {it.glow ? <DockGlow /> : null}
           <Icon name={it.icon} size={22} />
+          {it.badge ? <View style={styles.badge} /> : null}
           <Text style={styles.dockLabel}>{it.label}</Text>
           {it.glow ? <Text style={styles.dockNew}>NEU</Text> : null}
         </Pressable>
@@ -248,6 +249,17 @@ export function Dock({
 }
 
 const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.bad,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 3 },
   pane: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1 },
   level: { color: colors.text, fontWeight: '900', fontSize: 12 },

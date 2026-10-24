@@ -8,6 +8,8 @@ import {
   BOSS_REWARD,
   DEBRIS_COST,
   HEAL_COST,
+  dailyBonusDue,
+  rewardedOffer,
   areaById,
   buildField,
   canStartNode,
@@ -62,8 +64,8 @@ import { Dialog, Window } from '../src/components/Win';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
 import type { Shard } from '../src/map/NodeViews';
-import { ads } from '../src/services/ads';
 import { pool } from '../src/services/content';
+import { watchRewarded } from '../src/state/monetize';
 import { getHint, takeDebrisReturn, takeRecentlySpawned } from '../src/state/session';
 import { getState, today, update, useGame } from '../src/state/store';
 import { de } from '../src/strings';
@@ -90,6 +92,9 @@ export default function Home() {
   const [cacheOpen, setCacheOpen] = useState(false);
   const [tip, setTip] = useState(true);
   const [unstable, setUnstable] = useState(false);
+  const integrityVideo = rewardedOffer(getState(), 'integrity', today(), Date.now());
+  // the shop shows a dot while today's bonus waits
+  const dailyDue = useGame((p) => dailyBonusDue(p, today()));
   const [outpostId, setOutpostId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [firewallId, setFirewallId] = useState<string | null>(null);
@@ -401,7 +406,7 @@ export default function Home() {
             <Dock
               items={[
                 { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
-                { label: 'Shop', icon: 'gem', tint: colors.gem, onPress: () => router.push('/shop') },
+                { label: 'Shop', icon: 'gem', tint: colors.gem, badge: dailyDue, onPress: () => router.push('/shop') },
                 { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
                 // the league opens once morph.ai is beaten; right after the reveal its button glows
                 ...(leagueUnlocked(player)
@@ -608,15 +613,14 @@ export default function Home() {
                 onPress={startMaintenance}
               />
             ) : null}
-            <Button
-              label="Video ansehen: +1 Integrität"
-              variant="ghost"
-              onPress={async () => {
-                const s = getState();
-                const ok = await ads.showRewarded({ personalized: s.profile.ageGroup === 'adult' && s.profile.consent });
-                if (ok) update((p) => ({ ...p, integrity: Math.min(5, p.integrity + 1) }));
-              }}
-            />
+            {integrityVideo.left > 0 ? (
+              <Button
+                label={integrityVideo.instant ? '+1 Integrität (Plus)' : 'Video ansehen: +1 Integrität'}
+                sub={`Heute noch ${integrityVideo.left}`}
+                variant="ghost"
+                onPress={() => void watchRewarded('integrity')}
+              />
+            ) : null}
             <Button
               variant="gem"
               label={`Netz heilen · ${HEAL_COST}`}

@@ -23,3 +23,4 @@ export * from './story';
 export * from './migrate';
 export * from './serve';
 export * from './league';
+export * from './shop';

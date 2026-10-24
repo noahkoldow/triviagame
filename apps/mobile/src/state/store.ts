@@ -38,6 +38,7 @@ export async function hydrate(): Promise<void> {
           profile: { ...base.profile, ...saved.profile },
           streak: { ...base.streak, ...saved.streak },
           ads: { ...base.ads, ...saved.ads },
+          shop: { ...base.shop, ...saved.shop },
           stats: { ...base.stats, ...saved.stats },
           story: { ...base.story, ...saved.story },
           league: { ...base.league, ...saved.league },

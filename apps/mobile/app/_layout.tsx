@@ -1,12 +1,13 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdOverlay } from '../src/components/AdOverlay';
 import { Bolt } from '../src/components/Bolt';
 import { growWaitingNodes, rollWeek } from '@nexus/shared';
 import { pool, refillPool } from '../src/services/content';
+import { appOpened, syncEntitlements } from '../src/state/monetize';
 import { addRecentlySpawned } from '../src/state/session';
 import { getState, hydrate, update, useGame, useHydrated } from '../src/state/store';
 import { colors } from '../src/theme';
@@ -42,6 +43,21 @@ export default function RootLayout() {
       },
     );
   }, [hydrated, unlockedAreas, usedCount]);
+
+  // Plus from the store; an app-open ad on a cold start and when the player comes back (D55)
+  useEffect(() => {
+    if (!hydrated) return;
+    void syncEntitlements().then(() => appOpened(null));
+    let leftAt: number | null = null;
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'background') leftAt = Date.now();
+      if (s === 'active' && leftAt !== null) {
+        void appOpened(Date.now() - leftAt);
+        leftAt = null;
+      }
+    });
+    return () => sub.remove();
+  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;

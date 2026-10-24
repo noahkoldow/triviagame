@@ -5,9 +5,11 @@ import {
   DEBRIS_COST,
   areaCost,
   initialUnlockedAreas,
+  initialShop,
   trySpend,
-  type AdState,
+  type AdMemory,
   type AgeGroup,
+  type ShopState,
 } from './monetization';
 import {
   Pool,
@@ -63,7 +65,9 @@ export interface PlayerState {
   codex: Record<string, string>;
   ownedCosmetics: string[];
   activeCosmetic: string;
-  ads: Pick<AdState, 'wrongSinceInterstitial' | 'lastInterstitialAt'>;
+  ads: AdMemory;
+  /** Purchases, Plus and rewarded videos; see `shop.ts`. */
+  shop: ShopState;
   stats: { correct: number; wrong: number; solved: number };
   /** Where the player is in the plot; see `story.ts`. */
   story: StoryState;
@@ -107,7 +111,8 @@ export function initialPlayer(
     codex: {},
     ownedCosmetics: ['cyan'],
     activeCosmetic: 'cyan',
-    ads: { wrongSinceInterstitial: 0, lastInterstitialAt: null },
+    ads: { breaksSinceInterstitial: 0, lastAdAt: null, lastAppOpenAt: null },
+    shop: initialShop(),
     stats: { correct: 0, wrong: 0, solved: 0 },
     story: initialStory(),
     league: initialLeague(),
@@ -236,13 +241,8 @@ export function recordWrong(p: PlayerState, pool: Pool, nodeId: string): PlayerS
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false),
     },
     interest: recordResult(p.interest, q.area, false),
-    ads: { ...p.ads, wrongSinceInterstitial: p.ads.wrongSinceInterstitial + 1 },
     stats: { ...p.stats, wrong: p.stats.wrong + 1 },
   };
-}
-
-export function noteInterstitialShown(p: PlayerState, now: number): PlayerState {
-  return { ...p, ads: { wrongSinceInterstitial: 0, lastInterstitialAt: now } };
 }
 
 export interface CorrectResult {
