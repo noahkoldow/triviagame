@@ -47,8 +47,14 @@ export default function RootLayout() {
     if (!hydrated) return;
     const onOnboarding = segments[0] === 'onboarding';
     const onPrivacy = segments[0] === 'privacy';
-    if (!onboarded && !onOnboarding && !onPrivacy) router.replace('/onboarding');
-    if (onboarded && onOnboarding) router.replace('/');
+    // clear the stack first: after a reset from the profile, the old map would otherwise stay underneath
+    // and the new one could be swiped back into it
+    const restart = (href: '/' | '/onboarding') => {
+      if (router.canDismiss()) router.dismissAll();
+      router.replace(href);
+    };
+    if (!onboarded && !onOnboarding && !onPrivacy) restart('/onboarding');
+    if (onboarded && onOnboarding) restart('/');
   }, [hydrated, onboarded, segments, router]);
 
   if (!hydrated) {
