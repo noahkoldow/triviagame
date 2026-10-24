@@ -137,8 +137,10 @@ describe('AI: prompts and parsing', () => {
   });
 
   it('does not hard-wire a model name', () => {
-    const p = buildGenerationPrompt({ area: 'music', difficulty: 1, type: 'cloze', count: 1 });
+    const p = buildGenerationPrompt({ area: 'arts', difficulty: 1, type: 'cloze', count: 1 });
     expect(p.toLowerCase()).not.toMatch(/gemini|gpt|claude/);
+    // the scope of the area steers the topics
+    expect(p).toContain('Renaissance');
   });
 
   it('finds JSON in plain, fenced and chatty answers', () => {
@@ -182,7 +184,7 @@ describe('AI: the pipeline', () => {
   it('rejects questions of another area or type than asked for', async () => {
     const q = MOCK_QUESTIONS.find((x) => x.type === 'truefalse')!;
     const r = await generateQuestions(fake(JSON.stringify([asDraft(q)])), undefined, {
-      area: q.area === 'music' ? 'physics' : 'music',
+      area: q.area === 'arts' ? 'physics' : 'arts',
       difficulty: 1,
       type: 'truefalse',
       count: 1,

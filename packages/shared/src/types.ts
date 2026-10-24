@@ -1,4 +1,4 @@
-export type Sector = 'science' | 'nature' | 'culture' | 'history';
+export type Sector = 'science' | 'earth' | 'humanities' | 'society';
 
 export type FragmentKind = 'key' | 'context' | 'decoy';
 
@@ -138,10 +138,14 @@ export interface NetNode {
   locked?: boolean;
   /** Children that were withheld because of wrong answers; they grow after a successful repair. */
   missing?: ('deepen' | 'bridge')[];
+  /** Children that found no question yet; they grow as soon as new questions arrive (open end). */
+  waiting?: ('deepen' | 'bridge')[];
   /** Leitner box for damaged nodes (1..4). */
   box: number;
   /** ISO day (YYYY-MM-DD) when a damaged node is due again. */
   dueDay?: string;
+  /** ISO day of the last maintenance of a solved node (once a day it can win back integrity). */
+  maintainedOn?: string;
 }
 
 export interface NetworkState {

@@ -118,6 +118,9 @@ describe('skill & rewards', () => {
     expect(streakAfter(3, '2026-10-01', '2026-10-02', 0).streak).toBe(4);
     expect(streakAfter(3, '2026-10-01', '2026-10-03', 1)).toEqual({ streak: 4, freezes: 0 });
     expect(streakAfter(3, '2026-10-01', '2026-10-05', 1).streak).toBe(1);
+    // a new month refills the freezes before the gap is counted
+    expect(streakAfter(3, '2026-09-30', '2026-10-03', 0)).toEqual({ streak: 4, freezes: 0 });
+    expect(streakAfter(3, '2026-10-30', '2026-11-01', 0)).toEqual({ streak: 4, freezes: 1 });
   });
   it('schedules damaged nodes for review', () => {
     const n: NetNode = {
@@ -180,8 +183,8 @@ describe('monetization', () => {
   });
   it('prices areas: first free, then increasing', () => {
     expect(areaCost('physics')).toBe(0);
-    expect(areaCost('chemistry')).toBe(15);
-    expect(areaCost('computing')).toBe(25);
+    expect(areaCost('biomedicine')).toBe(15);
+    expect(areaCost('technology')).toBe(25);
   });
 });
 
@@ -226,7 +229,7 @@ describe('network growth', () => {
   });
 
   it('keeps a node in its main sector but bends it toward a side sector', () => {
-    const q = pool.get('sci-vaccine'); // science, side: nature .25
+    const q = pool.get('sci-vaccine'); // science, side: humanities .15
     expect(sectorOfArea(q.area)).toBe('science');
     const net = createNetwork(pool, { ...ROOT_QUESTIONS, science: 'sci-vaccine' });
     const th = polar(net.nodes['n0']!.pos).th;

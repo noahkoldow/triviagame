@@ -307,9 +307,9 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   const circuit: Circuit[] = [];
   const DIRS: { sector: Sector; dx: number; dy: number }[] = [
     { sector: 'science', dx: 0, dy: -1 },
-    { sector: 'nature', dx: 1, dy: 0 },
-    { sector: 'culture', dx: 0, dy: 1 },
-    { sector: 'history', dx: -1, dy: 0 },
+    { sector: 'earth', dx: 1, dy: 0 },
+    { sector: 'humanities', dx: 0, dy: 1 },
+    { sector: 'society', dx: -1, dy: 0 },
   ];
   for (const d of DIRS) {
     const px = -d.dy; // perpendicular

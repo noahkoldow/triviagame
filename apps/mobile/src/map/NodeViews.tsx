@@ -97,7 +97,7 @@ const ICONS: Record<Sector, { path: SkPath; fill: boolean }> = {
     }),
   },
   // leaf
-  nature: {
+  earth: {
     fill: true,
     path: unitPath((p) => {
       p.moveTo(-0.9, 0.9);
@@ -107,7 +107,7 @@ const ICONS: Record<Sector, { path: SkPath; fill: boolean }> = {
     }),
   },
   // note
-  culture: {
+  humanities: {
     fill: true,
     path: unitPath((p) => {
       p.addCircle(-0.35, 0.65, 0.4);
@@ -123,7 +123,7 @@ const ICONS: Record<Sector, { path: SkPath; fill: boolean }> = {
     }),
   },
   // column
-  history: {
+  society: {
     fill: true,
     path: unitPath((p) => {
       p.moveTo(-0.8, -0.9);

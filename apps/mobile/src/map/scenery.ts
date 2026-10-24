@@ -31,10 +31,10 @@ export function areaTint(area: string): number {
 
 // ---------------------------------------------------------------------------
 // Preview strand: a long chain far out from the core so the change of the
-// land colour (nature → culture) can be seen on one path.
+// land colour (earth → humanities) can be seen on one path.
 
 function nearestSector(angle: number): Sector {
-  let best: Sector = 'nature';
+  let best: Sector = 'earth';
   let bd = Infinity;
   for (const s of SECTORS) {
     let d = angle - SECTOR_ANGLE[s];
@@ -53,7 +53,7 @@ export function buildStrand(count = 16, seed = 'nexus-strand'): Site[] {
   const sites: Site[] = [];
   for (let i = 0; i < count; i++) {
     const t = i / (count - 1);
-    const angle = 0.62 + t * 0.9 + gaussian(rng) * 0.04; // nature → culture
+    const angle = 0.62 + t * 0.9 + gaussian(rng) * 0.04; // earth → humanities
     const r = 360 + t * 1900 + gaussian(rng) * 18;
     const sector = nearestSector(angle);
     const areas = areasOfSector(sector);

@@ -18,6 +18,9 @@ import {
   MAX_ENERGY,
   MAX_INTEGRITY,
   canStartNode,
+  isUnstable,
+  maintenanceTargets,
+  recordMaintenance,
   healIntegrity,
   msToNextEnergy,
   regenEnergy,
@@ -87,12 +90,12 @@ describe('player flow', () => {
 
   it('unlocks areas and debris with gems, never below zero', () => {
     const p = initialPlayer(pool);
-    expect(unlockArea(p, 'chemistry')).toBeNull(); // costs 15, we have 5
+    expect(unlockArea(p, 'biomedicine')).toBeNull(); // costs 15, we have 5
     const rich = { ...p, gems: 40 };
-    const u = unlockArea(rich, 'chemistry')!;
+    const u = unlockArea(rich, 'biomedicine')!;
     expect(u.gems).toBe(25);
-    expect(u.unlockedAreas).toContain('chemistry');
-    expect(unlockArea(u, 'chemistry')).toBeNull();
+    expect(u.unlockedAreas).toContain('biomedicine');
+    expect(unlockArea(u, 'biomedicine')).toBeNull();
     expect(openDebris(rich, 'n0')).toBeNull(); // not a locked debris node
   });
 
@@ -202,11 +205,54 @@ describe('consequences', () => {
   });
 
   it('blocks new nodes at integrity 0 but never repairs', () => {
-    const p0 = { ...initialPlayer(pool), integrity: 0 };
-    expect(canStartNode(p0, 'n0')).toBe(false);
-    expect(canStartNode(initialPlayer(pool), 'n0')).toBe(true);
+    const solved = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0).player;
+    const p0 = { ...solved, integrity: 0 };
+    expect(canStartNode(p0, 'n1', '2026-10-01')).toBe(false);
+    expect(canStartNode(initialPlayer(pool), 'n0', '2026-10-01')).toBe(true);
     const broken = completeNode3();
-    expect(canStartNode({ ...broken, integrity: 0 }, 'n0')).toBe(true);
+    expect(canStartNode({ ...broken, integrity: 0 }, 'n0', '2026-10-01')).toBe(true);
+  });
+
+  it('never locks up: without a way to win integrity back, new nodes stay open', () => {
+    // five wrong answers before anything is solved: nothing to repair or maintain
+    let p = initialPlayer(pool);
+    for (let i = 0; i < 5; i++) p = recordWrong(p, pool, 'n0');
+    expect(p.integrity).toBe(0);
+    expect(isUnstable(p, '2026-10-01')).toBe(false);
+    expect(canStartNode(p, 'n1', '2026-10-01')).toBe(true);
+  });
+
+  it('maintenance wins integrity back once a day per solved node', () => {
+    const solved = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0).player;
+    const p0 = { ...solved, integrity: 0 };
+    expect(maintenanceTargets(p0, '2026-10-01')).toEqual(['n0']);
+    expect(isUnstable(p0, '2026-10-01')).toBe(true);
+    const ok = recordMaintenance(p0, pool, 'n0', true, '2026-10-01');
+    expect(ok.integrity).toBe(1);
+    expect(recordMaintenance(ok, pool, 'n0', true, '2026-10-01')).toBe(ok);
+    expect(maintenanceTargets(ok, '2026-10-01')).toEqual([]);
+    expect(maintenanceTargets(ok, '2026-10-02')).toEqual(['n0']);
+    // a wrong answer uses up the day as well, without a penalty
+    const bad = recordMaintenance(p0, pool, 'n0', false, '2026-10-01');
+    expect(bad.integrity).toBe(0);
+    expect(maintenanceTargets(bad, '2026-10-01')).toEqual([]);
+    // the cache belongs to the next node and stays
+    const withCache = cacheAdd(p0, { questionId: 'x', fragmentId: 'y' })!;
+    expect(recordMaintenance(withCache, pool, 'n0', true, '2026-10-01').cache).toHaveLength(1);
+  });
+
+  it('only a due repair moves the box and pays; an early one still regrows', () => {
+    const broken = { ...completeNode3(), integrity: 2 };
+    const early = recordReviewResult(broken, pool, 'n0', true, '2026-10-01');
+    expect(early.due).toBe(false);
+    expect(early.reward).toEqual({ xp: 0, bits: 0, gems: 0 });
+    expect(early.player.integrity).toBe(2);
+    expect(early.player.network.nodes['n0']!.box).toBe(1);
+    expect(early.spawned.length).toBeGreaterThan(0);
+    const due = recordReviewResult(early.player, pool, 'n0', true, '2026-10-02');
+    expect(due.due).toBe(true);
+    expect(due.player.network.nodes['n0']!.box).toBe(2);
+    expect(due.player.integrity).toBe(3);
   });
 
   it('heals integrity with gems, and a repair gives one back', () => {

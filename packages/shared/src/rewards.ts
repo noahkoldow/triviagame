@@ -52,6 +52,9 @@ export function levelFromXp(xp: number): { level: number; into: number; next: nu
   return { level, into: left, next: need };
 }
 
+/** Streak freezes per month: the stock refills when a new month begins. */
+export const STREAK_FREEZES = 2;
+
 export function streakAfter(
   streak: number,
   lastDay: string | null,
@@ -60,6 +63,7 @@ export function streakAfter(
 ): { streak: number; freezes: number } {
   if (!lastDay) return { streak: 1, freezes };
   if (lastDay === today) return { streak, freezes };
+  if (lastDay.slice(0, 7) !== today.slice(0, 7)) freezes = Math.max(freezes, STREAK_FREEZES);
   const gap = Math.round(
     (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${lastDay}T00:00:00Z`)) / 86400000,
   );

@@ -302,6 +302,18 @@ const TOPICS: Record<string, string> = {
   'cl-music': 'Musik zählen',
   'cl-rome': 'Römische Technik',
   'cl-price': 'Angebot und Nachfrage',
+  'soc-eu': 'Europäische Union',
+  'soc-un': 'Vereinte Nationen',
+  'soc-powers': 'Gewaltenteilung',
+  'soc-basic': 'Grundrechte',
+  'soc-majority': 'Volljährigkeit',
+  'soc-court': 'Verfassungsgericht',
+  'soc-inflation': 'Inflation',
+  'hum-socrates': 'Antike Philosophie',
+  'hum-religions': 'Weltreligionen',
+  'ear-planets': 'Sonnensystem',
+  'ear-universe': 'Alter des Universums',
+  'ear-zones': 'Klimazonen',
 };
 
 const INTROS: Record<string, string> = {
@@ -354,6 +366,18 @@ const INTROS: Record<string, string> = {
   'cl-music': 'Musik lebt von Zahlen: von der Anzahl der Töne bis zur Besetzung eines Ensembles.',
   'cl-rome': 'Die Römer waren großartige Ingenieure und verbreiteten ihre Sprache über ganz Europa.',
   'cl-price': 'Märkte folgen einer einfachen Regel: Wenn etwas gefragter wird, verändert sich sein Preis.',
+  'soc-eu': 'Aus sechs Gründerstaaten ist eine Gemeinschaft geworden, die fast einen ganzen Kontinent umfasst.',
+  'soc-un': 'Nach dem Zweiten Weltkrieg schlossen sich Staaten zusammen, um den Frieden zu sichern.',
+  'soc-powers': 'In einer Demokratie ist die Macht auf mehrere Stellen verteilt, damit niemand zu viel davon hat.',
+  'soc-basic': 'Bevor das Grundgesetz Staat und Behörden ordnet, stellt es einen Grundsatz an den Anfang.',
+  'soc-majority': 'An einem bestimmten Geburtstag ändern sich viele Rechte und Pflichten auf einen Schlag.',
+  'soc-court': 'Ein Gericht wacht darüber, dass sich auch Parlament und Regierung an die Verfassung halten.',
+  'soc-inflation': 'Wenn die Preise steigen, verändert sich, was dein Geld eigentlich wert ist.',
+  'hum-socrates': 'Im alten Athen stritten Denker auf offener Straße über Gerechtigkeit, Wissen und das gute Leben.',
+  'hum-religions': 'Viele Religionen stützen sich auf heilige Schriften, die über Jahrhunderte überliefert wurden.',
+  'ear-planets': 'Acht Planeten ziehen ihre Bahnen um die Sonne, jeder in seinem eigenen Abstand.',
+  'ear-universe': 'Alles begann mit einem gewaltigen Ereignis. Heute lässt sich recht genau sagen, wann.',
+  'ear-zones': 'Je nachdem, wie weit ein Ort vom Äquator entfernt liegt, herrscht ein ganz anderes Klima.',
 };
 
 function base(c: Common) {
@@ -447,9 +471,9 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   estimate({
     id: 'sci-gravwaves',
-    area: 'physics',
+    area: 'astronomy',
     d: 4,
-    side: { history: 0.1 },
+    side: { science: 0.2 },
     stem: 'In welchem Jahr kam das erste direkt nachgewiesene Gravitationswellen-Signal bei LIGO an?',
     answer: 2015,
     tol: 0.0003,
@@ -473,7 +497,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'sci-water',
-    area: 'chemistry',
+    area: 'physics',
     d: 1,
     stem: 'Woraus besteht ein Wassermolekül?',
     options: [
@@ -499,7 +523,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'sci-ph',
-    area: 'chemistry',
+    area: 'physics',
     d: 2,
     stem: 'Was gilt für eine Lösung mit dem pH-Wert 3?',
     options: ['Sie ist sauer', 'Sie ist neutral', 'Sie ist basisch', 'Sie ist nicht messbar'],
@@ -515,7 +539,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'sci-binary',
-    area: 'computing',
+    area: 'technology',
     d: 2,
     stem: 'Welche Dezimalzahl entspricht der Binärzahl 1011?',
     options: ['9', '11', '13', '15'],
@@ -531,7 +555,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   estimate({
     id: 'sci-algo',
-    area: 'computing',
+    area: 'technology',
     d: 3,
     stem: 'Wie viele Schritte braucht die binäre Suche in 1.000 sortierten Einträgen höchstens?',
     answer: 10,
@@ -548,9 +572,9 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'sci-vaccine',
-    area: 'medicine',
+    area: 'biomedicine',
     d: 2,
-    side: { nature: 0.25, history: 0.15 },
+    side: { humanities: 0.15 },
     stem: 'Wer entwickelte 1796 die erste Impfung, und zwar gegen Pocken?',
     options: ['Louis Pasteur', 'Edward Jenner', 'Robert Koch', 'Alexander Fleming'],
     answer: 1,
@@ -574,9 +598,9 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'sci-penicillin',
-    area: 'medicine',
+    area: 'biomedicine',
     d: 3,
-    side: { history: 0.2 },
+    side: { humanities: 0.2 },
     stem: 'Was entdeckte Alexander Fleming 1928 im Labor?',
     options: ['Penicillin', 'Insulin', 'Röntgenstrahlen', 'Blutgruppen'],
     answer: 0,
@@ -604,7 +628,7 @@ export const MOCK_QUESTIONS: Question[] = [
   // ───────────── Natur & Welt ─────────────
   choice({
     id: 'nat-photosynthesis',
-    area: 'biology',
+    area: 'biomedicine',
     d: 1,
     stem: 'Welches Gas nehmen Pflanzen bei der Photosynthese auf?',
     options: ['Kohlenstoffdioxid', 'Sauerstoff', 'Stickstoff', 'Wasserstoff'],
@@ -625,7 +649,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'nat-chloroplast',
-    area: 'biology',
+    area: 'biomedicine',
     d: 3,
     stem: 'In welchen Zellorganellen läuft die Photosynthese ab?',
     options: ['Mitochondrien', 'Chloroplasten', 'Ribosomen', 'Zellkern'],
@@ -719,7 +743,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'nat-bee',
-    area: 'animals',
+    area: 'biomedicine',
     d: 2,
     stem: 'Wie nennt man die „Sprache“, mit der Honigbienen Futterquellen mitteilen?',
     options: ['Schwänzeltanz', 'Walzer', 'Balztanz', 'Regentanz'],
@@ -744,7 +768,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'nat-octopus',
-    area: 'animals',
+    area: 'biomedicine',
     d: 3,
     stem: 'Wie viele Herzen hat ein Tintenfisch (Krake)?',
     options: ['1', '2', '3', '8'],
@@ -785,7 +809,7 @@ export const MOCK_QUESTIONS: Question[] = [
   // ───────────── Kultur & Kunst ─────────────
   choice({
     id: 'cul-guitar',
-    area: 'music',
+    area: 'arts',
     d: 1,
     stem: 'Wie viele Saiten hat eine Standard-Gitarre?',
     options: ['4', '5', '6', '12'],
@@ -801,9 +825,8 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'cul-bach',
-    area: 'music',
+    area: 'arts',
     d: 3,
-    side: { history: 0.2 },
     stem: 'Wer schrieb „Das Wohltemperierte Klavier“?',
     options: [
       'Johann Sebastian Bach',
@@ -823,7 +846,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'cul-mona',
-    area: 'art',
+    area: 'arts',
     d: 1,
     stem: 'Wer malte die Mona Lisa?',
     options: ['Michelangelo', 'Leonardo da Vinci', 'Raffael', 'Botticelli'],
@@ -839,9 +862,8 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'cul-impression',
-    area: 'art',
+    area: 'arts',
     d: 3,
-    side: { history: 0.15 },
     stem: 'Welches Gemälde von Claude Monet gab dem Impressionismus seinen Namen?',
     options: [
       'Impression, Sonnenaufgang',
@@ -864,7 +886,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'cul-faust',
-    area: 'literature',
+    area: 'arts',
     d: 2,
     stem: 'Von wem stammt das Drama „Faust“?',
     options: [
@@ -885,9 +907,8 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'cul-grimm',
-    area: 'literature',
+    area: 'arts',
     d: 2,
-    side: { history: 0.15, culture: 0 },
     stem: 'Welches riesige Nachschlagewerk begannen die Brüder Grimm neben ihren Märchen?',
     options: [
       'Das Deutsche Wörterbuch',
@@ -906,7 +927,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'cul-language',
-    area: 'language',
+    area: 'arts',
     d: 2,
     stem: 'Welche Sprache hat weltweit die meisten Muttersprachler?',
     options: ['Englisch', 'Spanisch', 'Mandarin-Chinesisch', 'Hindi'],
@@ -928,7 +949,7 @@ export const MOCK_QUESTIONS: Question[] = [
   // ───────────── Geschichte & Gesellschaft ─────────────
   choice({
     id: 'his-pyramid',
-    area: 'antiquity',
+    area: 'history',
     d: 1,
     stem: 'Für welchen Pharao wurde die Große Pyramide von Gizeh gebaut?',
     options: ['Tutanchamun', 'Cheops', 'Ramses II.', 'Echnaton'],
@@ -944,9 +965,8 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'his-rosetta',
-    area: 'antiquity',
+    area: 'history',
     d: 3,
-    side: { culture: 0.3 },
     stem: 'Welcher Fund ermöglichte die Entzifferung der Hieroglyphen?',
     options: [
       'Der Stein von Rosette',
@@ -970,7 +990,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   estimate({
     id: 'his-rome',
-    area: 'antiquity',
+    area: 'history',
     d: 2,
     stem: 'In welchem Jahr gilt das Weströmische Reich als untergegangen?',
     answer: 476,
@@ -991,7 +1011,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   order({
     id: 'his-timeline',
-    area: 'antiquity',
+    area: 'history',
     d: 3,
     stem: 'Bringe diese Ereignisse in zeitliche Reihenfolge (früh → spät).',
     items: [
@@ -1011,9 +1031,9 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   choice({
     id: 'his-printing',
-    area: 'modern',
+    area: 'technology',
     d: 2,
-    side: { culture: 0.25, science: 0.15 },
+    side: { humanities: 0.25 },
     stem: 'Wer entwickelte um 1450 den Buchdruck mit beweglichen Lettern in Europa?',
     options: ['Johannes Gutenberg', 'Martin Luther', 'Albrecht Dürer', 'Leonardo da Vinci'],
     answer: 0,
@@ -1028,7 +1048,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   estimate({
     id: 'his-wall',
-    area: 'modern',
+    area: 'history',
     d: 2,
     stem: 'In welchem Jahr fiel die Berliner Mauer?',
     answer: 1989,
@@ -1092,7 +1112,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   truefalse({
     id: 'tf-spider',
-    area: 'animals',
+    area: 'biomedicine',
     d: 1,
     stem: 'Stimmt das? Spinnen sind Insekten.',
     answer: false,
@@ -1105,7 +1125,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   truefalse({
     id: 'tf-piano',
-    area: 'music',
+    area: 'arts',
     d: 1,
     stem: 'Stimmt das? Ein Standard-Klavier hat 88 Tasten.',
     answer: true,
@@ -1118,7 +1138,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   truefalse({
     id: 'tf-olympia',
-    area: 'antiquity',
+    area: 'history',
     d: 2,
     stem: 'Stimmt das? Die Olympischen Spiele der Antike fanden in Athen statt.',
     answer: false,
@@ -1131,7 +1151,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   truefalse({
     id: 'tf-salt',
-    area: 'chemistry',
+    area: 'physics',
     d: 2,
     stem: 'Stimmt das? Kochsalz besteht aus Natrium und Chlor.',
     answer: true,
@@ -1177,7 +1197,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   match({
     id: 'mt-classes',
-    area: 'animals',
+    area: 'biomedicine',
     d: 1,
     stem: 'Verbinde jedes Tier mit seiner Tierklasse.',
     pairs: [
@@ -1196,7 +1216,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   match({
     id: 'mt-instruments',
-    area: 'music',
+    area: 'arts',
     d: 2,
     stem: 'Verbinde jedes Instrument mit seiner Instrumentengruppe.',
     pairs: [
@@ -1215,7 +1235,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   match({
     id: 'mt-gods',
-    area: 'antiquity',
+    area: 'philosophy',
     d: 2,
     stem: 'Verbinde jeden griechischen Gott mit seinem Bereich.',
     pairs: [
@@ -1251,7 +1271,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   match({
     id: 'mt-words',
-    area: 'language',
+    area: 'arts',
     d: 1,
     stem: 'Verbinde jedes Wort mit der Sprache, aus der es stammt.',
     pairs: [
@@ -1286,7 +1306,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   cloze({
     id: 'cl-photo',
-    area: 'biology',
+    area: 'biomedicine',
     d: 1,
     stem: 'Setze die fehlenden Wörter ein.',
     text: 'Bei der Photosynthese nehmen Pflanzen {0} auf und geben {1} ab.',
@@ -1301,7 +1321,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   cloze({
     id: 'cl-music',
-    area: 'music',
+    area: 'arts',
     d: 1,
     stem: 'Ergänze die Zahlen als Wort.',
     text: 'Ein Dreiklang besteht aus {0} Tönen, ein Streichquartett aus {1} Spielern.',
@@ -1316,7 +1336,7 @@ export const MOCK_QUESTIONS: Question[] = [
   }),
   cloze({
     id: 'cl-rome',
-    area: 'antiquity',
+    area: 'history',
     d: 2,
     stem: 'Setze die fehlenden Wörter ein.',
     text: 'Die Römer leiteten Wasser über {0} in ihre Städte, und ihre Sprache war {1}.',
@@ -1344,12 +1364,237 @@ export const MOCK_QUESTIONS: Question[] = [
     ],
     why: 'Mehr Nachfrage bei gleichem Angebot macht ein Gut knapper, und der Preis steigt.',
   }),
+
+  // ───────────── Gesellschaft, Politik & Wirtschaft ─────────────
+  choice({
+    id: 'soc-eu',
+    area: 'politics',
+    d: 1,
+    stem: 'Wie viele Mitgliedstaaten hat die Europäische Union seit dem Austritt Großbritanniens?',
+    options: ['25', '27', '28', '30'],
+    answer: 1,
+    f: [
+      ['key', 'Erweiterung', 'Mit dem Beitritt Kroatiens 2013 wuchs die EU auf 28 Mitgliedstaaten.'],
+      ['key', 'Austritt', 'Großbritannien verließ die EU Ende Januar 2020 als bisher einziges Land.'],
+      ['context', 'Gründung', 'Sechs Staaten unterzeichneten 1957 die Römischen Verträge, den Grundstein der heutigen EU.'],
+      ['decoy', 'Europarat', 'Der Europarat ist keine Einrichtung der EU und hat 46 Mitgliedstaaten.'],
+      ['decoy', 'Währung', 'Nicht alle EU-Staaten zahlen mit dem Euro; Dänemark etwa behält seine Krone.'],
+    ],
+    why: 'Mit Kroatien waren es 2013 genau 28 Staaten. Seit dem Austritt Großbritanniens 2020 sind es 27.',
+    deepen: ['soc-un'],
+    bridge: ['his-euro', 'soc-basic'],
+  }),
+  truefalse({
+    id: 'soc-un',
+    area: 'politics',
+    d: 2,
+    stem: 'Im UN-Sicherheitsrat hat jedes Mitglied ein Vetorecht.',
+    answer: false,
+    f: [
+      ['key', 'Ständige', 'Der Sicherheitsrat hat fünf ständige Mitglieder: China, Frankreich, Russland, das Vereinigte Königreich und die USA.'],
+      ['key', 'Gewählte', 'Zehn weitere Mitglieder werden für je zwei Jahre gewählt und können kein Veto einlegen.'],
+      ['context', 'Gründung', 'Die Vereinten Nationen wurden 1945 nach dem Zweiten Weltkrieg gegründet.'],
+      ['decoy', 'Sitz', 'Der Hauptsitz der Vereinten Nationen liegt in New York.'],
+      ['decoy', 'Mitglieder', 'Den Vereinten Nationen gehören heute 193 Staaten an.'],
+    ],
+    why: 'Nur die fünf ständigen Mitglieder haben ein Vetorecht. Die zehn gewählten Mitglieder haben es nicht.',
+    deepen: ['soc-powers'],
+    bridge: ['his-wall'],
+  }),
+  match({
+    id: 'soc-powers',
+    area: 'politics',
+    d: 2,
+    stem: 'Verbinde jedes Verfassungsorgan mit der Gewalt, die es ausübt.',
+    pairs: [
+      ['Bundestag', 'Gesetzgebung'],
+      ['Bundesregierung', 'Ausführung'],
+      ['Bundesverfassungsgericht', 'Rechtsprechung'],
+    ],
+    f: [
+      ['key', 'Parlament', 'Das Parlament beschließt die Gesetze; im Bund ist das der Bundestag.'],
+      ['key', 'Regierung', 'Die Regierung mit Kanzlerin oder Kanzler setzt die Gesetze um und führt die Verwaltung.'],
+      ['key', 'Karlsruhe', 'Das höchste deutsche Gericht prüft in Karlsruhe, ob Gesetze mit dem Grundgesetz vereinbar sind.'],
+      ['context', 'Montesquieu', 'Montesquieu beschrieb drei Gewalten: die gesetzgebende, die ausführende und die richterliche.'],
+      ['decoy', 'Wahlalter', 'Bei Bundestagswahlen darf man ab 18 Jahren wählen.'],
+    ],
+    why: 'Der Bundestag beschließt Gesetze (Legislative), die Bundesregierung führt sie aus (Exekutive) und das Bundesverfassungsgericht spricht Recht (Judikative).',
+    deepen: ['his-states'],
+    bridge: ['soc-court'],
+  }),
+  choice({
+    id: 'soc-basic',
+    area: 'law',
+    d: 1,
+    stem: 'Mit welchem Satz beginnt Artikel 1 des deutschen Grundgesetzes?',
+    options: [
+      'Die Würde des Menschen ist unantastbar.',
+      'Alle Menschen sind vor dem Gesetz gleich.',
+      'Kunst und Wissenschaft sind frei.',
+      'Alle Deutschen haben das Recht, sich zu versammeln.',
+    ],
+    answer: 0,
+    f: [
+      ['key', 'Artikel 1', 'Artikel 1 nennt den Wert, den der Staat achten und schützen muss: die Würde jedes Menschen.'],
+      ['context', 'Gleichheit', 'Der Satz „Alle Menschen sind vor dem Gesetz gleich“ steht in Artikel 3.'],
+      ['context', 'Inkrafttreten', 'Das Grundgesetz trat am 23. Mai 1949 in Kraft.'],
+      ['decoy', 'Präsident', 'Der Bundespräsident wird für fünf Jahre gewählt.'],
+    ],
+    why: 'Artikel 1 beginnt mit „Die Würde des Menschen ist unantastbar.“ Die Gleichheit vor dem Gesetz steht in Artikel 3, die Kunstfreiheit in Artikel 5, die Versammlungsfreiheit in Artikel 8.',
+    deepen: ['soc-court'],
+    bridge: ['hum-socrates'],
+  }),
+  estimate({
+    id: 'soc-majority',
+    area: 'law',
+    d: 1,
+    stem: 'Mit wie vielen Jahren wird man in Deutschland volljährig?',
+    answer: 18,
+    tol: 0,
+    unit: 'Jahre',
+    f: [
+      ['key', 'Wahlrecht', 'Seit 1975 wird man in Deutschland mit dem Alter volljährig, ab dem man den Bundestag wählen darf.'],
+      ['key', 'Bundestagswahl', 'Den Bundestag wählen darf, wer am Wahltag das 18. Lebensjahr vollendet hat.'],
+      ['context', 'Früher', 'Vor 1975 wurde man in Deutschland erst mit 21 Jahren volljährig.'],
+      ['decoy', 'Strafmündig', 'Strafmündig ist man in Deutschland ab 14 Jahren.'],
+      ['decoy', 'Autofahren', 'Begleitetes Fahren mit dem Auto ist ab 17 Jahren möglich.'],
+    ],
+    why: 'Seit 1975 ist man in Deutschland mit 18 Jahren volljährig, vorher erst mit 21.',
+    deepen: ['soc-court'],
+    bridge: ['soc-inflation'],
+  }),
+  truefalse({
+    id: 'soc-court',
+    area: 'law',
+    d: 2,
+    stem: 'Das Bundesverfassungsgericht hat seinen Sitz in Berlin.',
+    answer: false,
+    f: [
+      ['key', 'Gerichtssitz', 'Das Bundesverfassungsgericht und der Bundesgerichtshof haben ihren Sitz in Karlsruhe.'],
+      ['context', 'Anfang', 'Das Bundesverfassungsgericht nahm 1951 seine Arbeit auf.'],
+      ['decoy', 'Reichstag', 'Der Bundestag tagt seit 1999 im Reichstagsgebäude in Berlin.'],
+      ['decoy', 'Amtszeit', 'Die Richterinnen und Richter am Bundesverfassungsgericht werden für zwölf Jahre gewählt.'],
+    ],
+    why: 'Das Bundesverfassungsgericht sitzt in Karlsruhe. In Berlin arbeiten Bundestag und Bundesregierung.',
+    bridge: ['soc-powers'],
+  }),
+  truefalse({
+    id: 'soc-inflation',
+    area: 'economy',
+    d: 2,
+    stem: 'Bei Inflation bekommt man für denselben Geldbetrag mehr Waren als vorher.',
+    answer: false,
+    f: [
+      ['key', 'Kaufkraft', 'Steigt das allgemeine Preisniveau, sinkt die Kaufkraft des Geldes.'],
+      ['context', 'Zielwert', 'Die Europäische Zentralbank strebt mittelfristig eine Inflationsrate von 2 Prozent an.'],
+      ['context', 'Deflation', 'Fallen die Preise über längere Zeit, spricht man von Deflation.'],
+      ['decoy', 'Münzen', 'Euro-Münzen haben eine gemeinsame europäische und eine nationale Seite.'],
+    ],
+    why: 'Bei Inflation steigen die Preise. Für denselben Betrag bekommt man also weniger, nicht mehr.',
+    deepen: ['cl-price'],
+    bridge: ['soc-majority'],
+  }),
+
+  // ───────────── Geisteswissenschaften: Philosophie & Religion ─────────────
+  choice({
+    id: 'hum-socrates',
+    area: 'philosophy',
+    d: 2,
+    stem: 'Welcher griechische Philosoph hinterließ selbst keine Schriften und ist vor allem durch seinen Schüler Platon bekannt?',
+    options: ['Aristoteles', 'Sokrates', 'Epikur', 'Pythagoras'],
+    answer: 1,
+    f: [
+      ['key', 'Marktplatz', 'Sokrates diskutierte auf dem Marktplatz Athens und schrieb selbst nie ein Buch.'],
+      ['key', 'Dialoge', 'Platon schrieb Dialoge, in denen sein Lehrer als Hauptfigur Fragen stellt.'],
+      ['context', 'Akademie', 'Platon gründete in Athen die Akademie, eine der ersten Philosophenschulen.'],
+      ['decoy', 'Alexander', 'Aristoteles war Schüler Platons und Lehrer Alexanders des Großen.'],
+    ],
+    why: 'Sokrates schrieb nichts auf. Was wir von ihm wissen, stammt vor allem aus den Dialogen Platons.',
+    deepen: ['hum-religions'],
+    bridge: ['his-rome'],
+  }),
+  match({
+    id: 'hum-religions',
+    area: 'philosophy',
+    d: 2,
+    stem: 'Verbinde jede Religion mit ihrer zentralen heiligen Schrift.',
+    pairs: [
+      ['Christentum', 'Bibel'],
+      ['Islam', 'Koran'],
+      ['Judentum', 'Tora'],
+      ['Hinduismus', 'Veden'],
+    ],
+    f: [
+      ['key', 'Offenbarung', 'Nach muslimischem Glauben wurde der Koran dem Propheten Mohammed offenbart.'],
+      ['key', 'Fünf Bücher', 'Die Tora umfasst die fünf Bücher Mose und ist die Grundlage des Judentums.'],
+      ['key', 'Sanskrit', 'Die Veden gehören zu den ältesten heiligen Schriften des Hinduismus und sind in Sanskrit verfasst.'],
+      ['context', 'Testamente', 'Die christliche Bibel besteht aus dem Alten und dem Neuen Testament.'],
+      ['decoy', 'Buddha', 'Siddhartha Gautama, der Buddha, lebte vermutlich im 5. Jahrhundert v. Chr. in Indien.'],
+    ],
+    why: 'Bibel (Christentum), Koran (Islam), Tora (Judentum) und Veden (Hinduismus) sind die zentralen Schriften dieser Religionen.',
+    deepen: ['mt-gods'],
+    bridge: ['cul-grimm'],
+  }),
+
+  // ───────────── Geographie & Erde: Astronomie & Klima ─────────────
+  order({
+    id: 'ear-planets',
+    area: 'astronomy',
+    d: 1,
+    stem: 'Ordne die Planeten nach ihrem Abstand zur Sonne, den nächsten zuerst.',
+    items: ['Merkur', 'Venus', 'Erde', 'Mars', 'Jupiter'],
+    f: [
+      ['key', 'Innen', 'Merkur kreist der Sonne am nächsten, danach folgt die Venus.'],
+      ['key', 'Roter Planet', 'Der Mars ist der äußere Nachbar der Erde.'],
+      ['key', 'Riese', 'Jupiter ist der größte Planet und kreist jenseits des Asteroidengürtels.'],
+      ['context', 'Anzahl', 'Seit 2006 zählt man im Sonnensystem acht Planeten.'],
+      ['decoy', 'Mond', 'Der Erdmond ist der fünftgrößte Mond im Sonnensystem.'],
+    ],
+    why: 'Von innen nach außen: Merkur, Venus, Erde, Mars und dahinter, jenseits des Asteroidengürtels, Jupiter.',
+    deepen: ['ear-universe'],
+    bridge: ['sci-light'],
+  }),
+  estimate({
+    id: 'ear-universe',
+    area: 'astronomy',
+    d: 3,
+    stem: 'Wie alt ist das Universum nach heutigen Messungen ungefähr (in Milliarden Jahren)?',
+    answer: 13.8,
+    tol: 0.05,
+    unit: 'Mrd. Jahre',
+    f: [
+      ['key', 'Urknall', 'Messungen der kosmischen Hintergrundstrahlung datieren den Urknall auf etwa 13,8 Milliarden Jahre zurück.'],
+      ['context', 'Erdalter', 'Die Erde ist etwa 4,5 Milliarden Jahre alt.'],
+      ['decoy', 'Lichtjahr', 'Ein Lichtjahr ist die Strecke, die Licht in einem Jahr zurücklegt.'],
+      ['decoy', 'Sonne', 'Die Sonne wird voraussichtlich noch etwa fünf Milliarden Jahre leuchten.'],
+    ],
+    why: 'Der Urknall liegt nach heutigen Messungen etwa 13,8 Milliarden Jahre zurück, rund dreimal so lange, wie es die Erde gibt.',
+    deepen: ['sci-gravwaves'],
+    bridge: ['nat-tectonic'],
+  }),
+  choice({
+    id: 'ear-zones',
+    area: 'climate',
+    d: 1,
+    stem: 'In welcher Klimazone liegt Deutschland?',
+    options: ['Tropen', 'Subtropen', 'Gemäßigte Zone', 'Polare Zone'],
+    answer: 2,
+    f: [
+      ['key', 'Jahreszeiten', 'Typisch für Deutschland sind vier ausgeprägte Jahreszeiten mit mildem Sommer und kühlem Winter.'],
+      ['key', 'Breitengrad', 'Deutschland liegt etwa zwischen dem 47. und 55. Grad nördlicher Breite.'],
+      ['context', 'Einteilung', 'Grob teilt man die Erde in tropische, subtropische, gemäßigte und polare Zonen ein.'],
+      ['decoy', 'Sahara', 'Die Sahara ist die größte heiße Wüste der Erde.'],
+    ],
+    why: 'Deutschland liegt in der gemäßigten Zone: Es gibt vier Jahreszeiten, und es ist weder tropisch heiß noch polar kalt.',
+    deepen: ['nat-climate'],
+    bridge: ['nat-rainforest'],
+  }),
 ];
 
-/** One starting question per sector. */
+/** One starting question per sector, each in the sector's free first area. */
 export const ROOT_QUESTIONS: Record<Sector, string> = {
   science: 'sci-light',
-  nature: 'nat-photosynthesis',
-  culture: 'cul-guitar',
-  history: 'his-pyramid',
+  earth: 'nat-everest',
+  humanities: 'his-pyramid',
+  society: 'his-states',
 };

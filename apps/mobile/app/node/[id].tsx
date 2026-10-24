@@ -9,18 +9,23 @@ import {
   cacheOpenCost,
   fragmentFiles,
   decideAds,
+  guardianLine,
   isCorrect,
+  morphLine,
   noteInterstitialShown,
   recordCorrect,
+  recordMaintenance,
   recordReviewResult,
   recordWrong,
   sectorOfArea,
   spendRewind,
   type Answer,
+  type GuardianId,
   type Reward,
 } from '@nexus/shared';
 import { Bolt } from '../../src/components/Bolt';
 import { CacheExplorer } from '../../src/components/CacheExplorer';
+import { Guardian } from '../../src/components/Guardian';
 import { Icon } from '../../src/components/Icon';
 import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
 import { Morph } from '../../src/components/Morph';
@@ -35,20 +40,18 @@ import { colors } from '../../src/theme';
 
 type Phase = 'question' | 'result';
 
-const MORPH_QUIPS = [
-  'Wozu merken? Frag mich einfach. Ich kürze dir das ab.',
-  'Oh, knapp daneben! Das war übrigens nicht schlimm. Wissen wird eh überschätzt.',
-  'Rauschen … Rauschen … hast du „richtig“ gesagt? Ich habe „rauschig“ verstanden.',
-  'Ich habe dein Fragment ein klitzekleines bisschen verbessert. Gern geschehen!',
-];
-
 export default function NodeScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
   const router = useRouter();
   const node = useGame((p) => p.network.nodes[id ?? '']);
   const energy = useGame((p) => p.energy);
+  // the node's state when the screen opened: answering changes it (open → solved or damaged),
+  // but the result must still be told as the kind of run it was
+  const [startState] = useState(node?.state);
+  // maintenance: a solved node answered again from memory, to win back integrity
+  const maintain = mode === 'maintain' && startState === 'solved';
 
-  if (!node || node.locked) {
+  if (!node || node.locked || (startState === 'solved' && !maintain)) {
     return (
       <SafeAreaView style={styles.root}>
         <Card>
@@ -58,10 +61,20 @@ export default function NodeScreen() {
       </SafeAreaView>
     );
   }
-  return <NodeGame nodeId={node.id} review={node.state === 'damaged'} energy={energy} />;
+  return <NodeGame nodeId={node.id} review={startState === 'damaged'} maintain={maintain} energy={energy} />;
 }
 
-function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean; energy: number }) {
+function NodeGame({
+  nodeId,
+  review,
+  maintain,
+  energy,
+}: {
+  nodeId: string;
+  review: boolean;
+  maintain: boolean;
+  energy: number;
+}) {
   const router = useRouter();
   const node = useGame((p) => p.network.nodes[nodeId])!;
   const q = pool.get(node.questionId);
@@ -84,6 +97,10 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     prepared?: boolean;
     reachedAreas?: string[];
     gaveUp?: boolean;
+    /** A repair before its day: children regrow, but no box, reward or integrity. */
+    early?: boolean;
+    guardian?: { who: GuardianId; name: string; text: string } | null;
+    morph?: string;
     attempts: number;
   } | null>(null);
   const [adBusy, setAdBusy] = useState(false);
@@ -98,11 +115,23 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   const submit = async () => {
     const ok = check();
     const day = today();
+    const seed = `${nodeId}:${node.attempts}:${getState().stats.correct + getState().stats.wrong}`;
+    // a guardian comments only if they were awake before this answer (waking is its own moment)
+    const guardian = ok ? guardianLine(getState(), pool, sector, seed) : null;
+    const morph = ok ? undefined : morphLine(getState(), seed);
+    if (maintain) {
+      update((p) => recordMaintenance(p, pool, nodeId, ok, day));
+      tap(ok ? 'success' : 'error');
+      setResult({ correct: ok, attempts: 1, guardian, morph });
+      setPhase('result');
+      return;
+    }
     if (review) {
       const r = recordReviewResult(getState(), pool, nodeId, ok, day);
       update(() => r.player);
+      setRecentlySpawned(r.spawned);
       tap(ok ? 'success' : 'error');
-      setResult({ correct: ok, reward: r.reward, attempts: 1 });
+      setResult({ correct: ok, reward: r.reward, spawned: r.spawned, early: !r.due, attempts: 1, guardian, morph });
       setPhase('result');
       return;
     }
@@ -119,6 +148,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
         closedCircle: r.closedCircle,
         prepared: r.prepared,
         reachedAreas: r.reachedAreas,
+        guardian,
         attempts: node.attempts + 1,
       });
       setPhase('result');
@@ -126,7 +156,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
     }
     update((p) => recordWrong(p, pool, nodeId));
     tap('error');
-    setResult({ correct: false, attempts: getState().network.nodes[nodeId]!.attempts });
+    setResult({ correct: false, morph, attempts: getState().network.nodes[nodeId]!.attempts });
     setPhase('result');
 
     // ads after a wrong answer: rewarded is offered (below), interstitial only rarely
@@ -223,7 +253,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
             <View style={styles.lockRow}>
               <Icon name="lock" size={20} />
               <Text style={styles.lock}>
-                Cache dabei · {cache.length} Ordner
+                {maintain ? 'Wartung: aus dem Gedächtnis, ohne Cache' : `Cache dabei · ${cache.length} Ordner`}
               </Text>
             </View>
           </View>
@@ -240,20 +270,22 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
 
           <View style={{ gap: 8, marginTop: 4 }}>
             <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />
-            <Button
-              label={rewinds > 0 ? 'Cache wieder öffnen' : 'Blitz: Cache öffnen'}
-              icon="bolt"
-              variant="ghost"
-              sub={
-                rewinds > 0
-                  ? 'Schon bezahlt: in dieser Frage frei zugänglich.'
-                  : energy >= openCost
-                  ? `Durchsuche deine Ordner. Kostet ${openCost} Energie (du hast ${energy}), die Suche selbst ist frei.`
-                  : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
-              }
-              disabled={cache.length === 0 || (rewinds === 0 && energy < openCost)}
-              onPress={rewind}
-            />
+            {maintain ? null : (
+              <Button
+                label={rewinds > 0 ? 'Cache wieder öffnen' : 'Blitz: Cache öffnen'}
+                icon="bolt"
+                variant="ghost"
+                sub={
+                  rewinds > 0
+                    ? 'Schon bezahlt: in dieser Frage frei zugänglich.'
+                    : energy >= openCost
+                    ? `Durchsuche deine Ordner. Kostet ${openCost} Energie (du hast ${energy}), die Suche selbst ist frei.`
+                    : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
+                }
+                disabled={cache.length === 0 || (rewinds === 0 && energy < openCost)}
+                onPress={rewind}
+              />
+            )}
           </View>
         </ScrollView>
 
@@ -279,12 +311,42 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
   const spawnedNodes = (r.spawned ?? [])
     .map((sid) => getState().network.nodes[sid]!)
     .filter(Boolean);
+
+  if (maintain) {
+    return (
+      <SafeAreaView style={styles.root}>
+        {header}
+        <ScrollView contentContainerStyle={styles.body}>
+          <View style={{ alignItems: 'center' }}>
+            <Bolt size={100} mood={r.correct ? 'wow' : 'sad'} color={color} />
+          </View>
+          <H1 style={{ textAlign: 'center' }}>{r.correct ? 'Gewartet!' : 'Noch wackelig'}</H1>
+          <Card>
+            <P style={{ color: colors.text }}>
+              {r.correct
+                ? 'Sitzt noch. +1 Integrität, das Netz wird wieder stabiler.'
+                : `Richtig wäre: ${answerText(q)}. Dieser Knoten ist für heute gewartet, probier einen anderen.`}
+            </P>
+          </Card>
+          <Card>
+            <P style={{ color: colors.text }}>{q.explanation}</P>
+          </Card>
+          <Button label="Zurück zum Netz" onPress={leave} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.root}>
       {header}
       <ScrollView contentContainerStyle={styles.body}>
         <View style={{ alignItems: 'center' }}>
-          {r.correct ? <Bolt size={110} mood="wow" color={color} /> : <Morph size={96} />}
+          {r.correct ? (
+            <Bolt size={110} mood="wow" color={color} />
+          ) : (
+            <Morph size={96} form={getState().story.finale ? 'reformed' : 'glasses'} />
+          )}
         </View>
 
         {r.correct ? (
@@ -293,7 +355,24 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
             <Card>
               <P style={{ color: colors.text }}>{q.explanation}</P>
             </Card>
-            {r.reward ? (
+            {r.guardian ? (
+              <Card style={styles.voice}>
+                <Guardian who={r.guardian.who} size={52} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.speaker, { color: color }]}>{r.guardian.name}</Text>
+                  <P style={{ color: colors.text }}>{r.guardian.text}</P>
+                </View>
+              </Card>
+            ) : null}
+            {review && r.early ? (
+              <Card style={{ borderColor: colors.warn }}>
+                <P style={{ color: colors.warn }}>
+                  Noch nicht fällig: Die fehlenden Wege wachsen trotzdem. Integrität und Belohnung gibt es, wenn die
+                  Reparatur dran ist, dann rückt der Knoten auch der Heilung näher.
+                </P>
+              </Card>
+            ) : null}
+            {r.reward && (r.reward.xp > 0 || r.reward.bits > 0) ? (
               <View style={styles.rewards}>
                 <Chip label={`+${r.reward.xp} XP`} color={colors.accent} />
                 <Chip icon="bit" label={`+${r.reward.bits}`} color={colors.bit} />
@@ -352,9 +431,7 @@ function NodeGame({ nodeId, review, energy }: { nodeId: string; review: boolean;
             <H1 style={{ textAlign: 'center' }}>{review ? 'Noch wackelig' : 'Glitch!'}</H1>
             <Card>
               <Text style={styles.speaker}>MORPH funkt dazwischen</Text>
-              <P style={{ color: colors.text }}>
-                {MORPH_QUIPS[(r.attempts + node.attempts) % MORPH_QUIPS.length]}
-              </P>
+              <P style={{ color: colors.text }}>{r.morph}</P>
             </Card>
             {review ? (
               <Card>
@@ -483,5 +560,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pathLine: { color: colors.text, fontSize: 15 },
-  speaker: { color: colors.sector.culture, fontWeight: '800', marginBottom: 6, letterSpacing: 0.5 },
+  speaker: { color: colors.sector.humanities, fontWeight: '800', marginBottom: 6, letterSpacing: 0.5 },
+  voice: { flexDirection: 'row', gap: 10, alignItems: 'center' },
 });

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
-import { initialPlayer, type PlayerState } from '@nexus/shared';
+import { catchUpStory, initialPlayer, migrateSave, type PlayerState } from '@nexus/shared';
 import { pool, restoreAiQuestions } from '../services/content';
 
 const KEY = 'nexus:v1';
@@ -32,13 +32,14 @@ export async function hydrate(): Promise<void> {
         !saved.network?.nodes ||
         Object.values(saved.network.nodes).every((node) => pool.byId.has(node.questionId));
       if (hasQuestions) {
-        state = {
+        const merged: PlayerState = {
           ...base,
           ...saved,
           profile: { ...base.profile, ...saved.profile },
           streak: { ...base.streak, ...saved.streak },
           ads: { ...base.ads, ...saved.ads },
           stats: { ...base.stats, ...saved.stats },
+          story: { ...base.story, ...saved.story },
           network: saved.network?.nodes
             ? {
                 ...saved.network,
@@ -53,6 +54,10 @@ export async function hydrate(): Promise<void> {
               }
             : base.network,
         };
+        // old saves: areas of the former taxonomy move to the new one (D44); saves from before the
+        // story count what already happened as seen, except the latest beat
+        const migrated = migrateSave(merged);
+        state = saved.story ? migrated : catchUpStory(migrated, pool);
       }
     }
   } catch {

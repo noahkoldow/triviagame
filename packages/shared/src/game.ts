@@ -1,4 +1,4 @@
-import { BOSS_PASS, BOSS_REWARD, type BossOutcome } from './boss';
+import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, type BossOutcome } from './boss';
 import type { CacheEntry } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
@@ -15,15 +15,17 @@ import {
   createNetwork,
   connectOutpost,
   growMissing,
+  growWaiting,
   outpostsReachedBy,
   reviewNode,
   unlockDebris,
   type SpawnContext,
 } from './network';
-import { MAX_ENERGY, MAX_INTEGRITY, rewardFor, streakAfter, type Reward } from './rewards';
+import { MAX_ENERGY, MAX_INTEGRITY, STREAK_FREEZES, rewardFor, streakAfter, type Reward } from './rewards';
 import { seededRng } from './rng';
 import { BASE_SKILL, updateSkill, type SkillMap } from './skill';
 import { isDue } from './srs';
+import { initialStory, storyFacts, type StoryState } from './story';
 import { ROOT_QUESTIONS } from './content';
 import { sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Sector } from './types';
@@ -60,6 +62,8 @@ export interface PlayerState {
   activeCosmetic: string;
   ads: Pick<AdState, 'wrongSinceInterstitial' | 'lastInterstitialAt'>;
   stats: { correct: number; wrong: number; solved: number };
+  /** Where the player is in the plot; see `story.ts`. */
+  story: StoryState;
 }
 
 export const COSMETICS: { id: string; de: string; color: string; cost: number }[] = [
@@ -91,7 +95,7 @@ export function initialPlayer(
     energy: MAX_ENERGY,
     energyAt: null,
     integrity: MAX_INTEGRITY,
-    streak: { count: 0, lastDay: null, freezes: 2 },
+    streak: { count: 0, lastDay: null, freezes: STREAK_FREEZES },
     unlockedAreas: initialUnlockedAreas(),
     cache: [],
     codex: {},
@@ -99,6 +103,7 @@ export function initialPlayer(
     activeCosmetic: 'cyan',
     ads: { wrongSinceInterstitial: 0, lastInterstitialAt: null },
     stats: { correct: 0, wrong: 0, solved: 0 },
+    story: initialStory(),
   };
 }
 
@@ -183,6 +188,17 @@ function reach(
     }
   }
   return { player, spawned, areas };
+}
+
+/**
+ * New questions arrived in the pool: branches that had to wait for one grow now (and may reach
+ * outposts). This is what keeps the network open-ended. Returns null when nothing grew.
+ */
+export function growWaitingNodes(p: PlayerState, pool: Pool, seed: string): { player: PlayerState; spawned: string[] } | null {
+  const grown = growWaiting(p.network, ctxFor(p, pool, `wait:${seed}`));
+  if (grown.spawned.length === 0) return null;
+  const reached = reach({ ...p, network: grown.state }, pool, grown.spawned, `wait:${seed}`);
+  return { player: reached.player, spawned: [...grown.spawned.map((n) => n.id), ...reached.spawned] };
 }
 
 /** The player tapped a node: a strong interest signal for its area. */
@@ -303,41 +319,118 @@ export function recordCorrect(
   };
 }
 
+/**
+ * A repair run on a damaged node. Only a repair that is due moves the node up a Leitner box and
+ * pays (reward, 1 integrity); an early repair still lets the withheld children grow, so playing
+ * the same node again and again earns nothing and the spacing keeps its meaning.
+ */
 export function recordReviewResult(
   p: PlayerState,
   pool: Pool,
   nodeId: string,
   correct: boolean,
   today: string,
-): { player: PlayerState; reward: Reward; spawned: string[] } {
+): { player: PlayerState; reward: Reward; spawned: string[]; due: boolean } {
   const n = p.network.nodes[nodeId];
-  if (!n || n.state !== 'damaged') return { player: p, reward: { xp: 0, bits: 0, gems: 0 }, spawned: [] };
+  if (!n || n.state !== 'damaged') return { player: p, reward: { xp: 0, bits: 0, gems: 0 }, spawned: [], due: false };
   const q = pool.get(n.questionId);
-  const reward = correct
-    ? rewardFor({ difficulty: q.difficulty, attempts: 1, rewinds: 0, kind: 'review' })
-    : { xp: 0, bits: 0, gems: 0 };
-  const reviewed = reviewNode(p.network, nodeId, correct, today);
+  const due = isDue(n, today);
+  const reward =
+    correct && due
+      ? rewardFor({ difficulty: q.difficulty, attempts: 1, rewinds: 0, kind: 'review' })
+      : { xp: 0, bits: 0, gems: 0 };
+  const reviewed = correct && !due ? p.network : reviewNode(p.network, nodeId, correct, today);
   const grown = correct
     ? growMissing(reviewed, nodeId, ctxFor(p, pool, `${nodeId}:repair`))
     : { state: reviewed, spawned: [] };
   const base: PlayerState = {
     ...p,
     network: grown.state,
-    integrity: correct ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
+    integrity: correct && due ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
   };
   const reached = reach(base, pool, grown.spawned as NetNode[], `${nodeId}:repair`);
   return {
     reward,
+    due,
     spawned: [...grown.spawned.map((s) => s.id), ...reached.spawned],
     player: {
       ...reached.player,
       cache: [],
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
-      skill: {
-        ...p.skill,
-        [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, correct),
+      skill: due
+        ? { ...p.skill, [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, correct) }
+        : p.skill,
+    },
+  };
+}
+
+/** Solved nodes that can be maintained today: answering one again wins back integrity (once a day each). */
+export function maintenanceTargets(p: PlayerState, today: string): string[] {
+  return Object.values(p.network.nodes)
+    .filter((n) => n.state === 'solved' && n.maintainedOn !== today)
+    .map((n) => n.id);
+}
+
+/**
+ * Integrity 0 makes the network unstable: new nodes wait until a repair or maintenance has
+ * won integrity back. Only while such a way exists, so the game can never lock up.
+ */
+export function isUnstable(p: PlayerState, today: string): boolean {
+  return p.integrity === 0 && (maintenanceTargets(p, today).length > 0 || dueReviews(p, today).length > 0);
+}
+
+/**
+ * Maintenance: the player answers a solved node's question again, from memory, without the
+ * cache. Right gives 1 integrity; either way the node is done for today (no guessing twice).
+ */
+export function recordMaintenance(
+  p: PlayerState,
+  pool: Pool,
+  nodeId: string,
+  correct: boolean,
+  today: string,
+): PlayerState {
+  const n = p.network.nodes[nodeId];
+  if (!n || n.state !== 'solved' || n.maintainedOn === today) return p;
+  const q = pool.get(n.questionId);
+  return {
+    ...p,
+    network: { ...p.network, nodes: { ...p.network.nodes, [nodeId]: { ...n, maintainedOn: today } } },
+    integrity: correct ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
+    skill: { ...p.skill, [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, correct) },
+  };
+}
+
+/**
+ * The final duel against MORPH, open once all chapters before it are done. Won: the story
+ * reaches its ending and pays big. Lost: one integrity, and the next duel brings new questions.
+ */
+export function recordFinale(
+  p: PlayerState,
+  pool: Pool,
+  correct: number,
+): { player: PlayerState; passed: boolean } {
+  if (!storyFacts(p, pool).finaleOpen) return { player: p, passed: false };
+  if (correct < FINALE_PASS) {
+    return {
+      passed: false,
+      player: {
+        ...p,
+        integrity: Math.max(0, p.integrity - 1),
+        story: { ...p.story, finaleAttempts: p.story.finaleAttempts + 1 },
+        stats: { ...p.stats, wrong: p.stats.wrong + 1 },
       },
+    };
+  }
+  return {
+    passed: true,
+    player: {
+      ...p,
+      xp: p.xp + FINALE_REWARD.xp,
+      bits: p.bits + FINALE_REWARD.bits,
+      gems: p.gems + FINALE_REWARD.gems,
+      story: { ...p.story, finale: true },
     },
   };
 }
@@ -374,12 +467,12 @@ export function spendRewind(p: PlayerState, now: number = Date.now(), cost = 1):
   return { ...r, energy: r.energy - cost, energyAt: r.energyAt ?? now };
 }
 
-/** At integrity 0 the network is unstable: new nodes stay closed, repairs are always allowed. */
-export function canStartNode(p: PlayerState, nodeId: string): boolean {
+/** While the network is unstable new nodes stay closed; repairs are always allowed. */
+export function canStartNode(p: PlayerState, nodeId: string, today: string): boolean {
   const n = p.network.nodes[nodeId];
   if (!n || n.locked) return false;
   if (n.state === 'damaged') return true;
-  return n.state === 'open' && p.integrity > 0;
+  return n.state === 'open' && !isUnstable(p, today);
 }
 
 export const HEAL_COST = 3;

@@ -1,6 +1,6 @@
 import { validateFiles } from './files';
 import { hashString } from './rng';
-import { AREAS, areaById } from './taxonomy';
+import { AREAS, SECTORS, areaById } from './taxonomy';
 import type { Fragment, FragmentKind, Question, QuestionType, Sector } from './types';
 
 /**
@@ -56,7 +56,8 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
   const area = areaById(req.area);
   return [
     'You write quiz questions for a German-language knowledge game. Answer with JSON only: an array of questions, no prose, no code fences.',
-    `Topic area: ${area.de} (${area.en}). Difficulty: ${req.difficulty} of 5. Type: ${req.type}. Number of questions: ${req.count}.`,
+    `Topic area: ${area.de} (${area.en}). It covers: ${area.scope}. Pick varied topics across this whole scope.`,
+    `Difficulty: ${req.difficulty} of 5. Type: ${req.type}. Number of questions: ${req.count}.`,
     req.avoidTopics?.length ? `Do not repeat these topics: ${req.avoidTopics.join(', ')}.` : '',
     '',
     'Every question has these common fields:',
@@ -299,7 +300,7 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
   if (d['side'] && typeof d['side'] === 'object') {
     side = {};
     for (const [k, v] of Object.entries(d['side'] as Record<string, unknown>)) {
-      if (!['science', 'nature', 'culture', 'history'].includes(k) || typeof v !== 'number' || v < 0 || v > 1) errors.push('side must map sectors to 0..1');
+      if (!(SECTORS as string[]).includes(k) || typeof v !== 'number' || v < 0 || v > 1) errors.push('side must map sectors to 0..1');
       else side[k as Sector] = v;
     }
   }

@@ -13,13 +13,17 @@ import { colors } from '../src/theme';
 
 /** Short axis labels, so sixteen of them fit around the chart. */
 const SHORT: Record<string, string> = {
-  computing: 'Info',
-  geography: 'Geo',
+  physics: 'Physik',
+  biomedicine: 'Bio',
+  technology: 'Technik',
+  geography: 'Topo',
   climate: 'Klima',
-  literature: 'Literatur',
-  antiquity: 'Antike',
+  astronomy: 'Astro',
+  arts: 'Kunst',
+  philosophy: 'Philo',
   politics: 'Politik',
   economy: 'Wirtschaft',
+  law: 'Recht',
 };
 
 export default function Profile() {

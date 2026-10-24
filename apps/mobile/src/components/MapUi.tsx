@@ -5,6 +5,7 @@ import {
   MAX_INTEGRITY,
   levelFromXp,
   msToNextEnergy,
+  type Chapter,
 } from '@nexus/shared';
 import { useGame } from '../state/store';
 import { colors } from '../theme';
@@ -85,6 +86,52 @@ function Stat({
   );
 }
 
+/** The chapter goal under the HUD: where the story goes next. In chapter 4 it starts the final duel. */
+export function GoalBar({ chapter, onFinale }: { chapter: Chapter; onFinale: () => void }) {
+  const label = `Kapitel ${chapter.n}: ${chapter.title}. ${chapter.goal}${chapter.finale ? '' : `, ${chapter.done} von ${chapter.total}`}`;
+  // dark text on the pink finale button, light text on the dark pane
+  const ink = chapter.finale ? { color: WIN.black } : null;
+  const body = (
+    <>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.goalChapter, ink]} maxFontSizeMultiplier={1.3}>
+          KAPITEL {chapter.n} · {chapter.title.toUpperCase()}
+        </Text>
+        <Text style={[styles.goalText, ink]} maxFontSizeMultiplier={1.3} numberOfLines={2}>
+          {chapter.goal}
+        </Text>
+      </View>
+      {chapter.finale ? (
+        <Text style={styles.goalGo}>Antreten ›</Text>
+      ) : (
+        <Text style={styles.goalCount}>
+          {Math.min(chapter.done, chapter.total)}/{chapter.total}
+        </Text>
+      )}
+    </>
+  );
+  if (!chapter.finale) {
+    return (
+      <View style={[styles.goal, sunken]} accessible accessibilityLabel={label}>
+        {body}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      onPress={() => {
+        tap();
+        onFinale();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. Finale starten`}
+      style={({ pressed }) => [styles.goal, raised, styles.goalFinale, pressed && pressedIn]}
+    >
+      {body}
+    </Pressable>
+  );
+}
+
 /**
  * The cache on the map: one bar that opens it. On the map it is free to open and to search;
  * inside a question the same cache costs energy, more the bigger it is.
@@ -148,6 +195,12 @@ const styles = StyleSheet.create({
   cacheCount: { flex: 1, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1 },
   cacheCountText: { color: colors.text, fontSize: 13, fontWeight: '800' },
   cacheOpen: { color: WIN.text, fontSize: 13, fontWeight: '700' },
+  goal: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, minHeight: 44 },
+  goalFinale: { backgroundColor: '#FF86D0' },
+  goalChapter: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  goalText: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  goalCount: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  goalGo: { color: WIN.black, fontSize: 14, fontWeight: '900' },
   dock: { flexDirection: 'row', gap: 4, padding: 3 },
   dockItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, minHeight: 44 },
   dockLabel: { color: WIN.text, fontSize: 13, fontWeight: '700' },

@@ -235,22 +235,18 @@ const KINDS: Record<string, Draw> = {
 };
 
 const KIND_OF_AREA: Record<string, keyof typeof KINDS> = {
-  physics: 'crystal',
-  chemistry: 'flask',
-  computing: 'cube',
-  medicine: 'cross',
-  biology: 'tree',
+  physics: 'flask',
+  biomedicine: 'tree',
+  technology: 'cube',
   geography: 'rock',
   climate: 'pine',
-  animals: 'bush',
-  music: 'note',
-  literature: 'books',
-  art: 'splat',
-  language: 'bubble',
-  antiquity: 'column',
-  modern: 'cube',
-  politics: 'column',
+  astronomy: 'crystal',
+  history: 'column',
+  arts: 'note',
+  philosophy: 'books',
+  politics: 'bubble',
   economy: 'coins',
+  law: 'column',
 };
 
 export function makePropAtlas(): PropAtlas | null {

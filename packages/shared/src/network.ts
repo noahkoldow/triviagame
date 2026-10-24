@@ -82,15 +82,25 @@ function steer(cands: Question[], area?: string): Question[] {
   return cands.filter((q) => areaDistance(q.area, area) === best);
 }
 
+/** The suggested follow-ups that are in the pool (a suggestion may point to a question this device lacks). */
+function known(ids: string[], pool: Pool): Question[] {
+  return ids.flatMap((id) => {
+    const q = pool.byId.get(id);
+    return q ? [q] : [];
+  });
+}
+
 export function pickDeepen(parent: Question, state: NetworkState, ctx: SpawnContext) {
   const used = new Set(state.usedQuestions);
   const ok = (q: Question) => !used.has(q.id) && ctx.unlockedAreas.includes(q.area);
-  let cands = parent.deepen.map((id) => ctx.pool.get(id)).filter(ok);
+  let cands = known(parent.deepen, ctx.pool).filter(ok);
   if (cands.length === 0) {
     cands = ctx.pool.list.filter(
       (q) => q.area === parent.area && ok(q) && q.difficulty >= parent.difficulty,
     );
   }
+  // at the top of an area any fresh question of it still goes deeper than nothing
+  if (cands.length === 0) cands = ctx.pool.list.filter((q) => q.area === parent.area && ok(q));
   const target = targetDifficulty(ctx.skill[parent.area] ?? BASE_SKILL) + 0;
   return closest(steer(cands, ctx.steerArea), Math.max(target, parent.difficulty));
 }
@@ -103,7 +113,7 @@ export function pickBridge(
 ) {
   const used = new Set([...state.usedQuestions, ...exclude]);
   const ok = (q: Question) => !used.has(q.id) && ctx.unlockedAreas.includes(q.area);
-  let cands = parent.bridge.map((id) => ctx.pool.get(id)).filter(ok);
+  let cands = known(parent.bridge, ctx.pool).filter(ok);
   if (cands.length === 0) {
     cands = ctx.pool.list.filter((q) => q.area !== parent.area && ok(q));
   }
@@ -238,26 +248,60 @@ export function completeNode(
   const spawned: NetNode[] = [];
 
   if (node.kind !== 'debris') {
-    if (!withheld.includes('deepen')) {
-      const dq = pickDeepen(parentQ, next, ctx);
-      if (dq) {
-        const r = addNode(next, solved, dq, 'deepen', {}, 0.7);
-        next = r.state;
-        spawned.push(r.node);
-      }
-    }
-    if (!withheld.includes('bridge')) {
-      const bq = pickBridge(parentQ, next, ctx);
-      if (bq) {
-        const r = addNode(next, solved, bq, 'bridge', {}, 0.3);
-        next = r.state;
-        spawned.push(r.node);
-      }
-    }
+    const kinds = (['deepen', 'bridge'] as const).filter((k) => !withheld.includes(k));
+    const grown = growChildren(next, solved, parentQ, kinds, ctx);
+    next = grown.state;
+    spawned.push(...grown.spawned);
   }
 
   const closedCircle = node.kind === 'bridge' && closesCircle(next, solved);
   return { state: next, spawned, closedCircle };
+}
+
+/**
+ * Grows the given children of a node. A child that finds no question yet is not lost: it is
+ * remembered as `waiting` on the node and grows once new questions arrive (`growWaiting`).
+ */
+function growChildren(
+  state: NetworkState,
+  parent: NetNode,
+  parentQ: Question,
+  kinds: readonly ('deepen' | 'bridge')[],
+  ctx: SpawnContext,
+): { state: NetworkState; spawned: NetNode[] } {
+  let next = state;
+  const spawned: NetNode[] = [];
+  const waiting: ('deepen' | 'bridge')[] = [];
+  for (const kind of kinds) {
+    const q = kind === 'deepen' ? pickDeepen(parentQ, next, ctx) : pickBridge(parentQ, next, ctx);
+    if (!q) {
+      waiting.push(kind);
+      continue;
+    }
+    const r = addNode(next, parent, q, kind, {}, kind === 'deepen' ? 0.7 : 0.3);
+    next = r.state;
+    spawned.push(r.node);
+  }
+  const current = next.nodes[parent.id]!;
+  const merged = [...new Set([...(current.waiting ?? []), ...waiting])];
+  const updated: NetNode = { ...current, waiting: merged.length ? merged : undefined };
+  return { state: { ...next, nodes: { ...next.nodes, [parent.id]: updated } }, spawned };
+}
+
+/** New questions arrived: every child that was waiting for one tries to grow again. */
+export function growWaiting(state: NetworkState, ctx: SpawnContext): { state: NetworkState; spawned: NetNode[] } {
+  let next = state;
+  const spawned: NetNode[] = [];
+  for (const node of Object.values(state.nodes)) {
+    if (!node.waiting?.length) continue;
+    const kinds = node.waiting;
+    const cleared: NetNode = { ...next.nodes[node.id]!, waiting: undefined };
+    next = { ...next, nodes: { ...next.nodes, [node.id]: cleared } };
+    const grown = growChildren(next, cleared, ctx.pool.get(node.questionId), kinds, withSteer(next, cleared, ctx));
+    next = grown.state;
+    spawned.push(...grown.spawned);
+  }
+  return { state: next, spawned };
 }
 
 /** A bridge ‘closes a circle’ when it ends up close to a solved node of another branch. */
@@ -284,25 +328,8 @@ export function growMissing(
   const parentQ = ctx.pool.get(node.questionId);
   ctx = withSteer(state, node, ctx);
   const cleared: NetNode = { ...node, missing: undefined };
-  let next: NetworkState = { ...state, nodes: { ...state.nodes, [nodeId]: cleared } };
-  const spawned: NetNode[] = [];
-  if (node.missing.includes('deepen')) {
-    const dq = pickDeepen(parentQ, next, ctx);
-    if (dq) {
-      const r = addNode(next, cleared, dq, 'deepen', {}, 0.7);
-      next = r.state;
-      spawned.push(r.node);
-    }
-  }
-  if (node.missing.includes('bridge')) {
-    const bq = pickBridge(parentQ, next, ctx);
-    if (bq) {
-      const r = addNode(next, cleared, bq, 'bridge', {}, 0.3);
-      next = r.state;
-      spawned.push(r.node);
-    }
-  }
-  return { state: next, spawned };
+  const next: NetworkState = { ...state, nodes: { ...state.nodes, [nodeId]: cleared } };
+  return growChildren(next, cleared, parentQ, node.missing, ctx);
 }
 
 export function unlockDebris(state: NetworkState, nodeId: string): NetworkState {

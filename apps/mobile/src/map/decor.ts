@@ -83,7 +83,7 @@ export function buildDecor(count = 650, seed = 'nexus-decor'): Decor {
         }
         break;
       }
-      case 'nature': {
+      case 'earth': {
         const tx = x + Math.cos(a) * s;
         const ty = y + Math.sin(a) * s;
         const nx = -Math.sin(a) * s * 0.36;
@@ -97,7 +97,7 @@ export function buildDecor(count = 650, seed = 'nexus-decor'): Decor {
         m.stroke.lineTo(tx, ty);
         break;
       }
-      case 'history': {
+      case 'society': {
         const w = s * 0.7;
         const h = s * 0.4;
         const c = Math.cos(a);
@@ -118,7 +118,7 @@ export function buildDecor(count = 650, seed = 'nexus-decor'): Decor {
         m.fill.addCircle(x + rng() * s, y + rng() * s, 1.3);
         break;
       }
-      case 'culture': {
+      case 'humanities': {
         if (rng() < 0.55) {
           m.fill.addCircle(x, y, 3.4);
           m.stroke.moveTo(x + 3.2, y);

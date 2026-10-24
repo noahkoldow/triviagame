@@ -20,7 +20,7 @@ const pool = new Pool(MOCK_QUESTIONS);
 describe('outposts', () => {
   it('scatters one disturbed outpost per area that is not open yet', () => {
     const o = createOutposts(initialUnlockedAreas());
-    expect(o).toHaveLength(16 - initialUnlockedAreas().length);
+    expect(o).toHaveLength(AREAS.length - initialUnlockedAreas().length);
     expect(o.every((x) => !x.connected)).toBe(true);
     for (const a of o) {
       let d = Math.atan2(a.y, a.x) - SECTOR_ANGLE[sectorOfArea(a.area)];
@@ -34,8 +34,8 @@ describe('outposts', () => {
 
   it('measures how far two topics are apart', () => {
     expect(areaDistance('physics', 'physics')).toBe(0);
-    expect(areaDistance('physics', 'chemistry')).toBe(1);
-    expect(areaDistance('chemistry', 'physics')).toBe(1);
+    expect(areaDistance('physics', 'biomedicine')).toBe(1);
+    expect(areaDistance('biomedicine', 'physics')).toBe(1);
     expect(areaDistance('physics', 'economy')).toBe(2);
   });
 
@@ -59,17 +59,17 @@ describe('outposts', () => {
   it('connects an outpost when growth reaches it and opens its area', () => {
     const p0 = initialPlayer(pool);
     const n0 = p0.network.nodes['n0']!;
-    // put the chemistry outpost right next to the first node
+    // put the biomedicine outpost right next to the first node
     const outposts = p0.network.outposts!.map((o) =>
-      o.area === 'chemistry' ? { ...o, x: n0.pos.x, y: n0.pos.y } : o,
+      o.area === 'biomedicine' ? { ...o, x: n0.pos.x, y: n0.pos.y } : o,
     );
     const p = { ...p0, network: { ...p0.network, outposts } };
     const r = recordCorrect(p, pool, 'n0', '2026-10-01', 0);
-    expect(r.reachedAreas).toEqual(['chemistry']);
-    expect(r.player.unlockedAreas).toContain('chemistry');
-    expect(r.player.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(true);
+    expect(r.reachedAreas).toEqual(['biomedicine']);
+    expect(r.player.unlockedAreas).toContain('biomedicine');
+    expect(r.player.network.outposts!.find((o) => o.area === 'biomedicine')!.connected).toBe(true);
     const fresh = r.spawned.map((id) => r.player.network.nodes[id]!);
-    expect(fresh.some((n) => pool.get(n.questionId).area === 'chemistry')).toBe(true);
+    expect(fresh.some((n) => pool.get(n.questionId).area === 'biomedicine')).toBe(true);
   });
 
   it('replace the locked debris fields: no locked nodes spawn any more', () => {
@@ -84,12 +84,12 @@ describe('outposts', () => {
 
   it('can be connected with gems', () => {
     const p = { ...initialPlayer(pool), gems: 100 };
-    const u = unlockArea(p, 'chemistry', pool)!;
-    expect(u.unlockedAreas).toContain('chemistry');
-    expect(u.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(true);
-    expect(Object.values(u.network.nodes).some((n) => pool.get(n.questionId).area === 'chemistry')).toBe(true);
+    const u = unlockArea(p, 'biomedicine', pool)!;
+    expect(u.unlockedAreas).toContain('biomedicine');
+    expect(u.network.outposts!.find((o) => o.area === 'biomedicine')!.connected).toBe(true);
+    expect(Object.values(u.network.nodes).some((n) => pool.get(n.questionId).area === 'biomedicine')).toBe(true);
     // without a pool it only opens the area
-    expect(unlockArea(p, 'chemistry')!.network.outposts!.find((o) => o.area === 'chemistry')!.connected).toBe(false);
+    expect(unlockArea(p, 'biomedicine')!.network.outposts!.find((o) => o.area === 'biomedicine')!.connected).toBe(false);
   });
 });
 
@@ -120,6 +120,6 @@ describe('knowledge footprint', () => {
     expect(physics.depth).toBeGreaterThan(0);
     expect(physics.coverage).toBeGreaterThan(0);
     expect(physics.coverage).toBeLessThanOrEqual(1);
-    expect(f.find((a) => a.area === 'music')!.solved).toBe(0);
+    expect(f.find((a) => a.area === 'arts')!.solved).toBe(0);
   });
 });

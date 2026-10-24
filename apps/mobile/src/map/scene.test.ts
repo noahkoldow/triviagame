@@ -137,13 +137,13 @@ describe('map scene', () => {
       state: 'solved',
     });
     const a = site('a', -60, 'physics');
-    const b = site('b', 60, 'biology');
+    const b = site('b', 60, 'biomedicine');
     const s = buildHexScene([a, b], []);
     const areaOf = (sprite: number) => AREAS[Math.floor(sprite / PROP_VARIANTS)]!.id;
     const near = s.props.filter((p) => Math.abs(p.x) < 80);
     const kinds = new Set(near.map((p) => areaOf(p.sprite)));
-    expect(kinds.has('physics') && kinds.has('biology')).toBe(true);
-    // colours: some tiles are neither pure physics nor pure biology ground
+    expect(kinds.has('physics') && kinds.has('biomedicine')).toBe(true);
+    // colours: some tiles are neither pure physics nor pure biomedicine ground
     const colours = new Set(s.tiles.map((t) => t.color));
     expect(colours.size).toBeGreaterThan(4);
   });

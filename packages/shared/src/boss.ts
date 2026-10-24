@@ -49,29 +49,49 @@ export function createFirewalls(): Firewall[] {
   });
 }
 
+/** The final duel against MORPH in the core: two questions from every sector, six must be right. */
+export const FINALE_ID = 'core';
+export const FINALE_QUESTIONS = 8;
+export const FINALE_PASS = 6;
+export const FINALE_REWARD = { xp: 200, bits: 150, gems: 10 };
+
+/** Questions of a sector near the player's level (plus `bias`), with some randomness. */
+function nearLevel(pool: Pool, sector: Sector, count: number, skill: SkillMap, rng: () => number, bias = 0): Question[] {
+  const cands = pool.list.filter((q) => sectorOfArea(q.area) === sector);
+  const scored = cands.map((q) => ({
+    q,
+    d: Math.abs(q.difficulty - targetDifficulty(skill[q.area] ?? BASE_SKILL) - bias) + rng() * 1.5,
+  }));
+  return scored.sort((x, y) => x.d - y.d).slice(0, count).map((x) => x.q);
+}
+
+/** Takes one question from each list in turn. */
+function interleave(lists: Question[][]): Question[] {
+  const out: Question[] = [];
+  const longest = Math.max(0, ...lists.map((l) => l.length));
+  for (let i = 0; i < longest; i++) {
+    for (const l of lists) if (l[i]) out.push(l[i]!);
+  }
+  return out;
+}
+
 /**
  * The questions of one fight, alternating between the two sectors: two questions of each
  * (of any type), near the player's level. Deterministic for a firewall and attempt.
  */
 export function bossQuestions(pool: Pool, fw: Firewall, skill: SkillMap): Question[] {
   const rng = seededRng(`boss:${fw.id}:${fw.attempts}`);
-  const pick = (sector: Sector, count: number): Question[] => {
-    const cands = pool.list.filter((q) => sectorOfArea(q.area) === sector);
-    const scored = cands.map((q) => ({
-      q,
-      d: Math.abs(q.difficulty - targetDifficulty(skill[q.area] ?? BASE_SKILL)) + rng() * 1.5,
-    }));
-    return scored.sort((x, y) => x.d - y.d).slice(0, count).map((x) => x.q);
-  };
   const half = BOSS_QUESTIONS / 2;
-  const qa = pick(fw.a, half);
-  const qb = pick(fw.b, half);
-  const out: Question[] = [];
-  for (let i = 0; i < half; i++) {
-    if (qa[i]) out.push(qa[i]!);
-    if (qb[i]) out.push(qb[i]!);
-  }
-  return out;
+  const qa = nearLevel(pool, fw.a, half, skill, rng);
+  const qb = nearLevel(pool, fw.b, half, skill, rng);
+  return interleave([qa, qb]);
+}
+
+/** The final duel: two questions per sector, one step above the player's level, in sector turns. */
+export function finaleQuestions(pool: Pool, attempt: number, skill: SkillMap): Question[] {
+  const rng = seededRng(`finale:${attempt}`);
+  const per = FINALE_QUESTIONS / SECTORS.length;
+  return interleave(SECTORS.map((s) => nearLevel(pool, s, per, skill, rng, 1)));
 }
 
 export interface BossOutcome {

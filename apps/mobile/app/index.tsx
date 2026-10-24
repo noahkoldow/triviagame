@@ -28,12 +28,21 @@ import {
   regenEnergy,
   snapToHex,
   sectorOfArea,
+  FINALE_ID,
+  chapterOf,
+  isUnstable,
+  maintenanceTargets,
+  markSeen,
+  pendingBeats,
+  seededRng,
+  storyFacts,
   type CacheEntry,
 } from '@nexus/shared';
 import { Bolt } from '../src/components/Bolt';
 import { Icon } from '../src/components/Icon';
-import { CacheBar, Dock, MapHud, glass } from '../src/components/MapUi';
+import { CacheBar, Dock, GoalBar, MapHud, glass } from '../src/components/MapUi';
 import { CacheExplorer } from '../src/components/CacheExplorer';
+import { StoryDialog } from '../src/components/StoryDialog';
 import { Dialog, Window } from '../src/components/Win';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
@@ -70,6 +79,19 @@ export default function Home() {
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
   const due = dueReviews(getState(), today());
+  const player = useGame((p) => p);
+  const facts = useMemo(() => storyFacts(player, pool), [player]);
+  const chapter = chapterOf(facts);
+  const unstableNow = isUnstable(player, today());
+  const maintain = maintenanceTargets(player, today());
+  // story beats wait until the map is on screen and nothing else is open
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
 
   useEffect(() => {
     const tick = () =>
@@ -197,12 +219,28 @@ export default function Home() {
   const openCount = nodes.filter((n) => n.state === 'open' && !n.locked).length;
   const hint = debrisId ? getHint(debrisId) : null;
 
+  const busy = !!(debrisId || shard || explorerOpen || firewall || outpost || unstable || selected || listOpen);
+  const beat = focused && !busy ? pendingBeats(player, pool)[0] : undefined;
+
+  // the nodes as a list: the same actions as the map, readable by screen readers
+  const listed = nodes
+    .filter((n) => !n.locked && (n.state === 'open' || n.state === 'damaged'))
+    .map((n) => ({ n, q: pool.get(n.questionId), dueNow: due.includes(n.id) }))
+    .sort((a, b) => Number(b.dueNow) - Number(a.dueNow) || Number(a.n.state === 'damaged') - Number(b.n.state === 'damaged'));
+
+  const startMaintenance = () => {
+    if (maintain.length === 0) return;
+    const id = maintain[Math.floor(seededRng(`maintain:${today()}:${maintain.length}`)() * maintain.length)]!;
+    setUnstable(false);
+    router.push({ pathname: '/node/[id]', params: { id, mode: 'maintain' } });
+  };
+
   const onSelect = (id: string) => {
     tap();
     const n = network.nodes[id];
     if (!n) return;
     if (!n.locked && (n.state === 'open' || n.state === 'damaged')) {
-      if (!canStartNode(getState(), id)) {
+      if (!canStartNode(getState(), id, today())) {
         setUnstable(true);
         return;
       }
@@ -216,7 +254,7 @@ export default function Home() {
   };
 
   const startQuestion = () => {
-    if (!debrisId || !canStartNode(getState(), debrisId)) return;
+    if (!debrisId || !canStartNode(getState(), debrisId, today())) return;
     router.push({ pathname: '/node/[id]', params: { id: debrisId } });
   };
 
@@ -259,12 +297,15 @@ export default function Home() {
         onLayout={(e) => setTopEdge(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
       >
         <MapHud />
-        {integrity === 0 ? (
+        {!debrisId ? (
+          <GoalBar chapter={chapter} onFinale={() => router.push({ pathname: '/boss/[id]', params: { id: FINALE_ID } })} />
+        ) : null}
+        {unstableNow ? (
           <Pressable style={[styles.banner, styles.bannerBad]} onPress={() => setUnstable(true)} accessibilityRole="button">
             <View style={styles.bannerRow}>
               <Icon name="heart" size={18} />
               <Text style={[styles.bannerText, { color: colors.bad, flex: 1 }]}>
-                Netz instabil: neue Knoten gesperrt. Repariere beschädigte Knoten.
+                Netz instabil: neue Knoten warten. Tippe hier für eine Wartung.
               </Text>
             </View>
           </Pressable>
@@ -391,7 +432,7 @@ export default function Home() {
             {firewall ? (
               <>
                 <Text style={styles.topic}>
-                  {de.sectors[firewall.a]} × {de.sectors[firewall.b]}
+                  {de.sectorsShort[firewall.a]} × {de.sectorsShort[firewall.b]}
                 </Text>
                 {firewall.broken ? (
                   <Text style={styles.fragText}>Diese Firewall ist gebrochen. Dahinter liegt die neue Zone.</Text>
@@ -459,9 +500,16 @@ export default function Home() {
         <Pressable style={styles.center} onPress={() => setUnstable(false)}>
           <Dialog title="Netz instabil" icon="warn" onClose={() => setUnstable(false)}>
             <Text style={styles.fragText}>
-              Zu viele Störungen: Neue Knoten bleiben gesperrt. Repariere beschädigte Knoten, denn jede gelungene
-              Reparatur gibt 1 Integrität zurück.
+              Zu viele Störungen: Neue Knoten warten. Mach eine Wartung: Beantworte eine schon gelöste Frage aus dem
+              Gedächtnis, ohne Cache. Jede gelungene Wartung oder fällige Reparatur gibt 1 Integrität zurück.
             </Text>
+            {maintain.length > 0 ? (
+              <Button
+                label="Wartung starten"
+                sub={`Heute noch an ${maintain.length} Knoten möglich, je Knoten einmal am Tag`}
+                onPress={startMaintenance}
+              />
+            ) : null}
             <Button
               label="Video ansehen: +1 Integrität"
               variant="ghost"
@@ -487,6 +535,73 @@ export default function Home() {
         </Pressable>
       </Modal>
 
+      {/* the node list (dock → "Knoten"): the map's actions for screen readers and small screens */}
+      <Modal transparent animationType="slide" visible={listOpen} onRequestClose={() => setListOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setListOpen(false)}>
+          <Dialog title={`Knoten (${listed.length})`} icon="shard" onClose={() => setListOpen(false)}>
+            <ScrollView style={{ maxHeight: size.height * 0.6 }} contentContainerStyle={{ gap: 6 }}>
+              {chapter.finale ? (
+                <Button
+                  label="Finale: MORPH im Kern stellen"
+                  onPress={() => {
+                    setListOpen(false);
+                    router.push({ pathname: '/boss/[id]', params: { id: FINALE_ID } });
+                  }}
+                />
+              ) : null}
+              {listed.map(({ n, q, dueNow }) => {
+                const status = n.state === 'open' ? 'offen' : dueNow ? 'Reparatur fällig' : 'beschädigt';
+                return (
+                  <Pressable
+                    key={n.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${q.topic}, ${areaById(q.area).de}, ${status}`}
+                    onPress={() => {
+                      setListOpen(false);
+                      onSelect(n.id);
+                    }}
+                    style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
+                  >
+                    <View style={[styles.listDot, { backgroundColor: colors.sector[sectorOfArea(q.area)] }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.listTopic}>{q.topic}</Text>
+                      <Text style={styles.listSub}>
+                        {areaById(q.area).de} · {status}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+              {firewalls
+                .filter((f) => !f.broken)
+                .map((f) => (
+                  <Pressable
+                    key={f.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Firewall ${de.sectors[f.a]} und ${de.sectors[f.b]}`}
+                    onPress={() => {
+                      setListOpen(false);
+                      setFirewallId(f.id);
+                    }}
+                    style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
+                  >
+                    <Icon name="warn" size={16} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.listTopic}>Firewall</Text>
+                      <Text style={styles.listSub}>
+                        {de.sectorsShort[f.a]} × {de.sectorsShort[f.b]}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+            </ScrollView>
+            <Button label="Schließen" variant="ghost" onPress={() => setListOpen(false)} />
+          </Dialog>
+        </Pressable>
+      </Modal>
+
+      <StoryDialog beat={beat} onDone={() => beat && update((p) => markSeen(p, beat.id))} />
+
       {/* locked debris field or an already restored node */}
       <Modal transparent animationType="slide" visible={!!selected} onRequestClose={() => setSel(null)}>
         <Pressable style={styles.backdrop} onPress={() => setSel(null)}>
@@ -494,7 +609,7 @@ export default function Home() {
             {selected && selQ ? (
               <>
                 <View style={styles.row}>
-                  <Pill label={de.sectors[sectorOfArea(selQ.area)]} color={colors.sector[sectorOfArea(selQ.area)]} />
+                  <Pill label={de.sectorsShort[sectorOfArea(selQ.area)]} color={colors.sector[sectorOfArea(selQ.area)]} />
                   <Pill label={de.kinds[selected.kind]} color={colors.dim} />
                 </View>
                 {selected.locked ? (
@@ -592,4 +707,8 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { color: colors.text, fontSize: 24, fontWeight: '800' },
   sheetText: { color: colors.dim, fontSize: 15, lineHeight: 22 },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingVertical: 4 },
+  listDot: { width: 12, height: 12 },
+  listTopic: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  listSub: { color: colors.dim, fontSize: 12 },
 });

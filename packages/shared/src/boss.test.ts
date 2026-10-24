@@ -27,7 +27,7 @@ describe('firewalls (bosses)', () => {
       expect(Math.hypot(f.x, f.y)).toBeCloseTo(640, 3);
       expect(f.broken).toBe(false);
     }
-    // the first one sits between science (up) and nature (right): up and to the right
+    // the first one sits between science (up) and earth (right): up and to the right
     expect(fws[0]!.x).toBeGreaterThan(0);
     expect(fws[0]!.y).toBeLessThan(0);
   });
