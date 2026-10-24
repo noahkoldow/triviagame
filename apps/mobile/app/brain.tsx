@@ -60,6 +60,11 @@ export default function BrainReveal() {
   const s = BRAIN_REVEAL[step]!;
   const last = step === BRAIN_REVEAL.length - 1;
 
+  // the first time after the finale the league follows; a replay from the settings just goes back
+  const [first] = useState(() => {
+    const p = getState();
+    return p.story.finale && !p.story.seen.includes(REVEAL_ID);
+  });
   // seen once the story got here (a replay from the settings before the finale changes nothing)
   useEffect(() => {
     update((p) => (p.story.finale ? markSeen(p, REVEAL_ID) : null));
@@ -124,7 +129,12 @@ export default function BrainReveal() {
   const brainLines = useDerivedValue(() => brain.value * 0.5);
   const brainFill = useDerivedValue(() => brain.value * 0.25);
 
-  const done = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const done = () => {
+    // in place of the reveal, so going back from the league lands on the map
+    if (first) router.replace({ pathname: '/league', params: { welcome: '1' } });
+    else if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
 
   return (
     <SafeAreaView style={styles.root}>

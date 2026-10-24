@@ -4,6 +4,8 @@ import {
   BRAIN_REVEAL,
   firewallReached,
   REVEAL_ID,
+  LEAGUE_NOTICED_ID,
+  leagueIsNew,
   leagueUnlocked,
   FINALE_PASS,
   FINALE_QUESTIONS,
@@ -115,6 +117,14 @@ describe('story', () => {
     const p = play(400, (x) => storyFacts(x, pool).finaleOpen);
     expect(leagueUnlocked(p)).toBe(false);
     expect(leagueUnlocked({ ...p, league: { ...p.league, playerId: 'joined-before' } })).toBe(true);
+  });
+
+  it('lets the league button glow after the reveal until it is tapped', () => {
+    const p = play(400, (x) => x.story.finale);
+    expect(leagueIsNew(p)).toBe(false);
+    const revealed = markSeen(p, REVEAL_ID);
+    expect(leagueIsNew(revealed)).toBe(true);
+    expect(leagueIsNew(markSeen(revealed, LEAGUE_NOTICED_ID))).toBe(false);
   });
 
   it('tells the reveal in short steps that end on the whole brain', () => {

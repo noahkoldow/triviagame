@@ -49,11 +49,12 @@ Spielbar in Expo Go (Mock-Daten):
 - **morph.ai** (D50): Die KI hat den Menschen Suchen, Sortieren und Merken abgenommen und das Netz „bereinigt“; Onboarding, Story-Momente und Sprüche erzählen das so.
 - **Cache und Ordner** (D49): Lose Ordner im Trümmerfeld lesen, in die Ordnerstruktur ablegen, bis zu 3 Dateien pro Thema in den Cache. In der Frage ist der Cache gratis, die Ordnerstruktur kostet 1–3 ⚡.
 - **Enthüllung** (D51): Nach dem Finale werden Leiterbahnen zu Nervenbahnen, Zoom bis zum Gehirn, „Ich weiß, dass ich nichts weiß“. Danach öffnet sich die Wochenliga. In den neuen Einstellungen (Profil → Einstellungen) jederzeit abspielbar.
-- **Ungeprüft auf Gerät:** die Gehirn-Animation (Skia + Reanimated), die neuen Cache-Fenster.
+- **Liga nach dem Gehirn** (D53): Nach der ersten Sequenz automatisch eingeordnet und Liga mit Begrüßung gezeigt; der Liga-Knopf im Dock leuchtet, bis man ihn antippt.
+- **Ungeprüft auf Gerät:** die Gehirn-Animation (Skia + Reanimated), die neuen Cache-Fenster, Einordnung und leuchtender Liga-Knopf.
 
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (150 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (153 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 

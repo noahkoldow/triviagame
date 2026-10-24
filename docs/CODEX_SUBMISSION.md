@@ -233,7 +233,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 - Es braucht keinen Login.
 - So läuft eine Runde: Knoten antippen, Ordner lesen, Frage beantworten.
 - Was Gems tun; die Käufe laufen in der Sandbox.
-- Die Wochenliga öffnet sich erst nach dem Finale (D51) und ist in der Prüfzeit nicht erreichbar. Sagen, dass sie freiwillig ist, nur erzeugte Rufnamen zeigt und beim Austreten gelöscht wird.
+- Die Wochenliga öffnet sich erst nach dem Finale (D51) und ist in der Prüfzeit nicht erreichbar. Danach wird man automatisch eingeordnet (D53). Sagen, dass man jederzeit austreten kann, sie nur erzeugte Rufnamen zeigt und der Eintrag beim Austreten gelöscht wird.
 - Server-Fragen schreibt eine KI. Sie werden geprüft und lassen sich melden.
 
 **8.4 App-Datenschutz-Etikett** (Entwurf, → H P4.3), deckungsgleich mit 6.2.

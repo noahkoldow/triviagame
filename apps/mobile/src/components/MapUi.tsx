@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import {
   MAX_ENERGY,
   MAX_INTEGRITY,
@@ -190,7 +199,31 @@ export function CacheBar({
 }
 
 /** The taskbar: grey, with raised buttons. */
-export function Dock({ items }: { items: { label: string; icon: IconName; onPress: () => void; tint?: string }[] }) {
+/** A pulsing gold light behind a new dock button (steady with reduced motion). */
+function DockGlow() {
+  const reduced = useReducedMotion();
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    if (reduced) {
+      cancelAnimation(pulse);
+      pulse.value = 1;
+      return undefined;
+    }
+    pulse.value = withRepeat(
+      withSequence(withTiming(0.3, { duration: 700 }), withTiming(1, { duration: 700 })),
+      -1,
+    );
+    return () => cancelAnimation(pulse);
+  }, [pulse, reduced]);
+  const style = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glow, style]} />;
+}
+
+export function Dock({
+  items,
+}: {
+  items: { label: string; icon: IconName; onPress: () => void; tint?: string; glow?: boolean }[];
+}) {
   return (
     <View style={[styles.dock, raised]}>
       {items.map((it) => (
@@ -201,11 +234,13 @@ export function Dock({ items }: { items: { label: string; icon: IconName; onPres
             it.onPress();
           }}
           accessibilityRole="button"
-          accessibilityLabel={it.label}
+          accessibilityLabel={it.glow ? `${it.label}, neu` : it.label}
           style={({ pressed }) => [styles.dockItem, raised, pressed && pressedIn]}
         >
+          {it.glow ? <DockGlow /> : null}
           <Icon name={it.icon} size={22} />
           <Text style={styles.dockLabel}>{it.label}</Text>
+          {it.glow ? <Text style={styles.dockNew}>NEU</Text> : null}
         </Pressable>
       ))}
     </View>
@@ -234,4 +269,15 @@ const styles = StyleSheet.create({
   // icon above the label, so five buttons fit on small phones
   dockItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 5, minHeight: 48 },
   dockLabel: { color: WIN.text, fontSize: 12, fontWeight: '700' },
+  glow: { backgroundColor: '#FFD23F', borderWidth: 2, borderColor: '#FFF6C2' },
+  dockNew: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    paddingHorizontal: 3,
+    backgroundColor: colors.bad,
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
 });

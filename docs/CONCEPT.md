@@ -124,7 +124,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - **Hack-Duell:** asynchron, gleiche Fragmente und Fragen, wer mehr behält, gewinnt.
 - **Netz-Reparatur (Koop):** Freunde bauen ein gemeinsames Netz, jeder deckt sein Interessengebiet ab.
 - **Vergleich der Fußabdrücke:** Überlappung und Lücken, mit der Frage „Was kannst du, was ich nicht kann?“.
-- Keine globale Hetze: statt einer Weltrangliste eine **Wochenliga** in Gruppen bis 20 mit Auf- und Abstieg, freiwillig und nur mit erzeugtem Rufnamen (D47). Freundes-Ranglisten können später dazukommen.
+- Keine globale Hetze: statt einer Weltrangliste eine **Wochenliga** in Gruppen bis 20 mit Auf- und Abstieg, nach dem Finale automatisch, jederzeit verlassbar und nur mit erzeugtem Rufnamen (D47, D53). Freundes-Ranglisten können später dazukommen.
 
 ### 6.6 Finanzierung: AdMob und Gems
 

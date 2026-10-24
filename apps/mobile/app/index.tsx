@@ -43,7 +43,9 @@ import {
   REVEAL_ID,
   firewallReached,
   firewallSteps,
+  leagueIsNew,
   leagueUnlocked,
+  LEAGUE_NOTICED_ID,
   rollWeek,
   seededRng,
   storyFacts,
@@ -401,9 +403,19 @@ export default function Home() {
                 { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
                 { label: 'Shop', icon: 'gem', tint: colors.gem, onPress: () => router.push('/shop') },
                 { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
-                // the league opens once morph.ai is beaten
+                // the league opens once morph.ai is beaten; right after the reveal its button glows
                 ...(leagueUnlocked(player)
-                  ? [{ label: 'Liga', icon: 'trophy' as const, onPress: () => router.push('/league') }]
+                  ? [
+                      {
+                        label: 'Liga',
+                        icon: 'trophy' as const,
+                        glow: leagueIsNew(player),
+                        onPress: () => {
+                          update((p) => markSeen(p, LEAGUE_NOTICED_ID));
+                          router.push('/league');
+                        },
+                      },
+                    ]
                   : []),
                 { label: 'Profil', icon: 'user', onPress: () => router.push('/profile') },
               ]}

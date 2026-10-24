@@ -15,8 +15,8 @@ const SECTIONS: { title: string; text: string }[] = [
     text: 'Damit dir die Fragen nie ausgehen, fragt die App unseren Server nach neuen Fragen. Dabei sendet sie nur den Themenbereich, eine Schwierigkeitsstufe und die Kennungen der Fragen, die sie schon hat. Der Server sieht technisch bedingt deine IP-Adresse; wir speichern davon nur einen gekürzten Prüfwert für höchstens zwei Stunden, um Missbrauch zu begrenzen.',
   },
   {
-    title: 'Wochenliga (freiwillig)',
-    text: 'Wenn du der Liga beitrittst, speichert der Server eine zufällige Kennung, einen erzeugten Rufnamen, den du auswählst, und deine XP der laufenden Woche. Andere sehen nur Rufname und Wochen-XP. Beim Austreten oder Zurücksetzen des Spielstands wird dein Eintrag gelöscht.',
+    title: 'Wochenliga (Austreten jederzeit)',
+    text: 'Nach dem Finale ordnet dich die App in die Liga ein. Dafür speichert der Server eine zufällige Kennung, einen erzeugten Rufnamen und deine XP der laufenden Woche. Andere sehen nur Rufname und Wochen-XP. Beim Austreten (im Liga-Bildschirm) oder Zurücksetzen des Spielstands wird dein Eintrag gelöscht.',
   },
   {
     title: 'Alter und Werbung',

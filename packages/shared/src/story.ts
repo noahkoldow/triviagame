@@ -64,6 +64,13 @@ export interface StoryFacts {
 
 /** Marks the reveal after the finale as seen (stored with the seen beats). */
 export const REVEAL_ID = 'brain-reveal';
+/** Marks that the player tapped the league in the dock after the reveal (stored with the seen beats). */
+export const LEAGUE_NOTICED_ID = 'league-noticed';
+
+/** After the reveal the league button glows until the player taps it once, so nobody misses it. */
+export function leagueIsNew(p: PlayerState): boolean {
+  return p.story.seen.includes(REVEAL_ID) && !p.story.seen.includes(LEAGUE_NOTICED_ID);
+}
 
 export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
   const bySector: Record<Sector, number> = { science: 0, earth: 0, humanities: 0, society: 0 };
@@ -332,7 +339,7 @@ export const STORY_BEATS: StoryBeat[] = [
     speaker: 'bolt',
     mood: 'proud',
     title: 'Neu: die Wochenliga',
-    text: 'Jetzt, wo du wieder selbst denkst, ist die Wochenliga offen (unten im Dock). Jede Woche trittst du mit bis zu 20 anderen unter einem Rufnamen an, es zählen die XP der Woche. Die besten fünf steigen auf. Mitmachen ist freiwillig.',
+    text: 'Jetzt, wo du wieder selbst denkst, ist die Wochenliga offen: der leuchtende Knopf unten im Dock. Jede Woche trittst du in einer Gruppe bis 20 unter einem Rufnamen an, es zählen die XP der Woche. Die besten fünf steigen auf. Austreten kannst du dort jederzeit.',
     when: (f) => f.finale && f.revealed,
   },
   {

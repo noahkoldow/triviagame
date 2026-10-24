@@ -1,5 +1,5 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -26,6 +26,8 @@ function remaining(endsAt: number): string {
 
 export default function League() {
   const router = useRouter();
+  // right after the brain reveal: the player is placed in the league and greeted
+  const welcome = useLocalSearchParams<{ welcome?: string }>().welcome === '1';
   const league = useGame((p) => p.league);
   const xp = useGame((p) => p.xp);
   const joined = !!league.playerId && !!league.token;
@@ -36,7 +38,9 @@ export default function League() {
   const [round, setRound] = useState(0);
   const options = useMemo(() => aliasOptions(`${aliasSeed(getState())}:${round}`), [round]);
   const [picked, setPicked] = useState(0);
+  const [placing, setPlacing] = useState(() => welcome && unlocked && leagueApi.live && !joined);
   const mine = weekXp({ ...getState(), xp, league });
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const sync = useCallback(async () => {
     const p = getState();
@@ -64,8 +68,7 @@ export default function League() {
     }, [sync, unlocked]),
   );
 
-  const join = async () => {
-    const alias = options[picked]!;
+  const join = async (alias = options[picked]!) => {
     setBusy(true);
     setError(null);
     try {
@@ -79,6 +82,11 @@ export default function League() {
     }
     await sync();
   };
+
+  // placed under the first suggested alias; if that fails, the usual join form shows with the error
+  useEffect(() => {
+    if (placing) void join(options[0]!).finally(() => setPlacing(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const leave = () =>
     Alert.alert(
@@ -108,7 +116,7 @@ export default function League() {
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <BackBar title="Wochenliga" onBack={() => router.back()} />
+        <BackBar title="Wochenliga" onBack={back} />
 
         {!unlocked ? (
           <Card style={{ gap: 8, alignItems: 'center' }}>
@@ -120,6 +128,11 @@ export default function League() {
         ) : !leagueApi.live ? (
           <Card>
             <P>Ohne Verbindung zum Server gibt es keine Liga. Das Spiel selbst läuft weiter.</P>
+          </Card>
+        ) : placing ? (
+          <Card style={{ gap: 8, alignItems: 'center' }}>
+            <Icon name="trophy" size={40} />
+            <P style={{ color: colors.text, textAlign: 'center' }}>Du wirst in deine erste Liga eingeordnet …</P>
           </Card>
         ) : !joined ? (
           <>
@@ -159,10 +172,25 @@ export default function League() {
                 }}
               />
             </Card>
-            <Button label={busy ? 'Einen Moment …' : 'Mitmachen'} disabled={busy} onPress={join} />
+            <Button label={busy ? 'Einen Moment …' : 'Mitmachen'} disabled={busy} onPress={() => join()} />
           </>
         ) : (
           <>
+            {welcome ? (
+              <>
+                <H1>Willkommen in der Wochenliga</H1>
+                <Card style={{ gap: 8 }}>
+                  <P style={{ color: colors.text }}>
+                    Du bist dabei als {league.alias}. Es zählen die XP, die du diese Woche sammelst: Die besten{' '}
+                    {LEAGUE_PROMOTE} deiner Gruppe steigen am Montag auf, die letzten {LEAGUE_DEMOTE} ab.
+                  </P>
+                  <P>
+                    Andere sehen nur deinen Rufnamen und deine Wochen-XP. Willst du nicht mitmachen, tritt unten aus, dann wird
+                    dein Eintrag gelöscht.
+                  </P>
+                </Card>
+              </>
+            ) : null}
             <Card style={{ gap: 4 }}>
               <View style={styles.head}>
                 <Icon name="trophy" size={28} />
@@ -214,6 +242,7 @@ export default function League() {
               </Card>
             ) : null}
 
+            {welcome ? <Button label="Zur Karte" onPress={back} /> : null}
             <Button label={busy ? 'Lädt …' : 'Aktualisieren'} variant="ghost" disabled={busy} onPress={sync} />
             <Button label="Aus der Liga austreten" variant="danger" onPress={leave} />
           </>
