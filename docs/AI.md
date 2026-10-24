@@ -1,6 +1,6 @@
 # KI-Anbindung: Fragen aus der KI, alle Typen
 
-Stand: Schema, Prüfung, Firebase-Backend und Laufzeit-Anbindung stehen. Einrichtung und Projektangaben: [FIREBASE.md](FIREBASE.md). Wenn das Backend nicht erreichbar oder deaktiviert ist, bleibt die App mit ihren lokalen Fragen spielbar.
+Stand: Schema, Prüfung, serverseitige Erzeugung mit gemeinsamem Fragenpool und Nachladen in der App stehen. Einrichtung und Projektangaben: [FIREBASE.md](FIREBASE.md). Wenn das Backend nicht erreichbar oder deaktiviert ist, bleibt die App mit ihren lokalen Fragen spielbar.
 
 ## Fragetypen
 
@@ -38,24 +38,20 @@ Alle Typen haben dazu: `area`, `difficulty`, `topic`, `intro`, `stem`, `explanat
 
 Ein Test prüft, dass alle vorhandenen Fragen diese Regeln bestehen, damit die Regeln realistisch bleiben.
 
-## Anbieter in der App (`apps/mobile/src/services/ai.ts`)
+## Wo die Pipeline läuft (D45)
 
-- `httpGenerator` und `httpChecker` rufen **unser eigenes Backend** auf (`AI_ENDPOINT` in `src/config.ts`). Die App sendet nur `{ task, prompt }`, keine Spielerdaten, und kennt weder Schlüssel noch Modell.
-- `mockGenerator` antwortet offline im selben JSON-Format aus den eingebauten Fragen (Entwicklung, Tests und wenn kein Backend konfiguriert ist).
-- `questionSource(endpoint)` wählt je nach Konfiguration.
+Die Pipeline läuft **nur auf dem Server** (Function `questions`, `functions/src/index.ts`). Die App sendet keinen Prompt, sondern `{ area, difficulty, count, have }` (`parsePoolRequest`). Der Server bedient zuerst aus dem gemeinsamen, geprüften Pool in Firestore. Nur wenn dort nichts Neues liegt, baut er den Prompt selbst (`buildGenerationPrompt` mit der Themenbeschreibung des Bereichs), ruft Gemini, validiert, lässt prüfen und legt das Ergebnis im Pool ab. Details: [FIREBASE.md](FIREBASE.md).
 
-## Firebase-Backend
+## In der App (`apps/mobile/src/services/ai.ts`, `content.ts`)
 
-- `POST { task: "generate" | "check", prompt }` → `{ text }`.
-- Den Schlüssel und den **Modellnamen aus der Konfiguration** (nicht im Code) verwenden.
-- **Tagesbudget und Kill-Switch** durchsetzen und nur anonyme Prompts verarbeiten. Der Gemini-Schlüssel liegt in Secret Manager.
-- Die App erzeugt beim Start höchstens eine Frage pro UTC-Tag. Die Shared-Pipeline validiert sie, ruft den Prüfer auf und fügt sie lokal dem Pool hinzu. Geprüfte KI-Fragen bleiben im Gerätespeicher verfügbar.
-- Gemeinsamer Firestore-Fragenpool und Meldefunktion für Fragen sind noch offen.
+- `httpQuestionApi` fragt `questions` an und prüft jede gelieferte Frage erneut (`acceptServed`: gleiche Validierung, unveränderte Kennung).
+- `refillPool` lädt nach, sobald ein freigeschalteter Bereich weniger als drei ungenutzte Fragen hat, auf dem Niveau des Spielers dort. Danach wachsen wartende Zweige (`growWaitingNodes`). So endet das Netz nie: Das Spiel ist offen.
+- Ohne Backend (`EXPO_PUBLIC_API_BASE=""`) spielt die App nur mit den 61 eingebauten Fragen.
 
 ## Offen
 
-- Geprüften Fragenpool in Firestore speichern und zwischen Geräten teilen.
-- Meldefunktion in der App.
+- Meldefunktion in der App und serverseitiges Sperren gemeldeter Fragen (`PoolEntry.blocked` ist vorbereitet).
+- Firebase App Check vor dem Launch.
 - Verzweigungen (`deepen`/`bridge`) und Bereichs-Nachbarschaft für KI-Fragen vorschlagen lassen; bisher wählt das Spiel selbst per Bereichs-Links.
 - Weitere Fragetypen, die zum Windows-95-Stil passen, etwa „In Ordner sortieren“ oder „Fehler im Text finden“.
 

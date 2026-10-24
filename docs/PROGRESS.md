@@ -31,19 +31,27 @@ Spielbar in Expo Go (Mock-Daten):
 
 - Neues Firebase-Projekt `nexus-trivia-prod-20261024`; Firestore-Standarddatenbank in `europe-west3`, Regeln deployed und Clientzugriffe gesperrt.
 - Gemini-HTTP-Function (Node 22, Region `europe-west3`) mit Secret-Manager-Integration, konfigurierbarem Modell, Kill-Switch und Firestore-Tageslimit.
-- App fragt beim Start höchstens eine KI-Frage pro Tag an. Shared-Validator und zweiter Gemini-Prüfer müssen sie annehmen; angenommene Fragen werden lokal gespeichert und zum Spielpool ergänzt.
-- **Noch nicht live bereitgestellt:** Cloud-Billing, Gemini-API-Schlüssel und Function-Deploy fehlen. Einrichtung: `docs/FIREBASE.md`.
+- Live bereitgestellt war bis D45 die Function `gemini` (Blaze, `GEMINI_API_KEY` in Secret Manager, `gemini-3.5-flash-lite`, 100 Modellaufrufe pro UTC-Tag). Sie nahm freie Prompts an und wird durch `questions` ersetzt (siehe 0.6).
+
+## Prototyp 0.6 (Regie: Plot, offenes Ende, Liga, neue Sektoren)
+
+- **Plot** (D36–D38): fünf Kapitel mit Zielleiste unter dem HUD, 18 Story-Momente als Dialoge, Logbuch im Codex, vier Hüter mit Porträts (erwachen bei 3 Knoten je Sektor, kommentieren richtige Antworten), Finale gegen MORPH im Kern. Danach endlos weiter mit Meilensteinen.
+- **Regeln** (D39–D43): kein Softlock bei Integrität 0 (Wartung), Reparatur zählt nur bei Fälligkeit, Streak-Freezes monatlich, Ergebnis-Screens frieren ihren Start ein, Knotenliste im Dock.
+- **Sektoren** (D44): Naturwissenschaften, Technik & Medizin · Geographie & Erde · Geisteswissenschaften & Kultur · Gesellschaft, Politik & Wirtschaft, je drei Bereiche, 61 eingebaute Fragen, Migration alter Spielstände.
+- **Kein offener Proxy** (D45): Functions `questions` (gemeinsamer geprüfter Pool, Erzeugung nur serverseitig, Limits pro IP) und `league`. **Im Code fertig, aber noch nicht deployed**; bis zum Deploy läuft live noch die alte `gemini`-Function.
+- **Offenes Ende** (D46): Nachschub je Bereich, wartende Zweige wachsen nach.
+- **Wochenliga** (D47): Dock → „Liga“, freiwillig, erzeugte Rufnamen, Austreten löscht den Eintrag.
+- **Assets:** App-Symbol, Splash, Hüter, MORPH-Formen, Bolt-Stimmungen (`docs/ASSETS.md`); HIG-Review in `docs/DESIGN_REVIEW.md`.
+- **Ungeprüft auf Gerät:** Story-Dialoge, Zielleiste, Porträts, Liga-Bildschirm.
 
 ## Verifiziert
 
-`pnpm typecheck`, `pnpm test`, `expo export --platform android` (Bundle baut). **Nicht** auf Gerät/Simulator gelaufen: Optik, Gesten und Haptik sind ungeprüft.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (142 + 35 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
-1. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren (Parallax, Dekor-Menge).
-2. Tages-Puls, Boss-Firewalls, Duelle/Koop, Events (Konzept 6.3/6.4).
-3. Cloud-Billing verknüpfen, Gemini-Schlüssel setzen und Function bereitstellen; danach KI-Anfragen auf Gerät prüfen.
-4. Gemeinsamen geprüften Firestore-Fragenpool, App Check, Auth, Meldefunktion und serverseitiges Interessenmodell aufbauen.
-5. Development Build: echte AdMob-/Kauf-Provider und UMP-Einwilligung.
-6. Englisch, Barrierefreiheit-Feinschliff, Sounds, illustrierte Assets für Bolt/MORPH/Hüter.
-7. Mehr Fragen (Pool wächst mit Gemini), derzeit enden die Pfade nach ~31 Knoten.
+1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Liga beitreten/abgleichen/austreten.
+2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
+3. Store-Launch nach `docs/CODEX_HANDOFF.md` (Käufe, Werbung, Meldefunktion, App Check, Recht, Store-Eintrag).
+4. Tages-Puls mit MORPH als Gastgeber, Duelle/Koop, Events.
+5. Englisch, Sounds, Design-Review abarbeiten.

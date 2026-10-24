@@ -34,5 +34,5 @@ Der Workflow `.github/workflows/eas-update.yml` prüft Typen und Tests und verö
 
 ## Hinweise
 
-- Werbung und Käufe sind Mocks (siehe `docs/DECISIONS.md` D1). Der Spielstand und angenommene KI-Fragen liegen lokal im Gerät. Das Gemini-Backend kann mit `EXPO_PUBLIC_AI_ENDPOINT` überschrieben werden (siehe `docs/FIREBASE.md`).
+- Werbung und Käufe sind Mocks (siehe `docs/DECISIONS.md` D1). Der Spielstand und nachgeladene Fragen liegen lokal im Gerät. Das Backend (Fragen-Nachschub und Wochenliga) lässt sich mit `EXPO_PUBLIC_API_BASE` umstellen, ein leerer Wert spielt offline (siehe `docs/FIREBASE.md`).
 - Zurücksetzen: Profil → „Spielstand zurücksetzen“.

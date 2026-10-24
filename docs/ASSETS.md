@@ -14,7 +14,7 @@ Drei Ebenen, die zusammen die Geschichte erzählen:
 | **Die Karte** | Hexagon-Platine im Kern, nach außen Biome (Wald, Archiv, Atelier, Labor), kräftige Duolingo-Farben, Low-Poly-Objekte | Je weiter vom Kern, desto weniger Computer. |
 | **Figuren** | Runde, dicke Formen; 2–3 flache Töne plus ein Leuchten in der Sektorfarbe; Gesicht auf einem Display oder klar lesbare Augen | Lesbar bei 40 px, freundlich, kein Kindchenschema-Kitsch. |
 
-- **Farben** (Tokens in `theme.ts`): Wissenschaft `#1CB0F6`, Natur `#58CC02`, Kultur `#CE82FF`, Geschichte `#FFC800`, MORPH `#FF86D0`, Grund `#131F24`, Display `#0B1220`.
+- **Farben** (Tokens in `theme.ts`): Naturwissenschaften `#1CB0F6`, Erde `#58CC02`, Geisteswissenschaften `#CE82FF`, Gesellschaft `#FFC800`, MORPH `#FF86D0`, Grund `#131F24`, Display `#0B1220`.
 - **Bewegung:** sanft (Schweben, Atmen, Blinzeln). Höchstens drei Wechsel pro Sekunde (Blitzregel). Bei „Bewegung reduzieren“ steht alles still.
 - **Keine Fotos, keine KI-Bilder, keine fremden Marken.** Rechte bleiben sauber, die App bleibt klein.
 - Jede Figur hat ein `accessibilityLabel` mit Namen und Rolle.
@@ -56,10 +56,10 @@ Sie schlafen im Archiv und erwachen, wenn ihr Sektor wächst (drei gelöste Knot
 
 | Hüter | Sektor | Gestalt | Ton |
 |---|---|---|---|
-| **Quantis** | Wissenschaft, Blau | Hologramm-Kopf aus einem Drahtgitter-Ikosaeder, Monokel aus einer Elektronenbahn, schwebende Zeichen (π, Σ), feine Scanlinien | übergenau, trocken |
-| **Rhizom** | Natur, Grün | Baumstumpf-Kopf mit Rindenmaserung, zwei ruhige Leucht-Augen in Astlöchern, Krone aus drei Blättern, Wurzelbart; atmet langsam | ruhig, spricht in Bildern |
-| **Kodex** | Geschichte, Gelb | Archivar-Eule: runder Körper, große runde Brille, Federkiel im Ohrbüschel, Pergamentrolle unter dem Flügel, Tintenfleck auf der Brust; blinzelt | zitiert gern, „irrt nie“ |
-| **Muse** | Kultur, Violett | Maske aus einem Farbklecks, Haare aus Pinselstrichen, Notenschlüssel als Ohrring, zwei schwebende Achtelnoten; Farbe wandert sanft | dramatisch, reimt |
+| **Quantis** | Naturwissenschaften, Blau | Hologramm-Kopf aus einem Drahtgitter-Ikosaeder, Monokel aus einer Elektronenbahn, schwebende Zeichen (π, Σ), feine Scanlinien | übergenau, trocken |
+| **Rhizom** | Geographie & Erde, Grün | Baumstumpf-Kopf mit Rindenmaserung, zwei ruhige Leucht-Augen in Astlöchern, Krone aus drei Blättern, Wurzelbart; atmet langsam | ruhig, spricht in Bildern |
+| **Kodex** | Gesellschaft, Gelb | Eule: runder Körper, große runde Brille, Federkiel im Ohrbüschel, Gesetzesrolle unter dem Flügel, Tintenfleck auf der Brust; blinzelt | zitiert gern, „irrt nie“ |
+| **Muse** | Geisteswissenschaften & Kultur, Violett | Maske aus einem Farbklecks, Haare aus Pinselstrichen, Notenschlüssel als Ohrring, zwei schwebende Achtelnoten; Farbe wandert sanft | dramatisch, reimt |
 
 Später (📋): je zwei Posen (ruhig, jubelnd) für Hüter-Momente.
 
@@ -101,7 +101,7 @@ Nur freie Lizenzen (CC0, z. B. Kenney-Audio-Pakete) oder Auftragsarbeit; jede Da
 | Klang | Charakter |
 |---|---|
 | Tippen, Fenster auf/zu | kurzer trockener Klick wie bei alten Systemen |
-| Richtig, pro Sektor | Wissenschaft: Synth-Pling · Natur: Marimba · Kultur: Pizzicato · Geschichte: weiches Horn |
+| Richtig, pro Sektor | Naturwissenschaften: Synth-Pling · Erde: Marimba · Geisteswissenschaften: Pizzicato · Gesellschaft: weiches Horn |
 | Falsch / Glitch | kurzer Bitcrush-Knackser, nie schrill |
 | MORPH erscheint | gefiltertes Rauschen, das anschwillt |
 | Firewall bricht | Glas-Splitter plus aufsteigender Akkord |

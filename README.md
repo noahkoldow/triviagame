@@ -12,7 +12,7 @@ pnpm start          # Expo-Dev-Server, QR-Code mit Expo Go scannen
 
 Ausführliche Anleitung (lokal, EAS Update, CI): [docs/TESTING.md](docs/TESTING.md).
 
-Der Spielfluss funktioniert offline mit Mock-Fragen, Mock-Werbung (Overlay statt AdMob) und Mock-Käufen. Wenn das Gemini-Backend aktiv ist, ergänzt es den Fragenpool höchstens einmal pro Tag. Der Spielstand liegt in `AsyncStorage`.
+Der Spielfluss funktioniert offline mit Mock-Fragen, Mock-Werbung (Overlay statt AdMob) und Mock-Käufen. Mit erreichbarem Backend lädt die App neue, serverseitig von Gemini erzeugte und geprüfte Fragen aus einem gemeinsamen Pool nach, sobald einem Bereich die Fragen ausgehen; das Spiel ist offen. Die Wochenliga braucht ebenfalls das Backend. Der Spielstand liegt in `AsyncStorage`.
 
 Firebase-/Gemini-Backend und Einrichtung: [docs/FIREBASE.md](docs/FIREBASE.md). Ohne gesetzten Endpoint spielt die App mit den eingebauten Fragen weiter.
 

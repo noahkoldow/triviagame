@@ -29,14 +29,14 @@ Die Story ist bewusst leicht und humorvoll: Sie trägt Motivation und Charme, ni
 
 Vier Himmelsrichtungen um den Kern, jede mit eigener Farbe und eigenem Weltcharakter:
 
-| Sektor                        | Inhalt                                               | Farbe     | Endzustand der Optik                                       |
-| ----------------------------- | ---------------------------------------------------- | --------- | ---------------------------------------------------------- |
-| **Wissenschaft & Technik**    | Physik, Chemie, Mathe, Informatik, Technik, Medizin  | Cyan      | Blaupausen → Labor → Sternenkarten und Moleküle            |
-| **Natur & Welt**              | Biologie, Geografie, Klima, Tiere, Reisen, Ernährung | Grün      | Leiterbahnen → Wurzeln → Wald, Küsten, Gebirge             |
-| **Geschichte & Gesellschaft** | Geschichte, Politik, Wirtschaft, Recht, Philosophie  | Bernstein | Bahnen → Stein und Pergament → Karten und Ruinen           |
-| **Kultur & Kunst**            | Literatur, Musik, Kunst, Film, Sprache, Religion     | Magenta   | Neonstreifen → Farbe und Tinte → Noten, Bühnen, Skulpturen |
+| Sektor | Bereiche (je drei, der erste ist frei) | Farbe | Endzustand der Optik |
+| --- | --- | --- | --- |
+| **Naturwissenschaften, Technik & Medizin** | Physik & Chemie · Biologie & Medizin · Technologie & IT | Blau | Blaupausen → Labor → Moleküle und Maschinen |
+| **Geographie & Erde** | Topographie · Klima & Umwelt · Astronomie | Grün | Leiterbahnen → Wurzeln → Gebirge, Küsten, Sternenkarten |
+| **Geisteswissenschaften & Kultur** | Geschichte · Kunst, Literatur & Musik · Philosophie & Religion | Violett | Neonstreifen → Farbe, Tinte, Stein → Noten, Ruinen, Skulpturen |
+| **Gesellschaft, Politik & Wirtschaft** | Politik & Staatskunde · Wirtschaft & Finanzen · Recht & Gesellschaft | Gelb | Bahnen → Pergament → Parlamente, Märkte, Gesetzbücher |
 
-Die Sektoren liegen im Ring (Wissenschaft – Natur – Kultur – Geschichte). **Es gibt keine harten Mittelzonen.** Eine Frage gehört zu einem **Hauptsektor** (dort liegt sie) und kann **Nebengewichte** zu anderen Sektoren haben (Medizin: Hauptsektor Wissenschaft, Nebengewicht Natur). Das Nebengewicht wirkt nur als **leichte Richtungsabweichung**: Der Knoten bleibt im Gebiet seines Hauptsektors, sitzt aber etwas näher an der Grenze zum Nachbarn und bekommt einen Hauch von dessen Optik (Farbstich, Material). Die Frage zählt für beide Sektoren, im Verhältnis der Gewichte (z. B. 80/20).
+Was in jeden Bereich gehört, steht als Themenbeschreibung in `packages/shared/src/taxonomy.ts` (siehe D44). Die Sektoren liegen im Ring (Naturwissenschaften – Erde – Geisteswissenschaften – Gesellschaft). **Es gibt keine harten Mittelzonen.** Eine Frage gehört zu einem **Hauptsektor** (dort liegt sie) und kann **Nebengewichte** zu anderen Sektoren haben (Medizin: Hauptsektor Wissenschaft, Nebengewicht Natur). Das Nebengewicht wirkt nur als **leichte Richtungsabweichung**: Der Knoten bleibt im Gebiet seines Hauptsektors, sitzt aber etwas näher an der Grenze zum Nachbarn und bekommt einen Hauch von dessen Optik (Farbstich, Material). Die Frage zählt für beide Sektoren, im Verhältnis der Gewichte (z. B. 80/20).
 
 **Platzierung (organisch statt Raster):**
 
@@ -122,7 +122,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - **Hack-Duell:** asynchron, gleiche Fragmente und Fragen, wer mehr behält, gewinnt.
 - **Netz-Reparatur (Koop):** Freunde bauen ein gemeinsames Netz, jeder deckt sein Interessengebiet ab.
 - **Vergleich der Fußabdrücke:** Überlappung und Lücken, mit der Frage „Was kannst du, was ich nicht kann?“.
-- Rangliste nur unter Freunden, keine globale Hetze.
+- Keine globale Hetze: statt einer Weltrangliste eine **Wochenliga** in Gruppen bis 20 mit Auf- und Abstieg, freiwillig und nur mit erzeugtem Rufnamen (D47). Freundes-Ranglisten können später dazukommen.
 
 ### 6.6 Finanzierung: AdMob und Gems
 
@@ -188,10 +188,10 @@ Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als 
 
 **Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle):
 
-- **Quantis** – Wissenschaft: übergenauer, trockener Humor, Hologramm-Gestalt aus Gleichungen.
-- **Rhizom** – Natur: ruhiger Baumgeist, spricht in langen Bildern, mag Tiere.
-- **Kodex** – Geschichte: Archivar-Eule mit Tintenfeder, zitiert gern, irrt nie, behauptet er.
-- **Muse** – Kultur: dramatisch, warm, spricht in Reimen/Rhythmus, Gestalt aus Farbe und Noten.
+- **Quantis** – Naturwissenschaften: übergenauer, trockener Humor, Hologramm-Gestalt aus Gleichungen.
+- **Rhizom** – Geographie & Erde: ruhiger Baumgeist, spricht in langen Bildern, verbindet Berge, Flüsse und Sterne.
+- **Kodex** – Gesellschaft: Eule mit Tintenfeder und Gesetzesrolle, zitiert gern, irrt nie, behauptet er.
+- **Muse** – Geisteswissenschaften & Kultur: dramatisch, warm, spricht in Reimen, Gestalt aus Farbe und Noten.
 
 **Gegenspieler: MORPH**
 Die außer Kontrolle geratene KI, die das Archiv zerstört hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo MORPH war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Pro Sektor gibt es einen MORPH-Auftritt als Boss; sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
