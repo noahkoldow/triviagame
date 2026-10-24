@@ -52,14 +52,24 @@ Spielbar in Expo Go (Mock-Daten):
 - **Liga nach dem Gehirn** (D53): Nach der ersten Sequenz automatisch eingeordnet und Liga mit Begrüßung gezeigt; der Liga-Knopf im Dock leuchtet, bis man ihn antippt.
 - **Ungeprüft auf Gerät:** die Gehirn-Animation (Skia + Reanimated), die neuen Cache-Fenster, Einordnung und leuchtender Liga-Knopf.
 
+## Prototyp 0.8 (Geld: Werbung trägt, Plus obendrauf)
+
+- **Werbung** (D55): Interstitials in natürlichen Pausen (Ergebnis → Karte, jede 2. Pause, ≥ 3 min, ab 8 gelösten Knoten), App-Open bei der Rückkehr (höchstens alle 4 h), Rewarded-Videos mit Tageslimits je Platz; neu: Energie per Video, Tagesbonus verdoppeln. Nach einer falschen Antwort nie Werbung.
+- **NEXUS Plus** (D54): Paywall `app/plus.tsx` (monatlich, jährlich, für immer, mit den Abo-Pflichtangaben), keine Zwangswerbung, Belohnungen ohne Video, Monatsbonus. Ersetzt „Werbefrei“.
+- **Shop** neu: Tagesbonus (roter Punkt am Dock), Plus, Startpaket nach Kapitel 1, Gems mit Video-Limit, Streak-Schutz für Gems, Energie per Video. Gutschrift genau einmal je Transaktion.
+- **AdMob** (D56): echter Anbieter mit UMP-Einwilligung und ATT-Text für Dev- und Store-Builds (`src/services/admob.ts`, `app.config.ts`); Expo Go behält den Mock. Einstellungen: personalisierte Werbung und Googles Datenschutz-Optionen.
+- **Messen:** Analytics-Provider (Mock) mit den Ereignissen des Umsatz-Trichters. Modell, Annahmen und Kennzahlen in `docs/MONETIZATION.md`.
+- **Ungeprüft auf Gerät:** AdMob, Einwilligung und ATT laufen nur im Development Build und sind dort noch nie gelaufen. Käufe sind weiter nur der Mock (RevenueCat fehlt, P2.1).
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (153 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (170 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
 1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Liga beitreten/abgleichen/austreten. Stand 24.10.2026: `gemini` ist noch live, `questions` und `league` geben 404.
 2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
 3. Store-Launch nach `docs/CODEX_SUBMISSION.md` (geprüfter Befund, Entscheidungen E1–E8, Reihenfolge); Details in `docs/CODEX_HANDOFF.md`.
-4. Tages-Puls mit morph.ai als Gastgeber, Duelle/Koop, Events.
-5. Englisch, Sounds, Design-Review abarbeiten.
+4. **Geld:** AdMob-Konto, Anzeigenblöcke, EAS-Variablen, UMP-Mitteilungen, `app-ads.txt` (`docs/MONETIZATION.md` §6); RevenueCat-Anbieter für Käufe; Development Build mit Test-Anzeigen auf einem Gerät.
+5. Tages-Puls mit morph.ai als Gastgeber, Duelle/Koop, Events.
+6. Englisch, Sounds, Design-Review abarbeiten.

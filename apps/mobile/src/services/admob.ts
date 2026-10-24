@@ -14,7 +14,7 @@ type Unit = 'rewarded' | 'interstitial' | 'appOpen';
 
 /**
  * Ad unit ids per platform from EAS environment variables (public, not secret). Google's test units
- * in development and until the real ones are set (see docs/LAUNCH_CHECKLIST.md).
+ * in development and until the real ones are set (see docs/MONETIZATION.md §6).
  */
 function unitId(m: typeof GMA, unit: Unit): string {
   const ios = {

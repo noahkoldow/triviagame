@@ -128,15 +128,13 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 
 ### 6.6 Finanzierung: AdMob und Gems
 
-**Grundsatz:** Das Hauptspiel (Netz wachsen lassen, Fragen beantworten) bleibt kostenlos und ohne Wartezeit spielbar. Geld kommt aus Werbung und optionalen Gems.
+**Grundsatz:** Das Hauptspiel (Netz wachsen lassen, Fragen beantworten) bleibt kostenlos und ohne Wartezeit spielbar. **Werbung finanziert die App** (D54); NEXUS Plus und Gems kommen obendrauf. Modell, Preise und Zahlen: `docs/MONETIZATION.md`.
 
-**AdMob**
+**AdMob** (Regeln D55, Anbieter D56)
 
-- **Nach falscher Antwort** (Idee des Auftraggebers): Statt reiner Strafe als Angebot formuliert. Bolt: „Reparatur-Funk? Schau kurz zu, dann gibt's eine zweite Chance.“
-  - **Rewarded Ad (freiwillig):** Zweite Chance mit neuem Versuch ohne Integritätsverlust, oder ein Hinweis-Fragment gratis.
-  - **Interstitial (begrenzt):** Höchstens nach jeder dritten falschen Antwort, nie mehr als alle ca. 3 Minuten, nie mitten in Sammelphase oder Frage, nie bei Bosskämpfen. Wer Gems-Pro/„werbefrei“ hat, sieht keine.
-- Zusätzlich Rewarded-Option im Tages-Puls (doppelte Bits) und für Rückspulen.
-- Einwilligung über Google UMP (DSGVO), personalisierte Werbung nur nach Zustimmung; keine Werbung für Kinder-Zielgruppen. Zielgruppenfrage bleibt offen (siehe 12).
+- **Nach falscher Antwort** (Idee des Auftraggebers) als Angebot: Bolt: „Reparatur-Funk? Schau kurz zu, dann gibt's eine zweite Chance.“ Rewarded-Video (freiwillig): +1 Integrität und ein Hinweis von Bolt. Weitere Videos: Integrität, Energie, Gems, Tagesbonus verdoppeln, alle mit Tageslimit.
+- **Interstitial** in natürlichen Pausen (Ergebnis → Karte), jede 2. Pause, mindestens 3 Minuten Abstand, erst nach der ersten Sitzung; nie in Sammelphase, Frage oder Bosskampf und nie als Strafe direkt nach einem Fehler. Dazu eine **App-Open-Anzeige** bei der Rückkehr, höchstens alle 4 Stunden.
+- Einwilligung über Google UMP (DSGVO, unter iOS mit ATT), personalisierte Werbung nur nach Zustimmung; unter 16 nur freiwillige, nicht personalisierte Videos.
 
 **Gem-System**
 
@@ -146,7 +144,8 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
   - **Trümmerfelder öffnen:** Spezielle Fundstätten mit seltenen Fragmenten und Sammler-Boni, optional.
   - Kosmetik für dein Profil und die Bolt-Skins.
 - **Kaufbar** als Paket (IAP). Es gibt nichts, was nur mit Geld geht: Alles ist auch erspielbar, Gems sparen Zeit.
-- **Werbefrei-Kauf** (einmalig) oder Abo mit monatlichen Gems.
+- **NEXUS Plus** (monatlich, jährlich oder einmalig für immer): keine Zwangswerbung, Video-Belohnungen ohne Video, monatlich Gems und ein Streak-Schutz. Ersetzt den einmaligen Werbefrei-Kauf.
+- **Startpaket** einmalig nach Kapitel 1; **Streak-Schutz** für Gems.
 - Fairness: keine Pay-to-win-Vorteile bei Antworten, Duelle und Ranglisten bleiben unberührt.
 
 ### 6.5 Belohnungsgefühl (Juice)
@@ -263,4 +262,4 @@ users/{uid}/codex/{fid} { fragmentId, seenAt, srsDue }
 
 1. Zielgruppe: Erwachsene oder auch Jugendliche? (Beeinflusst Werbung nach Fehlern und Einwilligungen; unter 16 bräuchte es strengere Regeln.)
 2. Endgültiger Name (Arbeitstitel NEXUS), ebenso Namen von Bolt/morph.ai, falls dir andere besser gefallen.
-3. Interstitials nach Fehlern: Soll die Standardvariante „freiwillig (Rewarded)“ sein, mit seltenen Zwangsanzeigen, wie oben vorgeschlagen?
+3. ~~Interstitials nach Fehlern?~~ Entschieden (D55): Rewarded nach Fehlern, Interstitials nur in natürlichen Pausen.

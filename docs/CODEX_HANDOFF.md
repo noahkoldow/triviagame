@@ -1,6 +1,6 @@
 # Übergabe an Codex: Was bis zum App-Store-Launch fehlt
 
-> **Geprüfter Stand und Reihenfolge stehen in `docs/CODEX_SUBMISSION.md` (24.10.2026).** Diese Datei bleibt die Detailbeschreibung der Aufgaben; bei Widersprüchen gilt `CODEX_SUBMISSION.md` (u. a. neue Altersstufen statt 12+, Empfehlung „keine Werbung in 1.0“).
+> **Geprüfter Stand und Reihenfolge stehen in `docs/CODEX_SUBMISSION.md` (24.10.2026).** Diese Datei bleibt die Detailbeschreibung der Aufgaben; bei Widersprüchen gilt `CODEX_SUBMISSION.md` (u. a. neue Altersstufen statt 12+). **Werbung ist entschieden (25.10.2026): Sie finanziert die App, siehe D54–D56 und `docs/MONETIZATION.md`.**
 
 Ziel: **NEXUS 1.0 im iOS App Store**, zuerst im DACH-Raum auf Deutsch. Stand: 24.10.2026.
 
@@ -76,17 +76,17 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 
 ### P2 Echte Dienste (nur im Dev- und Store-Build; Expo Go behält die Mocks)
 
-**P2.1 Käufe** (`apps/mobile/src/services/purchases.ts`). RevenueCat-Provider mit `gems_50`, `gems_150`, `gems_400` (Verbrauchsgut) und `adfree` (nicht verbrauchbar), angelegt in App Store Connect 👤.
+**P2.1 Käufe** (`apps/mobile/src/services/purchases.ts`). RevenueCat-Provider mit den Produkten aus `docs/MONETIZATION.md` §3 (`gems_50`, `gems_150`, `gems_400`, `starter`, `plus_month`, `plus_year`, `plus_life`; `adfree` entfällt, D54), angelegt in App Store Connect 👤. Gutschrift und Plus-Ablauf sind schon in shared (`applyPurchase`, `applyEntitlements`).
 - Preise kommen lokalisiert aus StoreKit statt aus `PRODUCTS[].price`.
 - Gutschrift erst nach bestätigter Transaktion, nie doppelt: Transaktions-IDs merken. Die Gutschriftsregel ist rein und kommt nach shared, mit Test.
-- `restore()` stellt „Werbefrei“ wieder her.
+- `restore()` und `entitlements()` liefern Plus (Abo-Ende oder Lifetime) aus `customerInfo`.
 - Abnahme: Sandbox-Kauf und Wiederherstellen auf einem Gerät; Expo Go zeigt weiter den Mock und den Hinweis „Testmodus“.
 
 **P2.2 Werbung** (nach E4). `react-native-google-mobile-ads` als `AdProvider` (`src/services/ads.ts`).
 - Vor der ersten Anzeige die UMP-Einwilligung einholen. Die ATT-Abfrage (`expo-tracking-transparency`, `NSUserTrackingUsageDescription` auf Deutsch) kommt nur ab 16 und nur, wenn personalisiert werden soll.
 - `SKAdNetworkItems` eintragen; `app-ads.txt` auf der Entwickler-Website 👤.
 - Test-Anzeigen-IDs im Dev-Build, echte IDs als EAS-Umgebungsvariable 👤.
-- `decideAds` in `packages/shared/src/monetization.ts` bleibt die einzige Regelquelle. Wenn E4 = nur Rewarded gilt, eine Konfiguration `interstitials: false` dort einführen und testen.
+- *Stand 25.10.:* gebaut (D56, `src/services/admob.ts`). Einzige Regelquelle ist `AD_POLICY` mit `takeBreak`, `takeAppOpen` und `rewardedOffer` (`monetization.ts`, `shop.ts`).
 
 **P2.3 Einstellungen** (`apps/mobile/app/settings.tsx`, Konzept §9.7). Der Bildschirm existiert als Gerüst (Gehirn-Sequenz, Datenschutz) und ist aus dem Profil erreichbar; ergänzen:
 - Werbe-Einwilligung jederzeit ändern (UMP-„Privacy Options“). Heute geht das nur durch Zurücksetzen des Spielstands. Nach DSGVO muss der Widerruf so leicht sein wie die Zustimmung.

@@ -14,8 +14,8 @@ Geprüft mit `pnpm typecheck`, `npx expo-doctor`, HTTP-Proben gegen das Live-Bac
 | B2 | Repo | `pnpm typecheck` ist rot, weil die Sprach-Umstellung (de/en/fr/es) im Arbeitsbaum unfertig ist: `localize.ts` importiert `./i18n/content.{en,fr,es}`, die es nicht gibt; `lang` fehlt in `ai.test.ts`, `serve.test.ts`, `questiontypes.test.ts:80` und `functions/src/index.ts:178`. | `pnpm typecheck` | Blocker |
 | B3 | Expo-Konfiguration | `expo-doctor`: `newArchEnabled` ist in SDK 58 kein gültiges Feld mehr in `app.json`. | expo-doctor 19/20 | Blocker (klein) |
 | B4 | Build | `eas.json` hat kein `production`-Profil und keinen `submit`-Block. `version` steht auf 0.1.0, die Bundle-ID `app.nexus.game` ist nicht entschieden. | `apps/mobile/eas.json`, `apps/mobile/app.json` | Blocker |
-| B5 | Käufe | Nur der Mock (`src/services/purchases.ts`); die Preise stehen fest im Code. | | Blocker |
-| B6 | Werbung | Nur das Mock-Overlay. `decideAds` zeigt noch Interstitials. UMP, ATT und SKAdNetwork fehlen. | `packages/shared/src/monetization.ts:34` | Blocker, falls Werbung in 1.0 |
+| B5 | Käufe | *Stand 25.10.:* Interface mit Belegen und Store-Preisen, Gutschrift genau einmal je Transaktion (`applyPurchase`, getestet), Paywall für Plus. **Es fehlt der RevenueCat-Anbieter**; aktiv ist nur der Mock. | `src/services/purchases.ts`, `packages/shared/src/shop.ts` | Blocker |
+| B6 | Werbung | *Stand 25.10.:* AdMob-Anbieter mit UMP, ATT-Text und SKAdNetwork gebaut (D56), **nie auf einem Gerät gelaufen**. Es fehlen AdMob-Konto, App- und Anzeigen-IDs (EAS-Variablen) und `app-ads.txt` 👤. | `src/services/admob.ts`, `app.config.ts`, `docs/MONETIZATION.md` §6 | Blocker |
 | B7 | Recht | `PRIVACY_URL` und `SUPPORT_EMAIL` sind leer. Es gibt weder Impressum noch Hosting. Datenschutz-URL und Support-URL sind Pflichtfelder in App Store Connect. | `apps/mobile/src/config.ts:19-21` | Blocker |
 | B8 | Datenschutztext in der App | Er verspricht eine „vorgesehene“ Meldefunktion und erlaubt den Widerruf der Werbe-Einwilligung nur über „Spielstand zurücksetzen“. | `apps/mobile/app/privacy.tsx` | Blocker (Guideline 5.1.1, DSGVO Art. 7 Abs. 3) |
 | B9 | KI-Inhalte | Es gibt keine Meldefunktion: weder Button noch Function `report`. | | Blocker (Risiko unter Guideline 1.2) |
@@ -55,8 +55,8 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 | E1 | Store-Name (max. 30 Zeichen) | „NEXUS – Wissensnetz“. Vorher die Verfügbarkeit in App Store Connect und Marken bei DPMA/EUIPO prüfen 👤 | 3.2, 8.1 |
 | E2 | Bundle-ID. **Sie lässt sich nach dem Anlegen nie mehr ändern.** | eigene Domain rückwärts, z. B. `de.<nachname>.nexus`. Sie muss vor App Check, RevenueCat und dem App-Eintrag feststehen. | 2.3, 3, 4 |
 | E3 | Entwicklerkonto als Einzelperson oder Organisation | Einzelperson geht schneller, der Klarname erscheint als Verkäufer. Wer Käufe anbietet, ist EU-Händler nach DSA: **Adresse, Telefon und E-Mail werden im EU-Store öffentlich angezeigt.** Eine Organisation braucht vorher eine D-U-N-S-Nummer. | alles in App Store Connect |
-| E4 | Werbung in 1.0? | **Neu: keine Werbung in 1.0** (statt „nur Rewarded“ im Handoff). Das spart AdMob-Konto, UMP-Einwilligung, ATT, SKAdNetwork, `app-ads.txt` samt Website, die Altersabfrage und den Werbeteil im Datenschutz-Etikett. Bei einem DACH-Start bringt Werbung wenig ein. Werbung kommt in 1.1 als „nur Rewarded“ (→ H P2.2). | 4, 5, 8 |
-| E5 | Wenn E4 = keine Werbung: Was ersetzt die zweite Chance nach einer falschen Antwort und das Video für 1 Gem? | Die zweite Chance kostet ⚡ wie das Rückspulen; das Video für Gems entfällt. Als **D53** in `DECISIONS.md` festhalten. | 4.2 |
+| E4 | Werbung in 1.0? | **Entschieden vom Auftraggeber (25.10.2026): Werbung in 1.0, sie finanziert die App.** Rewarded-Videos, Interstitials in natürlichen Pausen und App-Open nach D55, Plus als werbefreies Abo nach D54. AdMob-Konto, UMP, ATT und `app-ads.txt` gehören damit zum Launch. | 4, 5, 8 |
+| E5 | ~~Ersatz für die zweite Chance ohne Werbung~~ | Entfällt mit E4: Die zweite Chance bleibt ein Video, mit Plus ohne Video. | – |
 | E6 | Sprachen und Länder in 1.0 | Nur Sprachen ausliefern, die **vollständig** sind: UI, Story, eingebaute Fragen, Server-Fragen, Datenschutz und Store-Text. Sonst die Sprachwahl im Store-Build auf `de` beschränken. Länder: DACH. Mit Englisch weitere EU-Länder möglich, USA erst nach §6. | 1.1, 8.1 |
 | E7 | KI-Tagesbudget (`AI_DAILY_CALL_LIMIT`, heute 100) | 1.000 pro Tag plus Budget-Alarm | 2.2 |
 | E8 | Altersfreigabe | Apple nutzt seit 2025 die Stufen **4+, 9+, 13+, 16+, 18+**; „12+“ aus dem Handoff gibt es nicht mehr. Den neuen Fragebogen ehrlich beantworten. **Nicht** in die Kategorie „Für Kinder“. | 8.5 |
@@ -137,19 +137,13 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
   - Die Produkte anlegen, jedes mit Anzeigename, Beschreibung und Screenshot für die Prüfung.
   - Die ersten Käufe werden **zusammen mit der App-Version** eingereicht.
 - Den öffentlichen RevenueCat-SDK-Schlüssel als EAS-Variable übergeben, z. B. `EXPO_PUBLIC_REVENUECAT_IOS_KEY`. Er steht nicht im Code.
-- Die Gutschriftsregel (jede Transaktion nur einmal gutschreiben) als reine Funktion in shared, mit Test.
-- Bei E4 = keine Werbung: `adfree` **nicht** anlegen und im Shop ausblenden. „Käufe wiederherstellen“ bleibt.
+- ~~Die Gutschriftsregel als reine Funktion in shared, mit Test.~~ Erledigt: `applyPurchase` und `applyEntitlements` (`shop.ts`, Tests in `shop.test.ts`).
+- Die Produkte stehen in `docs/MONETIZATION.md` §3: drei Gem-Pakete, `starter`, `plus_month` und `plus_year` (Abo-Gruppe „NEXUS Plus“), `plus_life`. `adfree` **nicht** anlegen (D54).
+- Der RevenueCat-Anbieter implementiert `PurchaseProvider` (`products`, `purchase`, `restore`, `entitlements`); in RevenueCat ein Entitlement `plus` an die drei Plus-Produkte hängen. Ablauf und Lifetime kommen aus `customerInfo`.
 
-**4.2 Bei E4 = keine Werbung:**
-- Einen Schalter `adsEnabled` in die Werberegeln (`decideAds`) aufnehmen und testen: ohne Werbung nie ein Interstitial und nie ein Video-Angebot.
-- Die drei Aufrufer folgen ihm:
-  - `app/index.tsx:604`
-  - `app/node/[id].tsx:169-201`, die zweite Chance nach E5
-  - `app/shop.tsx:58-65`, das Video für Gems entfällt
-- Die Frage nach dem Geburtsjahr im Onboarding nur stellen, wenn Werbung an ist (Datensparsamkeit). Ohne Antwort gilt `ageGroup: 'minor'`, die sichere Voreinstellung.
-- Das Mock-Overlay in Expo Go folgt demselben Schalter.
-
-**4.2 Bei E4 = Rewarded:** → H P2.2 vollständig, dazu der Widerruf in den Einstellungen (5.2).
+**4.2 Werbung** (E4 entschieden, D55/D56). Im Code fertig: Regeln (`AD_POLICY`), AdMob-Anbieter, UMP nach dem Altersschritt, ATT-Text, SKAdNetwork, kein Test-Overlay im Store-Build, Widerruf in den Einstellungen. Offen:
+- die menschlichen Schritte aus `docs/MONETIZATION.md` §6 (Konto, Anzeigenblöcke, EAS-Variablen, UMP-Mitteilungen, `app-ads.txt`) 👤
+- Gerätetest im Development Build: Einwilligung (EWR-Testgeografie), Rewarded, Interstitial, App-Open; unter 16 keine Zwangswerbung
 
 **Fertig, wenn:** auf einem Gerät ein Sandbox-Kauf und das Wiederherstellen klappen, der Test gegen doppelte Gutschrift grün ist und Expo Go weiter den Mock mit „Testmodus“ zeigt.
 
@@ -162,7 +156,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 - Liga verlassen, Spielstand löschen
 - Links zu Datenschutz, Impressum und Support
 - „Käufe wiederherstellen“
-- mit Werbung zusätzlich: Einwilligung ändern (UMP „Privacy Options“)
+- ~~Einwilligung ändern (UMP „Privacy Options“)~~ erledigt (D56), dazu „personalisierte Werbung“ an/aus
 
 **5.3 Datenschutztext in der App** (`app/privacy.tsx`) an den echten Build anpassen:
 - Die Meldefunktion gibt es jetzt (nicht mehr „vorgesehen“).
@@ -237,14 +231,14 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 - Server-Fragen schreibt eine KI. Sie werden geprüft und lassen sich melden.
 
 **8.4 App-Datenschutz-Etikett** (Entwurf, → H P4.3), deckungsgleich mit 6.2.
-- Bei E4 = keine Werbung: kein Tracking, keine ATT-Abfrage.
+- Werbung (E4): Werbedaten und Geräte-ID; „zum Tracking verwendet“ für personalisierte Werbung mit ATT-Zustimmung. Angaben von Google für das AdMob-SDK übernehmen.
 - Die Liga zählt als „Gameplay Content“ und Kennung, gedacht für die App-Funktion.
 - Käufe nach den Angaben von RevenueCat.
 
 **8.5 Altersfreigabe-Fragebogen** (Entwurf nach E8):
 - keine Gewalt, keine freie Kommunikation (Rufnamen sind erzeugt), kein offener Web-Zugang, kein Glücksspiel
 - KI-Inhalte mit Meldefunktion
-- Käufe ja, Werbung nach E4
+- Käufe ja, Werbung ja (unter 16 nur freiwillige, nicht personalisierte Videos)
 
 **8.6** Die Exportkontrolle ist mit `ITSAppUsesNonExemptEncryption: false` beantwortet; in App Store Connect nur bestätigen.
 
@@ -273,11 +267,12 @@ eas submit -p ios --profile production
 5. E1–E8 beantworten, vor allem E2 (endgültig) und E4.
 6. Domain oder Hosting-URL und eine Support-E-Mail-Adresse.
 7. RevenueCat-Konto; den App-Store-Connect-API-Schlüssel in EAS hinterlegen.
-8. Ein älteres iPhone für Tests, Zugang zu einem iPad-Simulator.
+8. **AdMob-Konto mit Zahlungsprofil** und die übrigen Schritte aus `docs/MONETIZATION.md` §6. Ohne sie verdient die App kein Geld.
+9. Ein älteres iPhone für Tests, Zugang zu einem iPad-Simulator.
 
 ## 5. Bewusst nach 1.0
 
-→ H §4, dazu Werbung (falls E4 = keine), Crash-Reporting (falls in 1.0 ausgelassen), Klang (→ H P5.6) und das Umziehen des lokalen Fragen-Caches (→ H P5.2).
+→ H §4, dazu Crash-Reporting (falls in 1.0 ausgelassen), Klang (→ H P5.6) und das Umziehen des lokalen Fragen-Caches (→ H P5.2).
 
 ## 6. Nur bei einem Start außerhalb von EU und DACH
 
@@ -290,7 +285,7 @@ Die USA (Utah, Louisiana; Texas ist rechtlich umstritten) sowie Brasilien, Austr
 - [ ] `/gemini` gibt 404; `questions` und `league` sind live und geprüft; Budget-Alarm aktiv; Pool ≥ 25 je Bereich; Stichprobe < 2 % Fehler
 - [ ] `production`-Profil baut mit Xcode 26 oder neuer; Version 1.0.0; endgültige Bundle-ID
 - [ ] Sandbox-Kauf und Wiederherstellen auf dem Gerät; keine doppelte Gutschrift; Expo Go weiter mit Mocks
-- [ ] Werbung nach E4 umgesetzt (aus oder Rewarded mit UMP)
+- [ ] Werbung (D55/D56) mit echten IDs im TestFlight-Build geprüft: Einwilligung, Rewarded, Interstitial, App-Open; `app-ads.txt` online
 - [ ] Meldefunktion mit Sperre auf dem Server; Einstellungen vollständig; Datenschutztext in der App stimmt mit dem Build überein
 - [ ] Datenschutz-, Impressum- und Support-Seiten online und rechtlich geprüft; URLs in `config.ts` und App Store Connect
 - [ ] Gerätetest (iPhone und iPad-Kompatibilität), Netz-Fehlerfälle, Design-Review 1–2, VoiceOver ohne Blocker
