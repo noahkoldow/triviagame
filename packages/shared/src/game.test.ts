@@ -12,7 +12,20 @@ import {
   unlockArea,
   spendRewind,
   buyCosmetic,
-  cacheOpenCost,
+  structureOpenCost,
+  CACHE_FILES_PER_AREA,
+  archiveAdd,
+  archiveClear,
+  archiveDrop,
+  archiveReorder,
+  archiveSwap,
+  cacheAddFile,
+  cacheContents,
+  cacheDropFile,
+  cacheFilesIn,
+  cacheFreeSlots,
+  cacheHasFolder,
+  fragmentFiles,
   ENERGY_REGEN_MS,
   HEAL_COST,
   MAX_ENERGY,
@@ -24,11 +37,6 @@ import {
   healIntegrity,
   msToNextEnergy,
   regenEnergy,
-  cacheAdd,
-  cacheDrop,
-  cacheMove,
-  cacheReorder,
-  cacheClear,
   debrisOffsets,
   type PlayerState,
 } from './index';
@@ -108,38 +116,36 @@ describe('player flow', () => {
   });
 });
 
-describe('cache', () => {
+describe('folder structure', () => {
   const e = (f: string, q = 'sci-light') => ({ questionId: q, fragmentId: f });
 
   it('has no size limit and rejects duplicates', () => {
     let p = initialPlayer(pool);
-    for (let i = 0; i < 25; i++) p = cacheAdd(p, e(`f${i}`))!;
-    expect(p.cache).toHaveLength(25);
-    expect(cacheAdd(p, e('f0'))).toBeNull();
+    for (let i = 0; i < 25; i++) p = archiveAdd(p, e(`f${i}`))!;
+    expect(p.archive).toHaveLength(25);
+    expect(archiveAdd(p, e('f0'))).toBeNull();
   });
 
-  it('takes folders out again, and they can be picked up once more', () => {
-    let p = cacheAdd(initialPlayer(pool), e('a'))!;
-    p = cacheDrop(p, e('a'));
-    expect(p.cache).toEqual([]);
-    expect(cacheAdd(p, e('a'))).not.toBeNull();
-    expect(cacheDrop(p, e('never-added'))).toBe(p);
+  it('takes folders out again, and they can be filed once more', () => {
+    let p = archiveAdd(initialPlayer(pool), e('a'))!;
+    p = archiveDrop(p, e('a'));
+    expect(p.archive).toEqual([]);
+    expect(archiveAdd(p, e('a'))).not.toBeNull();
+    expect(archiveDrop(p, e('never-added'))).toBe(p);
   });
 
-  it('orders folders: move one step, reorder, clear', () => {
+  it('is ordered by the player: swap, reorder, clear', () => {
     let p = initialPlayer(pool);
-    for (const f of ['a', 'b', 'c']) p = cacheAdd(p, e(f))!;
-    const ids = (x: typeof p) => x.cache.map((c) => c.fragmentId);
-    expect(ids(cacheMove(p, e('c'), -1))).toEqual(['a', 'c', 'b']);
-    expect(cacheMove(p, e('a'), -1)).toBe(p);
-    expect(cacheMove(p, e('c'), 1)).toBe(p);
-    expect(ids(cacheReorder(p, [e('c'), e('a'), e('zzz')]))).toEqual(['c', 'a', 'b']);
-    expect(cacheClear(p).cache).toEqual([]);
+    for (const f of ['a', 'b', 'c']) p = archiveAdd(p, e(f))!;
+    const ids = (x: typeof p) => x.archive.map((c) => c.fragmentId);
+    expect(ids(archiveSwap(p, e('c'), e('b')))).toEqual(['a', 'c', 'b']);
+    expect(archiveSwap(p, e('a'), e('zzz'))).toBe(p);
+    expect(ids(archiveReorder(p, [e('c'), e('a'), e('zzz')]))).toEqual(['c', 'a', 'b']);
+    expect(archiveClear(p).archive).toEqual([]);
   });
 
-  it('opening costs more the bigger the cache is', () => {
-    expect([1, 2, 3, 4, 6, 7, 9, 10, 15, 16, 40].map(cacheOpenCost)).toEqual([1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 5]);
-    expect(cacheOpenCost(0)).toBe(1);
+  it('costs a little more to open in a question the bigger it gets', () => {
+    expect([0, 1, 10, 11, 20, 21, 500].map(structureOpenCost)).toEqual([0, 1, 1, 2, 2, 3, 3]);
   });
 
   it('pays the energy it costs, or refuses', () => {
@@ -149,10 +155,63 @@ describe('cache', () => {
     expect(spendRewind({ ...p, energy: 3 }, 0, 3)!.energy).toBe(0);
   });
 
-  it('is emptied after an attempt', () => {
-    const p = cacheAdd(initialPlayer(pool), e('a'))!;
-    expect(recordWrong(p, pool, 'n0').cache).toEqual([]);
-    expect(recordCorrect(p, pool, 'n0', '2026-10-01', 0).player.cache).toEqual([]);
+  it('stays after an attempt', () => {
+    const p = archiveAdd(initialPlayer(pool), e('sci-light-f1'))!;
+    expect(recordWrong(p, pool, 'n0').archive).toEqual(p.archive);
+    expect(recordCorrect(p, pool, 'n0', '2026-10-01', 0).player.archive).toEqual(p.archive);
+  });
+});
+
+describe('cache', () => {
+  /** The first file of a fragment of a question, as a cache entry. */
+  const file = (qid: string, i: number) => {
+    const f = pool.get(qid).fragments[i]!;
+    return { questionId: qid, fragmentId: f.id, file: fragmentFiles(f)[0]!.name };
+  };
+
+  it('holds at most three files per area, any number of areas', () => {
+    let p = initialPlayer(pool);
+    for (let i = 0; i < 3; i++) p = cacheAddFile(p, pool, file('sci-light', i))!;
+    expect(cacheFreeSlots(p, pool, 'physics')).toBe(0);
+    expect(cacheAddFile(p, pool, file('sci-light', 3))).toBeNull();
+    // another area has its own three places
+    p = cacheAddFile(p, pool, file('nat-everest', 0))!;
+    expect(p.cache).toHaveLength(4);
+    expect(cacheFilesIn(p, pool, 'geography')).toHaveLength(1);
+    // dropping frees a place again
+    p = cacheDropFile(p, file('sci-light', 0));
+    expect(cacheFreeSlots(p, pool, 'physics')).toBe(1);
+  });
+
+  it('refuses duplicates and files that do not exist', () => {
+    const p = cacheAddFile(initialPlayer(pool), pool, file('sci-light', 0))!;
+    expect(cacheAddFile(p, pool, file('sci-light', 0))).toBeNull();
+    expect(cacheAddFile(p, pool, { ...file('sci-light', 1), file: 'gibtsnicht.txt' })).toBeNull();
+    expect(cacheAddFile(p, pool, { questionId: 'nope', fragmentId: 'x', file: 'a' })).toBeNull();
+  });
+
+  it('resolves carried files to their content, also per area', () => {
+    let p = cacheAddFile(initialPlayer(pool), pool, file('sci-light', 0))!;
+    p = cacheAddFile(p, pool, file('nat-everest', 0))!;
+    const all = cacheContents(p, pool);
+    expect(all.map((c) => c.area)).toEqual(['physics', 'geography']);
+    expect(cacheContents(p, pool, 'physics')).toHaveLength(1);
+    expect(cacheContents(p, pool, 'physics')[0]!.file.name).toBe(file('sci-light', 0).file);
+    expect(cacheHasFolder(p, { questionId: 'sci-light', fragmentId: pool.get('sci-light').fragments[0]!.id })).toBe(true);
+  });
+
+  it('empties the area of the question after an attempt, other areas stay', () => {
+    let p = cacheAddFile(initialPlayer(pool), pool, file('sci-light', 0))!;
+    p = cacheAddFile(p, pool, file('nat-everest', 0))!;
+    const left = (x: typeof p) => cacheContents(x, pool).map((c) => c.area);
+    expect(left(recordWrong(p, pool, 'n0'))).toEqual(['geography']);
+    expect(left(recordCorrect(p, pool, 'n0', '2026-10-01', 0).player)).toEqual(['geography']);
+  });
+
+  it('always has room for a file of every key fragment (fairness)', () => {
+    for (const q of MOCK_QUESTIONS) {
+      expect(q.fragments.filter((f) => f.kind === 'key').length, q.id).toBeLessThanOrEqual(CACHE_FILES_PER_AREA);
+    }
   });
 
   it('every question has one to three key fragments', () => {
@@ -171,13 +230,13 @@ describe('cache', () => {
 });
 
 describe('consequences', () => {
-  const e = (f: string, q = 'sci-light') => ({ questionId: q, fragmentId: f });
-
-  it('pays a bonus only when all key fragments were carried', () => {
+  it('pays a bonus only when a file of every key fragment was carried', () => {
     const q = pool.get('sci-light');
     const keys = q.fragments.filter((f) => f.kind === 'key');
     let ready = initialPlayer(pool);
-    for (const k of keys) ready = cacheAdd(ready, e(k.id))!;
+    for (const k of keys) {
+      ready = cacheAddFile(ready, pool, { questionId: q.id, fragmentId: k.id, file: fragmentFiles(k)[0]!.name })!;
+    }
     const clean = recordCorrect(ready, pool, 'n0', '2026-10-01', 0);
     const bare = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0);
     expect(clean.prepared).toBe(true);
@@ -237,7 +296,8 @@ describe('consequences', () => {
     expect(bad.integrity).toBe(0);
     expect(maintenanceTargets(bad, '2026-10-01')).toEqual([]);
     // the cache belongs to the next node and stays
-    const withCache = cacheAdd(p0, { questionId: 'x', fragmentId: 'y' })!;
+    const f = pool.get('nat-everest').fragments[0]!;
+    const withCache = cacheAddFile(p0, pool, { questionId: 'nat-everest', fragmentId: f.id, file: fragmentFiles(f)[0]!.name })!;
     expect(recordMaintenance(withCache, pool, 'n0', true, '2026-10-01').cache).toHaveLength(1);
   });
 

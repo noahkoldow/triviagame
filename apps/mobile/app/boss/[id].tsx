@@ -93,7 +93,7 @@ function Fight({ fwId }: { fwId?: string }) {
 
   const q = questions[i];
   const sector = q ? sectorOfArea(q.area) : (fw?.a ?? 'science');
-  const title = fw ? `Firewall: ${de.sectorsShort[fw.a]} × ${de.sectorsShort[fw.b]}` : 'Kern: MORPH.EXE';
+  const title = fw ? `Firewall: ${de.sectorsShort[fw.a]} × ${de.sectorsShort[fw.b]}` : 'Kern: morph.ai';
 
   const check = () => {
     if (!q || !answer) return;
@@ -126,7 +126,7 @@ function Fight({ fwId }: { fwId?: string }) {
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
           <Window
-            title={outcome.passed ? (finale ? 'MORPH.EXE neu gestartet' : 'Firewall gebrochen') : finale ? 'MORPH hält stand' : 'Die Firewall hält'}
+            title={outcome.passed ? (finale ? 'morph.ai besiegt' : 'Firewall gebrochen') : finale ? 'morph.ai hält stand' : 'Die Firewall hält'}
             icon={outcome.passed ? 'check' : 'warn'}
             onClose={() => router.back()}
           >
@@ -135,7 +135,7 @@ function Fight({ fwId }: { fwId?: string }) {
                 <H1>Durch!</H1>
                 <P style={{ color: colors.text }}>
                   {finale
-                    ? `${right} von ${questions.length} richtig. MORPH ist ganz still geworden. Auf der Karte wartet er auf dich, er hat etwas zu sagen.`
+                    ? `${right} von ${questions.length} richtig, ganz aus eigener Kraft. morph.ai ist ganz still geworden. Und das Netz um dich herum … sieht plötzlich anders aus.`
                     : `${right} von ${questions.length} richtig. Das Wissen aus beiden Sektoren hat gereicht. Dahinter öffnet sich eine neue Zone.`}
                 </P>
                 <View style={styles.row}>
@@ -157,12 +157,17 @@ function Fight({ fwId }: { fwId?: string }) {
                 <H1>Nicht genug.</H1>
                 <P style={{ color: colors.text }}>
                   {right} von {questions.length} richtig, nötig waren {pass}.{' '}
-                  {finale ? 'MORPH: „Siehst du? Abkürzen wäre schneller gewesen.“' : 'MORPH: „Hübsch versucht.“'} Die
+                  {finale ? 'morph.ai: „Siehst du? Mich zu fragen wäre schneller gewesen.“' : 'morph.ai: „Hübsch versucht.“'} Die
                   Integrität sinkt um 1 (jetzt {g.integrity}). Beim nächsten Versuch kommen andere Fragen.
                 </P>
               </>
             )}
-            <Button label="Zurück zur Karte" onPress={() => router.back()} />
+            {finale && outcome.passed ? (
+              // the network is about to show what it really is
+              <Button label="Weiter" onPress={() => router.replace('/brain')} />
+            ) : (
+              <Button label="Zurück zur Karte" onPress={() => router.back()} />
+            )}
           </Window>
         </ScrollView>
       </SafeAreaView>
@@ -210,8 +215,8 @@ function Fight({ fwId }: { fwId?: string }) {
               {finale ? <Morph size={56} form="crown" /> : null}
               <P style={{ color: colors.dim, flex: 1 }}>
                 {finale
-                  ? `MORPH: „Acht Fragen, alle vier Sektoren, kein Cache. Ich wette, am Ende kürzt du doch ab.“ ${pass} müssen stimmen.`
-                  : 'MORPH: „Hier kommst du nicht durch. Es sei denn, du weißt wirklich etwas.“ Kein Cache, nur dein Wissen.'}
+                  ? `morph.ai: „Acht Fragen, alle vier Sektoren, kein Cache, keine Ordner. Ich wette, am Ende fragst du doch mich.“ ${pass} müssen stimmen.`
+                  : 'morph.ai: „Hier kommst du nicht durch. Es sei denn, du weißt wirklich etwas.“ Kein Cache, keine Ordner, nur dein Kopf.'}
               </P>
             </View>
           ) : null}

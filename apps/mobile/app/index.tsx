@@ -11,12 +11,18 @@ import {
   areaById,
   buildField,
   canStartNode,
-  cacheAdd,
-  cacheClear,
-  cacheDrop,
-  cacheMove,
-  cacheReorder,
-  cacheFragments,
+  CACHE_FILES_PER_AREA,
+  archiveAdd,
+  archiveClear,
+  archiveDrop,
+  archiveHas,
+  archiveReorder,
+  archiveSwap,
+  cacheAddFile,
+  cacheDropFile,
+  cacheFreeSlots,
+  cacheHasFile,
+  cacheHasFolder,
   fragmentFiles,
   chooseNode,
   debrisOffsets,
@@ -34,6 +40,8 @@ import {
   maintenanceTargets,
   markSeen,
   pendingBeats,
+  REVEAL_ID,
+  leagueUnlocked,
   rollWeek,
   seededRng,
   storyFacts,
@@ -43,7 +51,9 @@ import { Bolt } from '../src/components/Bolt';
 import { Icon } from '../src/components/Icon';
 import { CacheBar, Dock, GoalBar, MapHud, glass } from '../src/components/MapUi';
 import { CacheExplorer } from '../src/components/CacheExplorer';
+import { CacheFiles } from '../src/components/CacheFiles';
 import { StoryDialog } from '../src/components/StoryDialog';
+import { cacheActionFor, cacheItems, cacheKey, structureView } from '../src/state/folders';
 import { Dialog, Window } from '../src/components/Win';
 import { Button, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
@@ -59,6 +69,7 @@ export default function Home() {
   const router = useRouter();
   const network = useGame((p) => p.network);
   const cache = useGame((p) => p.cache);
+  const archive = useGame((p) => p.archive);
   const gems = useGame((p) => p.gems);
   const outposts = network.outposts ?? [];
   const firewalls = network.firewalls ?? [];
@@ -72,6 +83,7 @@ export default function Home() {
   const [debrisId, setDebrisId] = useState<string | null>(null);
   const [shardId, setShardId] = useState<string | null>(null);
   const [explorerOpen, setExplorerOpen] = useState(false);
+  const [cacheOpen, setCacheOpen] = useState(false);
   const [tip, setTip] = useState(true);
   const [unstable, setUnstable] = useState(false);
   const [outpostId, setOutpostId] = useState<string | null>(null);
@@ -163,34 +175,38 @@ export default function Home() {
       ...snapToHex(at.x + offs[i]!.x, at.y + offs[i]!.y),
       rot: offs[i]!.rot,
       hint: f.hint,
-      taken: cache.some((c) => c.questionId === debrisQ.id && c.fragmentId === f.id),
+      // a piece counts as taken once it is filed or a file of it is carried
+      taken: archiveHas(getState(), { questionId: debrisQ.id, fragmentId: f.id }) || cacheHasFolder(getState(), { questionId: debrisQ.id, fragmentId: f.id }),
     }));
-  }, [field, debrisQ, debrisNode, cache]);
+  }, [field, debrisQ, debrisNode, cache, archive]);
 
   const shard = shardId ? field.find((f) => f.id === shardId) : undefined;
   const shardEntry: CacheEntry | null =
     shard && debrisQ ? { questionId: debrisQ.id, fragmentId: shard.id } : null;
-  const inCache = !!shardEntry && cache.some((c) => c.questionId === shardEntry.questionId && c.fragmentId === shardEntry.fragmentId);
-  const cachedFragments = useMemo(() => cacheFragments(getState(), pool), [cache]);
-  const cachedFolders = useMemo(
-    () => cachedFragments.map((f) => ({ name: f.hint, files: fragmentFiles(f) })),
-    [cachedFragments],
-  );
-  const entryOf = (i: number): CacheEntry => ({ questionId: cachedFragments[i]!.questionId, fragmentId: cachedFragments[i]!.id });
-  const manageCache = {
-    onMove: (i: number, dir: -1 | 1) => update((p) => cacheMove(p, entryOf(i), dir)),
+  const filed = !!shardEntry && archiveHas(getState(), shardEntry);
+
+  // the folder structure, grouped by topic area; free to read, order and delete on the map
+  const structure = useMemo(() => structureView(getState()), [archive]);
+  const manageStructure = {
+    onSwap: (a: number, b: number) => update((p) => archiveSwap(p, structure.entries[a]!, structure.entries[b]!)),
     onSort: () =>
       update((p) =>
-        cacheReorder(
+        archiveReorder(
           p,
-          [...cachedFragments.keys()]
-            .sort((a, b) => cachedFragments[a]!.hint.localeCompare(cachedFragments[b]!.hint, 'de'))
-            .map(entryOf),
+          [...structure.entries.keys()]
+            .sort((a, b) => structure.folders[a]!.name.localeCompare(structure.folders[b]!.name, 'de'))
+            .map((i) => structure.entries[i]!),
         ),
       ),
-    onDelete: (i: number) => update((p) => cacheDrop(p, entryOf(i))),
-    onClear: () => update((p) => cacheClear(p)),
+    onDelete: (i: number) => update((p) => archiveDrop(p, structure.entries[i]!)),
+    onClear: () => update((p) => archiveClear(p)),
   };
+  const addFile = (f: CacheEntry & { file: string }) => {
+    tap('success');
+    update((p) => cacheAddFile(p, pool, f));
+  };
+  const dropFile = (f: CacheEntry & { file: string }) => update((p) => cacheDropFile(p, f));
+  const debrisFree = debrisQ ? cacheFreeSlots(getState(), pool, debrisQ.area) : 0;
 
   const outpost = outpostId ? outposts.find((o) => o.id === outpostId && !o.connected) : undefined;
   const outpostSteps = outpost
@@ -221,8 +237,14 @@ export default function Home() {
   const openCount = nodes.filter((n) => n.state === 'open' && !n.locked).length;
   const hint = debrisId ? getHint(debrisId) : null;
 
-  const busy = !!(debrisId || shard || explorerOpen || firewall || outpost || unstable || selected || listOpen);
+  const busy = !!(debrisId || shard || explorerOpen || cacheOpen || firewall || outpost || unstable || selected || listOpen);
   const beat = focused && !busy ? pendingBeats(player, pool)[0] : undefined;
+
+  // after the finale the network shows what it really is (once; it can be replayed in the settings)
+  const revealDue = focused && !busy && !beat && player.story.finale && !player.story.seen.includes(REVEAL_ID);
+  useEffect(() => {
+    if (revealDue) router.push('/brain');
+  }, [revealDue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the nodes as a list: the same actions as the map, readable by screen readers
   const listed = nodes
@@ -333,7 +355,7 @@ export default function Home() {
           <Bolt size={52} mood={openCount > 0 ? 'happy' : 'think'} />
           <Text style={styles.tipText}>
             {name ? `${name}, ` : ''}
-            tippe einen leuchtenden Knoten an. Dann siehst du sein Trümmerfeld. Ziehen = Karte drehen und schieben, zwei Finger = zoomen. Hinter dem Nebel liegt Unbekanntes.
+            tippe einen leuchtenden Knoten an. Um ihn liegen lose Ordner: Lies sie, leg Nützliches in deine Ordner ab und nimm bis zu {CACHE_FILES_PER_AREA} Dateien pro Thema in den Cache. In der Frage ist der Cache gratis, deine Ordner kosten Blitze.
           </Text>
         </Pressable>
       ) : null}
@@ -357,21 +379,30 @@ export default function Home() {
                 <Button label="Zurück" variant="ghost" style={{ flex: 1 }} onPress={() => setDebrisId(null)} />
                 <Button
                   label={debrisNode.state === 'damaged' ? 'Reparieren' : 'Frage starten'}
-                  sub="Cache dabei, Öffnen kostet Energie"
+                  sub="In der Frage: Cache gratis, Ordner kosten ⚡"
                   style={{ flex: 2 }}
                   onPress={startQuestion}
                 />
               </View>
             </Window>
           ) : null}
-          <CacheBar onOpen={() => setExplorerOpen(true)} />
+          <CacheBar
+            onFolders={() => setExplorerOpen(true)}
+            onCache={() => setCacheOpen(true)}
+            cacheLabel={
+              debrisQ ? `${CACHE_FILES_PER_AREA - debrisFree}/${CACHE_FILES_PER_AREA} ${areaById(debrisQ.area).de}` : undefined
+            }
+          />
           {!debrisNode ? (
             <Dock
               items={[
                 { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
                 { label: 'Shop', icon: 'gem', tint: colors.gem, onPress: () => router.push('/shop') },
                 { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
-                { label: 'Liga', icon: 'trophy', onPress: () => router.push('/league') },
+                // the league opens once morph.ai is beaten
+                ...(leagueUnlocked(player)
+                  ? [{ label: 'Liga', icon: 'trophy' as const, onPress: () => router.push('/league') }]
+                  : []),
                 { label: 'Profil', icon: 'user', onPress: () => router.push('/profile') },
               ]}
             />
@@ -389,35 +420,36 @@ export default function Home() {
                 folders={[{ name: shard.hint, files: fragmentFiles(shard) }]}
                 root="Trümmerfeld"
                 single
-                closeLabel={inCache ? 'Schließen' : 'Liegen lassen'}
+                closeLabel="Schließen"
                 onClose={() => setShardId(null)}
+                fileAction={(_, i) =>
+                  cacheActionFor(getState(), shardEntry, debrisQ.area, fragmentFiles(shard)[i]!.name, addFile, dropFile)
+                }
+                fileTag={(_, i) =>
+                  cacheHasFile(getState(), { ...shardEntry, file: fragmentFiles(shard)[i]!.name }) ? 'im Cache' : undefined
+                }
                 actions={
-                  inCache ? (
-                    <>
-                      <Text style={styles.winNote}>Liegt in deinem Cache.</Text>
+                  <>
+                    <Text style={styles.winNote}>
+                      Öffne eine Datei, um sie in den Cache zu nehmen ({CACHE_FILES_PER_AREA} pro Thema, in der Frage gratis).
+                      Den ganzen Ordner legst du in deinen Ordnern ab; die kosten in der Frage Blitze.
+                    </Text>
+                    {filed ? (
                       <Button
-                        label="Aus dem Cache nehmen"
+                        label="Aus meinen Ordnern nehmen"
                         variant="ghost"
-                        onPress={() => {
-                          update((p) => cacheDrop(p, shardEntry));
-                          setShardId(null);
-                        }}
+                        onPress={() => update((p) => archiveDrop(p, shardEntry))}
                       />
-                    </>
-                  ) : (
-                    <>
-                      <Text style={styles.winNote}>
-                        In der Frage ist der Cache versiegelt: Öffnen kostet dort Energie, je mehr Ordner er hat.
-                      </Text>
+                    ) : (
                       <Button
-                        label="Mitnehmen"
+                        label="In meinen Ordnern ablegen"
                         onPress={() => {
-                          update((p) => cacheAdd(p, shardEntry));
-                          setShardId(null);
+                          tap('success');
+                          update((p) => archiveAdd(p, shardEntry));
                         }}
                       />
-                    </>
-                  )
+                    )}
+                  </>
                 }
               />
             ) : null}
@@ -425,11 +457,47 @@ export default function Home() {
         </Pressable>
       </Modal>
 
-      {/* the cache: free to open on the map */}
+      {/* the folder structure: free to open, order and search on the map */}
       <Modal transparent animationType="fade" visible={explorerOpen} onRequestClose={() => setExplorerOpen(false)}>
         <Pressable style={styles.center} onPress={() => setExplorerOpen(false)}>
           <Pressable onPress={() => undefined}>
-            <CacheExplorer folders={cachedFolders} manage={manageCache} onClose={() => setExplorerOpen(false)} />
+            <CacheExplorer
+              folders={structure.folders}
+              manage={manageStructure}
+              onClose={() => setExplorerOpen(false)}
+              fileAction={(f, i) =>
+                cacheActionFor(
+                  getState(),
+                  structure.entries[f]!,
+                  structure.areas[f]!,
+                  structure.folders[f]!.files[i]!.name,
+                  addFile,
+                  dropFile,
+                )
+              }
+              fileTag={(f, i) =>
+                cacheHasFile(getState(), { ...structure.entries[f]!, file: structure.folders[f]!.files[i]!.name })
+                  ? 'im Cache'
+                  : undefined
+              }
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* the cache: a few files per topic */}
+      <Modal transparent animationType="fade" visible={cacheOpen} onRequestClose={() => setCacheOpen(false)}>
+        <Pressable style={styles.center} onPress={() => setCacheOpen(false)}>
+          <Pressable onPress={() => undefined}>
+            <CacheFiles
+              items={cacheItems(getState())}
+              note={`Bis zu ${CACHE_FILES_PER_AREA} Dateien pro Themengebiet. In einer Frage öffnest du die Dateien ihres Gebiets gratis; nach dem Versuch ist dieser Teil des Caches wieder leer.`}
+              onRemove={(key) => {
+                const hit = getState().cache.find((c) => cacheKey(c) === key);
+                if (hit) dropFile(hit);
+              }}
+              onClose={() => setCacheOpen(false)}
+            />
           </Pressable>
         </Pressable>
       </Modal>
@@ -448,7 +516,7 @@ export default function Home() {
                 ) : (
                   <>
                     <Text style={styles.fragText}>
-                      MORPH hat hier eine Firewall errichtet. Um sie zu brechen, beantwortest du {BOSS_QUESTIONS} Fragen, je
+                      morph.ai hat hier eine Firewall errichtet. Um sie zu brechen, beantwortest du {BOSS_QUESTIONS} Fragen, je
                       zur Hälfte aus beiden Sektoren. {BOSS_PASS} müssen stimmen. Es gibt keinen Cache, nur dein Wissen.
                     </Text>
                     <Text style={styles.cardSub}>
@@ -551,7 +619,7 @@ export default function Home() {
             <ScrollView style={{ maxHeight: size.height * 0.6 }} contentContainerStyle={{ gap: 6 }}>
               {chapter.finale ? (
                 <Button
-                  label="Finale: MORPH im Kern stellen"
+                  label="Finale: morph.ai im Kern stellen"
                   onPress={() => {
                     setListOpen(false);
                     router.push({ pathname: '/boss/[id]', params: { id: FINALE_ID } });

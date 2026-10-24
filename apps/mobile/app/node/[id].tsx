@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   answerText,
   areaById,
-  cacheFragments,
-  cacheOpenCost,
+  CACHE_FILES_PER_AREA,
+  structureOpenCost,
   fragmentFiles,
   decideAds,
   guardianLine,
@@ -25,6 +25,8 @@ import {
 } from '@nexus/shared';
 import { Bolt } from '../../src/components/Bolt';
 import { CacheExplorer } from '../../src/components/CacheExplorer';
+import { CacheFiles } from '../../src/components/CacheFiles';
+import { cacheItems, structureView } from '../../src/state/folders';
 import { Guardian } from '../../src/components/Guardian';
 import { Icon } from '../../src/components/Icon';
 import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
@@ -84,6 +86,8 @@ function NodeGame({
   const [phase, setPhase] = useState<Phase>('question');
   const [variant, setVariant] = useState(node.attempts);
   const cache = useGame((p) => p.cache);
+  const archive = useGame((p) => p.archive);
+  const [cacheOpen, setCacheOpen] = useState(false);
   const [rewindOpen, setRewindOpen] = useState(false);
   const [rewinds, setRewinds] = useState(0);
   const hint = getHint(nodeId);
@@ -105,9 +109,10 @@ function NodeGame({
   } | null>(null);
   const [adBusy, setAdBusy] = useState(false);
 
-  const cachedFragments = cacheFragments(getState(), pool);
-  /** Energy it costs to open the cache now: more folders, higher price. */
-  const openCost = cacheOpenCost(cache.length);
+  // the cache files of this question's topic open for free; the whole folder structure costs energy
+  const cached = useMemo(() => cacheItems(getState(), q.area), [cache, q.area]); // eslint-disable-line react-hooks/exhaustive-deps
+  const structure = useMemo(() => structureView(getState()), [archive]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openCost = structureOpenCost(structure.folders.length);
 
   const check = (): boolean => (answer ? isCorrect(q, answer) : false);
   const canSubmit = answer !== null;
@@ -217,7 +222,7 @@ function NodeGame({
       setRewindOpen(true);
       return;
     }
-    if (!update((p) => spendRewind(p, Date.now(), cacheOpenCost(p.cache.length)))) return;
+    if (!update((p) => spendRewind(p, Date.now(), openCost))) return;
     setRewinds(rewinds + 1);
     setRewindOpen(true);
   };
@@ -251,9 +256,11 @@ function NodeGame({
           <View style={styles.qTop}>
             <Bolt size={64} mood="think" />
             <View style={styles.lockRow}>
-              <Icon name="lock" size={20} />
+              <Icon name={maintain ? 'lock' : 'cache'} size={20} />
               <Text style={styles.lock}>
-                {maintain ? 'Wartung: aus dem Gedächtnis, ohne Cache' : `Cache dabei · ${cache.length} Ordner`}
+                {maintain
+                  ? 'Wartung: aus dem Gedächtnis, ohne Cache und Ordner'
+                  : `Cache: ${cached.length} von ${CACHE_FILES_PER_AREA} Dateien zu ${areaById(q.area).de}, gratis`}
               </Text>
             </View>
           </View>
@@ -271,23 +278,41 @@ function NodeGame({
           <View style={{ gap: 8, marginTop: 4 }}>
             <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />
             {maintain ? null : (
-              <Button
-                label={rewinds > 0 ? 'Cache wieder öffnen' : 'Blitz: Cache öffnen'}
-                icon="bolt"
-                variant="ghost"
-                sub={
-                  rewinds > 0
-                    ? 'Schon bezahlt: in dieser Frage frei zugänglich.'
-                    : energy >= openCost
-                    ? `Durchsuche deine Ordner. Kostet ${openCost} Energie (du hast ${energy}), die Suche selbst ist frei.`
-                    : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
-                }
-                disabled={cache.length === 0 || (rewinds === 0 && energy < openCost)}
-                onPress={rewind}
-              />
+              <>
+                <Button
+                  label="Cache öffnen"
+                  icon="cache"
+                  variant="ghost"
+                  sub={cached.length ? 'Gratis: deine mitgenommenen Dateien zu diesem Thema.' : 'Leer: Du hast keine Datei zu diesem Thema mitgenommen.'}
+                  disabled={cached.length === 0}
+                  onPress={() => setCacheOpen(true)}
+                />
+                <Button
+                  label={rewinds > 0 ? 'Ordner wieder öffnen' : 'Blitz: Ordner öffnen'}
+                  icon="bolt"
+                  variant="ghost"
+                  sub={
+                    structure.folders.length === 0
+                      ? 'Du hast noch keine Ordner abgelegt.'
+                      : rewinds > 0
+                        ? 'Schon bezahlt: in dieser Frage frei zugänglich.'
+                        : energy >= openCost
+                          ? `Deine ganze Ordnerstruktur durchsuchen. Kostet ${openCost} Energie (du hast ${energy}).`
+                          : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
+                  }
+                  disabled={structure.folders.length === 0 || (rewinds === 0 && energy < openCost)}
+                  onPress={rewind}
+                />
+              </>
             )}
           </View>
         </ScrollView>
+
+        <Modal transparent animationType="fade" visible={cacheOpen} onRequestClose={() => setCacheOpen(false)}>
+          <View style={styles.modalBack}>
+            <CacheFiles items={cached} onClose={() => setCacheOpen(false)} />
+          </View>
+        </Modal>
 
         <Modal
           transparent
@@ -296,10 +321,7 @@ function NodeGame({
           onRequestClose={() => setRewindOpen(false)}
         >
           <View style={styles.modalBack}>
-            <CacheExplorer
-              folders={cachedFragments.map((f) => ({ name: f.hint, files: fragmentFiles(f) }))}
-              onClose={() => setRewindOpen(false)}
-            />
+            <CacheExplorer folders={structure.folders} onClose={() => setRewindOpen(false)} />
           </View>
         </Modal>
       </SafeAreaView>
@@ -430,7 +452,7 @@ function NodeGame({
           <>
             <H1 style={{ textAlign: 'center' }}>{review ? 'Noch wackelig' : 'Glitch!'}</H1>
             <Card>
-              <Text style={styles.speaker}>MORPH funkt dazwischen</Text>
+              <Text style={styles.speaker}>morph.ai funkt dazwischen</Text>
               <P style={{ color: colors.text }}>{r.morph}</P>
             </Card>
             {review ? (

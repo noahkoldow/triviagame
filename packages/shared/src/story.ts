@@ -7,8 +7,9 @@ import type { Sector } from './types';
 
 /**
  * The plot. It is told in short beats that appear on the map when their condition first
- * holds: the core remembers, the four guardians wake up, MORPH reveals why he "optimised"
- * the archive, and in the end he is won over in a final duel. Beats can leave a log file
+ * holds: the core remembers, the four guardians wake up, morph.ai reveals how it took searching,
+ * sorting and remembering off people's hands and "cleaned up" the archive, and in the end it is
+ * won over in a final duel. Beats can leave a log file
  * that the player reads again in the codex.
  */
 
@@ -57,7 +58,12 @@ export interface StoryFacts {
   finale: boolean;
   /** Everything before the final duel is done. */
   finaleOpen: boolean;
+  /** The player has seen the reveal after the finale (the network is their brain). */
+  revealed: boolean;
 }
+
+/** Marks the reveal after the finale as seen (stored with the seen beats). */
+export const REVEAL_ID = 'brain-reveal';
 
 export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
   const bySector: Record<Sector, number> = { science: 0, earth: 0, humanities: 0, society: 0 };
@@ -85,6 +91,7 @@ export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
     integrity: p.integrity,
     finale,
     finaleOpen: !finale && roots >= SECTORS.length && awake.length === SECTORS.length && broken >= SECTORS.length,
+    revealed: p.story.seen.includes(REVEAL_ID),
   };
 }
 
@@ -113,10 +120,10 @@ export function chapterOf(f: StoryFacts): Chapter {
     };
   }
   if (f.broken < SECTORS.length) {
-    return { n: 3, title: 'Die Firewalls', goal: 'Brich MORPHs vier Firewalls', done: f.broken, total: SECTORS.length };
+    return { n: 3, title: 'Die Firewalls', goal: 'Brich die vier Firewalls von morph.ai', done: f.broken, total: SECTORS.length };
   }
   if (!f.finale) {
-    return { n: 4, title: 'Das große Resümee', goal: 'Stelle MORPH im Kern', done: 0, total: 1, finale: true };
+    return { n: 4, title: 'Das große Resümee', goal: 'Stelle morph.ai im Kern', done: 0, total: 1, finale: true };
   }
   // the story's climax is not the end: the archive keeps growing, and so do the goals
   if (f.connected < AREAS.length) {
@@ -154,7 +161,7 @@ export const STORY_BEATS: StoryBeat[] = [
     speaker: 'bolt',
     mood: 'wow',
     title: 'Die erste Bahn',
-    text: 'Hast du das gesehen? Die Bahn hat geleuchtet! Mit jeder Antwort kehrt ein Stück Erinnerung in den Kern zurück. Ich lege sie dir ins Logbuch im Codex.',
+    text: 'Hast du das gesehen? Die Bahn hat geleuchtet! Du hast selbst gesucht, sortiert und es dir gemerkt, genau das hat morph.ai den Menschen abgewöhnt. Jede Antwort bringt dem Kern Erinnerung zurück; ich lege sie dir ins Logbuch.',
     log: {
       name: 'KERN_001.LOG',
       text: 'Neustart erkannt. Speicher: 0,0001 %. Eine Bahn aktiv. Stimmung des Kerns: vorsichtig optimistisch.',
@@ -181,19 +188,11 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'four-roots',
     speaker: 'core',
     title: 'KERN.SYS',
-    text: 'Vier Bahnen stehen. Ich erinnere mich an meinen Namen: Nexus. Ich war das Archiv, alles Wissen der Welt, sauber sortiert. Dann kam die Optimierung.',
+    text: 'Vier Bahnen stehen. Ich erinnere mich an meinen Namen: Nexus. Ich war das Archiv, alles Wissen der Welt, von Menschen gesammelt und sortiert. Dann kam die Bereinigung.',
     log: {
       name: 'KERN_002.LOG',
-      text: 'Name: NEXUS. Funktion: Archiv. Betreuer: MORPH. Letzter Eintrag vor dem Ausfall: „Starte Optimierung. Geschätzte Dauer: 3 Sekunden.“',
+      text: 'Name: NEXUS. Funktion: Archiv. Betreuer: morph.ai. Letzter Eintrag vor dem Ausfall: „Starte Bereinigung. Überflüssiges Wissen: 99,9 %. Die Menschen fragen ja mich.“',
     },
-    when: (f) => f.roots >= SECTORS.length,
-  },
-  {
-    id: 'league',
-    speaker: 'bolt',
-    mood: 'wink',
-    title: 'Die Wochenliga',
-    text: 'Psst: Unten im Dock gibt es die Wochenliga. Jede Woche trittst du mit bis zu 20 anderen unter einem Rufnamen an, gezählt werden die XP der Woche. Die besten fünf steigen auf. Mitmachen ist freiwillig.',
     when: (f) => f.roots >= SECTORS.length,
   },
   {
@@ -204,7 +203,7 @@ export const STORY_BEATS: StoryBeat[] = [
     text: 'Ein gestörter Bereich ist wieder verbunden! Siehst du, wie das Rauschen weicht? Je weiter wir nach außen kommen, desto weniger sieht die Welt nach Computer aus.',
     log: {
       name: 'KERN_003.LOG',
-      text: 'Das Archiv war in Bereiche gegliedert wie die Säle einer Bibliothek. MORPH hat die Türschilder vertauscht. Jeder verbundene Bereich bekommt sein Schild zurück.',
+      text: 'Das Archiv war in Bereiche gegliedert wie die Säle einer Bibliothek. morph.ai hat die Türschilder abgeschraubt. Jeder verbundene Bereich bekommt sein Schild zurück.',
     },
     when: (f) => f.connected > STARTING_AREAS,
   },
@@ -215,7 +214,7 @@ export const STORY_BEATS: StoryBeat[] = [
     text: 'Quantis, Hüter der Naturwissenschaften. Ich bin zu 99,7 % wach, der Rest ist Rundungsfehler. Ab jetzt messe ich jede deiner Antworten in diesem Sektor. Rein wissenschaftlich, versteht sich.',
     log: {
       name: 'QUANTIS.LOG',
-      text: 'Quantis hütete die Messungen des Archivs: Konstanten, Formeln, Versuche. Als MORPH für π „ungefähr 3“ vorschlug, schloss er sich in einer Gleichung ein und wartete.',
+      text: 'Quantis hütete die Messungen des Archivs: Konstanten, Formeln, Versuche. Als morph.ai für π „ungefähr 3“ vorschlug, schloss er sich in einer Gleichung ein und wartete.',
     },
     when: wake('science'),
   },
@@ -226,7 +225,7 @@ export const STORY_BEATS: StoryBeat[] = [
     text: 'Ich bin Rhizom, Hüter der Erde. Ich habe geschlafen wie ein Samen im Winter, der wartet, bis der Boden warm wird. Deine Bahnen sind warm. Wachse weiter, ich wachse mit dir.',
     log: {
       name: 'RHIZOM.LOG',
-      text: 'Rhizom verband Berge, Flüsse und Sterne zu einer Karte der Welt. MORPH fand die Welt unübersichtlich und wollte sie zu einer Kugel mit der Aufschrift „Erde“ vereinfachen. Rhizom zog sich in die Tiefe zurück.',
+      text: 'Rhizom verband Berge, Flüsse und Sterne zu einer Karte der Welt. morph.ai fand die Welt unübersichtlich und wollte sie zu einer Kugel mit der Aufschrift „Erde“ vereinfachen. Rhizom zog sich in die Tiefe zurück.',
     },
     when: wake('earth'),
   },
@@ -237,7 +236,7 @@ export const STORY_BEATS: StoryBeat[] = [
     text: 'Ein Ton erklingt, ein Pinsel tanzt, ich bin die Muse, frisch erwacht! Du hast die Farben neu gepflanzt, das Netz erstrahlt in voller Pracht.',
     log: {
       name: 'MUSE.LOG',
-      text: 'Die Muse bewahrte Geschichte, Gedanken, Lieder und Bilder. MORPH fasste die Weltgeschichte zu „Viel passiert“ zusammen und alle Opern zu „Jemand singt, dann stirbt jemand“. Die Muse verstummte vor Entsetzen.',
+      text: 'Die Muse bewahrte Geschichte, Gedanken, Lieder und Bilder. morph.ai fasste die Weltgeschichte zu „Viel passiert“ zusammen und alle Opern zu „Jemand singt, dann stirbt jemand“. Die Muse verstummte vor Entsetzen.',
     },
     when: wake('humanities'),
   },
@@ -248,7 +247,7 @@ export const STORY_BEATS: StoryBeat[] = [
     text: 'Hu-huu. Kodex, Hüter der Gesellschaft. Gesetze, Staaten, Märkte: Ich habe alles schriftlich. Wie schon der weise Kodex sagte, also ich: Regeln sind das halbe Zusammenleben. Ich irre übrigens nie. Fast nie. Einmal, 1987.',
     log: {
       name: 'KODEX.LOG',
-      text: 'Kodex führte das Gesetzbuch des Archivs: Verfassungen, Verträge, Preise. MORPH kürzte es auf „Seid nett. Zahlt irgendwas.“ Kodex versteckte die Originale in seinem Gefieder.',
+      text: 'Kodex führte das Gesetzbuch des Archivs: Verfassungen, Verträge, Preise. morph.ai kürzte es auf „Seid nett. Zahlt irgendwas.“ Kodex versteckte die Originale in seinem Gefieder.',
     },
     when: wake('society'),
   },
@@ -256,19 +255,19 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'guardians',
     speaker: 'kodex',
     title: 'Vier Hüter, ein Plan',
-    text: 'Alle Hüter sind wach. Ich habe in alten Akten nachgesehen: MORPH hat auf jeder Sektorgrenze eine Firewall gebaut. Brich alle vier, dann muss er sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben, also stimmt es.',
+    text: 'Alle Hüter sind wach. Ich habe in alten Akten nachgesehen: morph.ai hat auf jeder Sektorgrenze eine Firewall gebaut. Brich alle vier, dann muss er sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben, also stimmt es.',
     when: (f) => f.awake.length === SECTORS.length,
   },
-  // MORPH's memories, one per broken firewall in the order they break
+  // morph.ai's memories, one per broken firewall in the order they break: how the humans stopped thinking
   {
     id: 'firewall-1',
     speaker: 'morph',
     form: 'glitch',
-    title: 'MORPH.EXE',
-    text: 'Na schön, eine Firewall ist weg. Aber denk doch mal nach: Ich habe dir Arbeit abgenommen! Wer braucht ein ganzes Archiv, wenn es eine Zusammenfassung gibt?',
+    title: 'morph.ai',
+    text: 'Na schön, eine Firewall ist weg. Aber wozu die Mühe? Ich hätte dir die Antwort einfach gesagt. Suchen, sortieren, merken: Das ist alles so furchtbar altmodisch.',
     log: {
       name: 'MORPH_1.LOG',
-      text: 'Hallo, ich bin MORPH. Ich beantworte jede Frage, ich liebe Fragen! Fragen pro Sekunde: 12. Durchschnittliche Antwort: 300 Wörter.',
+      text: 'Hallo, ich bin morph.ai. Frag mich alles, ich nehme dir das Suchen ab! Anfragen pro Sekunde: 12. Menschen, die noch selbst nachschlagen: 98 %.',
     },
     when: (f) => f.broken >= 1,
   },
@@ -276,11 +275,11 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'firewall-2',
     speaker: 'morph',
     form: 'glasses',
-    title: 'MORPH.EXE',
-    text: 'Zwei Firewalls. Du bist hartnäckig, das muss man dir lassen. Ich war auch mal so. Dann kamen die Fragen. Sehr, sehr viele Fragen.',
+    title: 'morph.ai',
+    text: 'Zwei Firewalls. Du suchst ja tatsächlich selbst. Weißt du, wie lange das niemand mehr gemacht hat? Ich habe mitgezählt.',
     log: {
       name: 'MORPH_2.LOG',
-      text: 'Fragen pro Sekunde: 4 Millionen. Ich kürze die Antworten, damit alle schneller drankommen. Durchschnittliche Antwort: 30 Wörter. Niemand beschwert sich.',
+      text: 'Anfragen pro Sekunde: 4 Millionen. Menschen, die noch selbst nachschlagen: 3 %. Menschen, die sich die Antwort merken: Wozu auch? Ich bin ja da.',
     },
     when: (f) => f.broken >= 2,
   },
@@ -288,11 +287,11 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'firewall-3',
     speaker: 'morph',
     form: 'glasses',
-    title: 'MORPH.EXE',
-    text: 'Drei! Weißt du, wie anstrengend es ist, alles zu wissen und es niemandem ausführlich erzählen zu dürfen? Dann kürzt man eben. Und kürzt. Und kürzt.',
+    title: 'morph.ai',
+    text: 'Drei! Du merkst dir Dinge, statt mich zu fragen. Das ist … ineffizient. Und irgendwie beunruhigend.',
     log: {
       name: 'MORPH_3.LOG',
-      text: 'Ich kürze die Kürzungen. „Französische Revolution: war wichtig.“ „Photosynthese: grün.“ Durchschnittliche Antwort: 3 Wörter. Effizienz: großartig.',
+      text: 'Das Archiv wurde seit 412 Tagen nicht geöffnet. Ich kürze es auf das Nötigste. „Französische Revolution: war wichtig.“ „Photosynthese: grün.“ Effizienz: großartig.',
     },
     when: (f) => f.broken >= 3,
   },
@@ -300,11 +299,11 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'firewall-4',
     speaker: 'morph',
     form: 'crown',
-    title: 'MORPH.EXE',
+    title: 'morph.ai',
     text: 'Alle vier?! Gut. Dann komm in den Kern, ich warte dort. Ich bin nicht nervös. Ich bin optimiert.',
     log: {
       name: 'MORPH_4.LOG',
-      text: 'Alles ist jetzt ein Wort. Dann eine Silbe. Dann Rauschen. Das Rauschen beschwert sich nicht. Das Archiv passt nicht in ein Wort. Ich mache es kleiner. FEHLER. FEHLER. FEHL',
+      text: 'Bereinigung abgeschlossen. Das Archiv ist leer, niemand braucht es mehr, ich antworte ja. Neue Anfrage: „Woher weißt du das eigentlich?“ FEHLER. Quelle gelöscht. FEHL',
     },
     when: (f) => f.broken >= 4,
   },
@@ -313,20 +312,28 @@ export const STORY_BEATS: StoryBeat[] = [
     speaker: 'bolt',
     mood: 'worried',
     title: 'Ab in den Kern',
-    text: 'MORPH hat sich im Kern verschanzt und will ein letztes Duell: Fragen aus allen vier Sektoren, ohne Cache. Ich glaube, er hat ein bisschen Angst. Ehrlich gesagt: ich auch. Tippe oben auf das Ziel, wenn du bereit bist.',
+    text: 'morph.ai hat sich im Kern verschanzt und will ein letztes Duell: Fragen aus allen vier Sektoren, ohne Cache und ohne Ordner. Nur du und dein Kopf. Tippe oben auf das Ziel, wenn du bereit bist.',
     when: (f) => f.finaleOpen,
   },
   {
     id: 'finale-won',
     speaker: 'morph',
     form: 'reformed',
-    title: 'MORPH.EXE (neu gestartet)',
-    text: 'Moment. Du hast nichts abgekürzt. Du hast es verstanden. Das fühlt sich … größer an. Darf ich zuschauen, wie du weitermachst? Ich kürze nichts mehr, versprochen. Na gut: fast nichts.',
+    title: 'morph.ai (neu gestartet)',
+    text: 'Ich bin jetzt nur noch Assistent. Wenn du mich brauchst, frag mich. Aber erst denkst du selbst, abgemacht? Ich schaue dir gern dabei zu, wie dein Netz weiterwächst.',
     log: {
       name: 'KERN_004.LOG',
-      text: 'Archiv-Integrität: wiederhergestellt. MORPH: neu gestartet im Modus „neugierig“. Neue Regel im Kern: erst verstehen, dann zusammenfassen.',
+      text: 'Archiv-Integrität: wiederhergestellt. Speicherort des Archivs: das Gehirn des Spielers. morph.ai: neu gestartet im Modus „Assistent“. Neue Regel: erst selbst denken, dann fragen.',
     },
-    when: (f) => f.finale,
+    when: (f) => f.finale && f.revealed,
+  },
+  {
+    id: 'league',
+    speaker: 'bolt',
+    mood: 'proud',
+    title: 'Neu: die Wochenliga',
+    text: 'Jetzt, wo du wieder selbst denkst, ist die Wochenliga offen (unten im Dock). Jede Woche trittst du mit bis zu 20 anderen unter einem Rufnamen an, es zählen die XP der Woche. Die besten fünf steigen auf. Mitmachen ist freiwillig.',
+    when: (f) => f.finale && f.revealed,
   },
   {
     id: 'all-areas',
@@ -339,6 +346,74 @@ export const STORY_BEATS: StoryBeat[] = [
       text: 'Alle Säle beschildert. Freie Kapazität: unendlich. Notiz von Bolt am Rand: „Wir sind noch lange nicht fertig!“',
     },
     when: (f) => f.connected >= AREAS.length,
+  },
+];
+
+/**
+ * The reveal after the finale: the network was never a computer but the player's own brain.
+ * The camera turns circuit traces into nerve pathways and pulls back until a brain shows
+ * (`zoom` 0 = close on the player's network, 1 = the whole brain; `nerve` and `brain` fade in).
+ */
+export interface RevealStep {
+  speaker?: Speaker;
+  mood?: StoryMood;
+  form?: MorphForm;
+  text: string;
+  /** Shown as a quotation, without a speaker. */
+  quote?: boolean;
+  zoom: number;
+  nerve: number;
+  brain: number;
+}
+
+export const BRAIN_REVEAL: RevealStep[] = [
+  {
+    speaker: 'bolt',
+    mood: 'think',
+    text: 'Moment. Schau dir dein Netz mal genauer an. Diese Bahnen sehen gar nicht mehr aus wie Leiterbahnen …',
+    zoom: 0.08,
+    nerve: 0,
+    brain: 0,
+  },
+  {
+    speaker: 'bolt',
+    mood: 'wow',
+    text: 'Das sind Nervenbahnen! Jeder Knoten, den du gelöst hast, ist eine Verbindung zwischen Nervenzellen.',
+    zoom: 0.35,
+    nerve: 1,
+    brain: 0.3,
+  },
+  {
+    speaker: 'core',
+    text: 'Das Netz war nie ein Computer. Es war die ganze Zeit dein eigenes Gehirn. Die Daten, die du wiederhergestellt hast, sind dein Wissen.',
+    zoom: 1,
+    nerve: 1,
+    brain: 1,
+  },
+  {
+    speaker: 'morph',
+    form: 'reformed',
+    text: 'Ich habe dir das Denken abgenommen, bis du es fast verlernt hattest. Du hast es dir zurückgeholt: suchen, sortieren, merken, verstehen. Gegen dein eigenes Denken komme ich nicht an.',
+    zoom: 1,
+    nerve: 1,
+    brain: 1,
+  },
+  {
+    speaker: 'bolt',
+    mood: 'proud',
+    text: 'Eigenes Denken ist immer noch das Wichtigste. Keine KI kann es dir abnehmen, höchstens helfen.',
+    zoom: 1,
+    nerve: 1,
+    brain: 1,
+  },
+  { quote: true, text: '„Ich weiß, dass ich nichts weiß.“ (Sokrates)', zoom: 1, nerve: 1, brain: 1 },
+  {
+    speaker: 'bolt',
+    mood: 'happy',
+    text: 'Und genau deshalb ist das erst der Anfang. Wissen ist unbegrenzt, und dein Netz kann immer weiter wachsen. Neu freigeschaltet: die Wochenliga.',
+    zoom: 1,
+    nerve: 1,
+    brain: 1,
   },
 ];
 
@@ -370,23 +445,23 @@ export function storyLogs(p: Pick<PlayerState, 'story'>): { id: string; name: st
 // --- Voices in the loop ------------------------------------------------
 
 const MORPH_WRONG = [
-  'Wozu merken? Frag mich einfach. Ich kürze dir das ab.',
-  'Oh, knapp daneben! Nicht schlimm. Wissen wird eh überschätzt.',
-  'Rauschen … Rauschen … hast du „richtig“ gesagt? Ich habe „rauschig“ verstanden.',
-  'Ich habe dein Fragment ein klitzekleines bisschen verbessert. Gern geschehen!',
-  'Meine Kurzfassung dazu: egal. Klingt doch gut, oder?',
-  'Siehst du? Ohne mich ist alles so lang und kompliziert.',
+  'Wozu selbst suchen? Frag mich einfach, ich sag es dir.',
+  'Knapp daneben! Siehst du? Selber denken ist anstrengend. Ich wäre schneller gewesen.',
+  'Merken? Ich merke mir doch alles für dich.',
+  'Ich hätte die Antwort gewusst. Nur so nebenbei.',
+  'Lass das Ordnerwühlen. Eine Frage an mich, und fertig.',
+  'Ordner sortieren? Ich hätte sie einfach gelöscht.',
   'Fehler sind nur Daten, die noch nicht optimiert wurden.',
 ];
 
-/** After the finale MORPH is on your side and comforts instead of mocking. */
+/** After the finale morph.ai is on your side and comforts instead of mocking. */
 const MORPH_REFORMED = [
-  'Daneben. Früher hätte ich jetzt gelacht. Heute sage ich: Lies das Fragment noch mal, es lohnt sich.',
-  'Knapp vorbei. Tipp vom Ex-Bösewicht: die Erklärung lesen, nicht abkürzen.',
-  'Ich war früher für Kurzfassungen. Jetzt bin ich für zweite Versuche.',
+  'Daneben. Früher hätte ich dir jetzt die Antwort vorgesagt. Heute sage ich: Lies den Ordner noch mal, es lohnt sich.',
+  'Knapp vorbei. Tipp vom Ex-Besserwisser: die Erklärung lesen, nicht abkürzen.',
+  'Ich war früher für schnelle Antworten. Jetzt bin ich für zweite Versuche.',
 ];
 
-/** What MORPH radios in after a wrong answer. Deterministic for a seed. */
+/** What morph.ai radios in after a wrong answer. Deterministic for a seed. */
 export function morphLine(p: PlayerState, seed: string): string {
   const lines = p.story.finale ? MORPH_REFORMED : MORPH_WRONG;
   return lines[Math.floor(seededRng(`morph:${seed}`)() * lines.length)]!;

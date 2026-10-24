@@ -208,6 +208,6 @@ export function MorphScene({ stage, width, height }: { stage: 0 | 1 | 2; width: 
 
 const SCENE_LABEL = [
   'Das Nexus-Netz aus Sechsecken leuchtet.',
-  'MORPH, ein verschlungenes Emblem, zerstört das Netz mit Rauschen.',
+  'morph.ai, ein verschlungenes Emblem, löscht das Netz und lässt nur Rauschen zurück.',
   'Das Netz liegt in Trümmern. Nur im Kern glimmt noch ein Funke.',
 ];

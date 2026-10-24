@@ -1,5 +1,5 @@
 import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, type BossOutcome } from './boss';
-import type { CacheEntry } from './cache';
+import { cacheWithoutArea, type CacheEntry, type CacheFile } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
   DEBRIS_COST,
@@ -55,8 +55,10 @@ export interface PlayerState {
   integrity: number;
   streak: { count: number; lastDay: string | null; freezes: number };
   unlockedAreas: string[];
-  /** Fragments carried from debris fields; see `cache.ts`. Emptied after every attempt. */
-  cache: CacheEntry[];
+  /** The folder structure: folders filed from debris fields; see `cache.ts`. It stays. */
+  archive: CacheEntry[];
+  /** Up to three files per area, free to open in a question; emptied for the area after an attempt. */
+  cache: CacheFile[];
   /** fragmentId → day first collected */
   codex: Record<string, string>;
   ownedCosmetics: string[];
@@ -100,6 +102,7 @@ export function initialPlayer(
     integrity: MAX_INTEGRITY,
     streak: { count: 0, lastDay: null, freezes: STREAK_FREEZES },
     unlockedAreas: initialUnlockedAreas(),
+    archive: [],
     cache: [],
     codex: {},
     ownedCosmetics: ['cyan'],
@@ -224,7 +227,7 @@ export function recordWrong(p: PlayerState, pool: Pool, nodeId: string): PlayerS
       nodes: { ...p.network.nodes, [nodeId]: { ...n, attempts: n.attempts + 1 } },
     },
     integrity: Math.max(0, p.integrity - 1),
-    cache: [],
+    cache: cacheWithoutArea(p.cache, pool, q.area),
     skill: {
       ...p.skill,
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, false),
@@ -244,7 +247,7 @@ export interface CorrectResult {
   spawned: string[];
   reward: Reward;
   closedCircle: boolean;
-  /** All key fragments were carried and the cache stayed closed. */
+  /** A file of every key fragment was in the cache and the folder structure stayed closed. */
   prepared: boolean;
   /** Areas that were connected by this answer. */
   reachedAreas: string[];
@@ -308,7 +311,7 @@ export function recordCorrect(
       [q.area]: updateSkill(p.skill[q.area] ?? BASE_SKILL, q.difficulty, attempts === 1),
     },
     interest: recordResult(p.interest, q.area, true),
-    cache: [],
+    cache: cacheWithoutArea(p.cache, pool, q.area),
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
@@ -359,7 +362,7 @@ export function recordReviewResult(
     spawned: [...grown.spawned.map((s) => s.id), ...reached.spawned],
     player: {
       ...reached.player,
-      cache: [],
+      cache: cacheWithoutArea(p.cache, pool, q.area),
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
       skill: due
@@ -464,7 +467,7 @@ export function msToNextEnergy(p: PlayerState, now: number): number | null {
   return Math.max(0, p.energyAt + ENERGY_REGEN_MS - now);
 }
 
-/** Opens the cache: costs energy (one by default; the app passes `cacheOpenCost` of the cache). */
+/** Opens the folder structure in a question: costs energy (the app passes `structureOpenCost`). */
 export function spendRewind(p: PlayerState, now: number = Date.now(), cost = 1): PlayerState | null {
   const r = regenEnergy(p, now);
   if (r.energy < cost) return null;

@@ -10,7 +10,7 @@ import { Dialog, sunken } from './Win';
 
 const NAMES: Record<Speaker, string> = {
   bolt: 'Bolt',
-  morph: 'MORPH',
+  morph: 'morph.ai',
   core: 'Kern',
   quantis: 'Quantis',
   rhizom: 'Rhizom',

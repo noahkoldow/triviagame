@@ -78,7 +78,7 @@ describe('firewalls (bosses)', () => {
 
   it('leaves the cache alone', () => {
     const p = initialPlayer(pool);
-    const withCache = { ...p, cache: [{ questionId: 'sci-light', fragmentId: 'sci-light-f1' }] };
+    const withCache = { ...p, cache: [{ questionId: 'sci-light', fragmentId: 'sci-light-f1', file: 'Notiz.txt' }] };
     const r = recordBoss(withCache, pool, p.network.firewalls![0]!.id, BOSS_QUESTIONS);
     expect(r.player.cache).toEqual(withCache.cache);
   });

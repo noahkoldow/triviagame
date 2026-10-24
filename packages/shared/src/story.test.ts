@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   BOSS_QUESTIONS,
+  BRAIN_REVEAL,
+  REVEAL_ID,
+  leagueUnlocked,
   FINALE_PASS,
   FINALE_QUESTIONS,
   FINALE_REWARD,
@@ -94,7 +97,27 @@ describe('story', () => {
     for (const s of SECTORS) expect(f.bySector[s]).toBeGreaterThanOrEqual(GUARDIAN_WAKE);
     expect(chapterOf(f).n).toBe(5);
     const beats = pendingBeats(p, pool).map((b) => b.id);
-    for (const id of ['four-roots', 'guardians', 'firewall-4', 'finale-won']) expect(beats).toContain(id);
+    for (const id of ['four-roots', 'guardians', 'firewall-4']) expect(beats).toContain(id);
+    // morph.ai's last words and the league wait for the reveal (the network is the player's brain)
+    expect(beats).not.toContain('finale-won');
+    expect(leagueUnlocked(p)).toBe(true);
+    const after = pendingBeats(markSeen(p, REVEAL_ID), pool).map((b) => b.id);
+    expect(after).toContain('finale-won');
+    expect(after).toContain('league');
+  });
+
+  it('keeps the league closed until morph.ai is beaten', () => {
+    const p = play(400, (x) => storyFacts(x, pool).finaleOpen);
+    expect(leagueUnlocked(p)).toBe(false);
+    expect(leagueUnlocked({ ...p, league: { ...p.league, playerId: 'joined-before' } })).toBe(true);
+  });
+
+  it('tells the reveal in short steps that end on the whole brain', () => {
+    expect(BRAIN_REVEAL.length).toBeGreaterThan(3);
+    for (const s of BRAIN_REVEAL) expect(s.text.length).toBeLessThanOrEqual(280);
+    expect(BRAIN_REVEAL[0]!.zoom).toBeLessThan(0.5);
+    expect(BRAIN_REVEAL[BRAIN_REVEAL.length - 1]).toMatchObject({ zoom: 1, brain: 1 });
+    expect(BRAIN_REVEAL.some((s) => s.text.includes('Ich weiß, dass ich nichts weiß'))).toBe(true);
   });
 
   it('catches old saves up to the latest beat only', () => {

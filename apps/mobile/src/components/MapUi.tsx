@@ -133,30 +133,59 @@ export function GoalBar({ chapter, onFinale }: { chapter: Chapter; onFinale: () 
 }
 
 /**
- * The cache on the map: one bar that opens it. On the map it is free to open and to search;
- * inside a question the same cache costs energy, more the bigger it is.
+ * Folder structure and cache on the map, both free to open here. In a question the cache (a few
+ * files per topic) stays free, while the folder structure costs energy.
  */
-export function CacheBar({ onOpen }: { onOpen: () => void }) {
-  const count = useGame((p) => p.cache.length);
+export function CacheBar({
+  onFolders,
+  onCache,
+  cacheLabel,
+}: {
+  onFolders: () => void;
+  onCache: () => void;
+  /** E.g. "2/3 Physik & Chemie" while a debris field is open, else the number of files. */
+  cacheLabel?: string;
+}) {
+  const folders = useGame((p) => p.archive.length);
+  const files = useGame((p) => p.cache.length);
+  const cache = cacheLabel ?? (files === 0 ? 'leer' : `${files} Datei${files === 1 ? '' : 'en'}`);
   return (
-    <Pressable
-      onPress={() => {
-        tap();
-        onOpen();
-      }}
-      accessibilityRole="button"
-      accessibilityLabel={count === 0 ? 'Cache öffnen, leer' : `Cache öffnen, ${count} Ordner`}
-      style={({ pressed }) => [styles.cache, raised, pressed && pressedIn]}
-    >
-      <Icon name={count > 0 ? 'folder' : 'folder-empty'} size={22} />
-      <Text style={styles.cacheTitle}>Cache</Text>
-      <View style={[styles.cacheCount, sunken]}>
-        <Text style={styles.cacheCountText} maxFontSizeMultiplier={1.3}>
-          {count === 0 ? 'leer' : `${count} Ordner`}
-        </Text>
-      </View>
-      <Text style={styles.cacheOpen}>Öffnen</Text>
-    </Pressable>
+    <View style={styles.cacheRow}>
+      <Pressable
+        onPress={() => {
+          tap();
+          onFolders();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={folders === 0 ? 'Ordner öffnen, leer' : `Ordner öffnen, ${folders} Ordner`}
+        style={({ pressed }) => [styles.cache, raised, pressed && pressedIn]}
+      >
+        <Icon name={folders > 0 ? 'folder' : 'folder-empty'} size={22} />
+        <Text style={styles.cacheTitle}>Ordner</Text>
+        <View style={[styles.cacheCount, sunken]}>
+          <Text style={styles.cacheCountText} maxFontSizeMultiplier={1.3}>
+            {folders === 0 ? 'leer' : folders}
+          </Text>
+        </View>
+      </Pressable>
+      <Pressable
+        onPress={() => {
+          tap();
+          onCache();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Cache öffnen, ${cache}`}
+        style={({ pressed }) => [styles.cache, raised, pressed && pressedIn]}
+      >
+        <Icon name="cache" size={22} />
+        <Text style={styles.cacheTitle}>Cache</Text>
+        <View style={[styles.cacheCount, sunken]}>
+          <Text style={styles.cacheCountText} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            {cache}
+          </Text>
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -190,11 +219,11 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 1, flex: 1 },
   segment: { flex: 1, height: 9, backgroundColor: '#1A2430' },
   statValue: { color: colors.text, fontWeight: '900', fontSize: 13 },
-  cache: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, minHeight: 44 },
+  cacheRow: { flexDirection: 'row', gap: 6 },
+  cache: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, padding: 6, minHeight: 44 },
   cacheTitle: { color: WIN.text, fontSize: 13, fontWeight: '800' },
-  cacheCount: { flex: 1, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1 },
-  cacheCountText: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  cacheOpen: { color: WIN.text, fontSize: 13, fontWeight: '700' },
+  cacheCount: { flex: 1, paddingHorizontal: 6, paddingVertical: 4, borderWidth: 1 },
+  cacheCountText: { color: colors.text, fontSize: 12, fontWeight: '800' },
   goal: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, minHeight: 44 },
   goalFinale: { backgroundColor: '#FF86D0' },
   goalChapter: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },

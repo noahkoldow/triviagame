@@ -66,8 +66,21 @@ export function migrateSave(p: PlayerState): PlayerState {
     ? p.network.outposts
     : createOutposts(initialUnlockedAreas()).map((o) => ({ ...o, connected: unlocked.includes(o.area) }));
 
+  // before D49 the cache held whole folders: they move into the folder structure
+  const oldFolders = (p.cache as unknown as { questionId: string; fragmentId: string; file?: unknown }[]).filter(
+    (c) => typeof c.file !== 'string',
+  );
+  const archive = [...(p.archive ?? [])];
+  for (const c of oldFolders) {
+    if (!archive.some((a) => a.questionId === c.questionId && a.fragmentId === c.fragmentId)) {
+      archive.push({ questionId: c.questionId, fragmentId: c.fragmentId });
+    }
+  }
+
   return {
     ...p,
+    archive,
+    cache: oldFolders.length ? p.cache.filter((c) => typeof c.file === 'string') : p.cache,
     unlockedAreas: unlocked,
     skill: mapKeys(p.skill),
     interest: mapKeys(p.interest),

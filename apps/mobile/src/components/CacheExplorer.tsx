@@ -45,6 +45,29 @@ function Highlighted({ text, query, style }: { text: string; query: string; styl
   return <Text style={style}>{parts}</Text>;
 }
 
+/** The content of one file: a drawn chart, or the text of a note or article. */
+export function FileView({ file, width, query = '' }: { file: FragmentFile; width: number; query?: string }) {
+  return (
+    <View style={{ gap: 10 }}>
+      {file.kind === 'image' && file.chart ? (
+        <ChartView chart={file.chart} width={width} alt={file.alt} />
+      ) : (
+        <>
+          {file.kind === 'article' ? (
+            <Text style={styles.articleTitle} maxFontSizeMultiplier={1.3}>
+              {file.name.replace(/\.[^.]+$/, '')}
+            </Text>
+          ) : null}
+          {(file.text ?? '').split('\n\n').map((p, i) => (
+            <Highlighted key={i} text={p} query={query} style={styles.body} />
+          ))}
+          {file.source ? <Text style={styles.source}>Quelle: {file.source}</Text> : null}
+        </>
+      )}
+    </View>
+  );
+}
+
 function MiniBtn({ label, hint, disabled, onPress }: { label: string; hint: string; disabled?: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -62,7 +85,7 @@ function MiniBtn({ label, hint, disabled, onPress }: { label: string; hint: stri
   );
 }
 
-function Row({
+export function Row({
   icon,
   title,
   sub,
@@ -111,63 +134,87 @@ function Row({
   );
 }
 
-/**
- * The cache as a file manager, opened inside a question: folders, the files in them, a viewer,
- * and a search that looks through everything. Searching is free; finding the right file is the task.
- */
+/** A folder of the explorer; with `group` the folders sit one level deeper, inside their group (topic area). */
+export type ExplorerFolder = SearchFolder & { group?: string };
+
+/** Ordering and deleting folders (the folder structure on the map). Indices point into `folders`. */
 export interface CacheManage {
-  onMove: (index: number, dir: -1 | 1) => void;
+  onSwap: (a: number, b: number) => void;
   onSort: () => void;
   onDelete: (index: number) => void;
   onClear: () => void;
 }
 
+/** What can be done with an open file, e.g. putting it into the cache. */
+export type FileAction = { label: string; onPress: () => void; disabled?: boolean; sub?: string };
+
+/**
+ * A file manager in the look of the old systems: folders (optionally grouped by topic area), the
+ * files in them, a viewer, and a search that looks through everything. On the map it shows the
+ * folder structure and single debris folders; in a question the structure, once paid for.
+ */
 export function CacheExplorer({
   folders,
   onClose,
   manage,
-  root = 'Cache',
+  root = 'Ordner',
   single = false,
   actions,
   closeLabel = 'Schließen',
+  fileAction,
+  fileTag,
 }: {
-  folders: SearchFolder[];
+  folders: ExplorerFolder[];
   onClose: () => void;
   /** When given, folders can be ordered and deleted (on the map). */
   manage?: CacheManage;
   /** Name of the top level in the address bar, e.g. "Trümmerfeld". */
   root?: string;
-  /** Opens the first folder and stays in it: a single debris folder before it is taken. */
+  /** Opens the first folder and stays in it: a single debris folder before it is filed. */
   single?: boolean;
-  /** Buttons above the close button, e.g. "Mitnehmen"; the close button then turns secondary. */
+  /** Buttons above the close button, e.g. "Ablegen"; the close button then turns secondary. */
   actions?: React.ReactNode;
   closeLabel?: string;
+  /** An action under an open file, e.g. "In den Cache". */
+  fileAction?: (folder: number, file: number) => FileAction | null;
+  /** A short mark in the file list, e.g. "im Cache". */
+  fileTag?: (folder: number, file: number) => string | undefined;
 }) {
   const [organizing, setOrganizing] = useState(false);
   const { width, height } = useWindowDimensions();
   const [query, setQuery] = useState('');
+  const [group, setGroup] = useState<string | null>(null);
   const [folder, setFolder] = useState<number | null>(single ? 0 : null);
   const [file, setFile] = useState<number | null>(null);
   const searching = query.trim().length >= 2;
   const hits = useMemo(() => searchFiles(folders, query), [folders, query]);
 
+  const grouped = !single && folders.some((f) => f.group);
+  const groups = useMemo(() => [...new Set(folders.map((f) => f.group ?? ''))], [folders]);
+  // the folders on the current level, with their index in `folders`
+  const visible = folders.map((f, i) => ({ f, i })).filter(({ f }) => !grouped || (f.group ?? '') === group);
+
   const open = folder !== null ? folders[folder] : undefined;
   const current = open && file !== null ? open.files[file] : undefined;
   const viewW = Math.min(width, 480) - 24 - 6 - 20 - 4;
-  // the top a player can go up to: the folder itself in single mode, else the list of folders
-  const atTop = single ? file === null : folder === null;
+  // the top a player can go up to: the folder itself in single mode, else the list of groups or folders
+  const atTop = single ? file === null : folder === null && (!grouped || group === null);
 
   const up = () => {
     if (file !== null) setFile(null);
-    else if (!single) setFolder(null);
+    else if (single) return;
+    else if (folder !== null) setFolder(null);
+    else setGroup(null);
   };
-  const path = [root, open?.name, current?.name].filter(Boolean).join('\\');
-  const title = current ? current.name : open ? open.name : 'Cache';
+  const path = [root, grouped ? group : undefined, open?.name, current?.name].filter(Boolean).join('\\');
+  const title = current ? current.name : open ? open.name : group ?? root;
 
   const openHit = (f: number, g: number) => {
+    setGroup(folders[f]!.group ?? null);
     setFolder(f);
     setFile(g);
   };
+  const action = current && folder !== null && file !== null && fileAction ? fileAction(folder, file) : null;
 
   return (
     <Window title={title} icon="folder" tone="light" onClose={onClose} style={{ maxWidth: 480, alignSelf: 'center', width: '100%' }}>
@@ -176,7 +223,7 @@ export function CacheExplorer({
           disabled={atTop && !searching}
           onPress={() => {
             tap();
-            if (searching && (folder === null || (single && file === null))) setQuery('');
+            if (searching && file === null && (folder === null || single)) setQuery('');
             else up();
           }}
           accessibilityRole="button"
@@ -193,12 +240,12 @@ export function CacheExplorer({
               setQuery(t);
               if (t.trim().length >= 2) setFile(null);
             }}
-            placeholder={single ? 'Suchen in diesem Ordner …' : 'Suchen in Cache …'}
+            placeholder={single ? 'Suchen in diesem Ordner …' : `Suchen in ${root} …`}
             placeholderTextColor={WIN.shadow}
             returnKeyType="search"
             autoCorrect={false}
             autoCapitalize="none"
-            accessibilityLabel={single ? 'In diesem Ordner suchen' : 'Im Cache suchen'}
+            accessibilityLabel={single ? 'In diesem Ordner suchen' : `In ${root} suchen`}
             style={styles.searchInput}
           />
         </View>
@@ -210,26 +257,10 @@ export function CacheExplorer({
         </Text>
       </View>
 
-      <View style={[styles.content, { maxHeight: height * 0.55 }]}>
+      <View style={[styles.content, { maxHeight: height * 0.5 }]}>
         <ScrollView contentContainerStyle={{ padding: 8, gap: 2 }} keyboardShouldPersistTaps="handled">
           {current ? (
-            <View style={{ gap: 10 }}>
-              {current.kind === 'image' && current.chart ? (
-                <ChartView chart={current.chart} width={viewW} alt={current.alt} />
-              ) : (
-                <>
-                  {current.kind === 'article' ? (
-                    <Text style={styles.articleTitle} maxFontSizeMultiplier={1.3}>
-                      {current.name.replace(/\.[^.]+$/, '')}
-                    </Text>
-                  ) : null}
-                  {(current.text ?? '').split('\n\n').map((p, i) => (
-                    <Highlighted key={i} text={p} query={query} style={styles.body} />
-                  ))}
-                  {current.source ? <Text style={styles.source}>Quelle: {current.source}</Text> : null}
-                </>
-              )}
-            </View>
+            <FileView file={current} width={viewW} query={query} />
           ) : searching ? (
             hits.length === 0 ? (
               <Text style={styles.empty}>Keine Treffer für „{query.trim()}“.</Text>
@@ -244,6 +275,7 @@ export function CacheExplorer({
                     title={`${f.name} › ${x.name}`}
                     sub={h.snippet}
                     query={query}
+                    right={fileTag?.(h.folder, h.file)}
                     onPress={() => openHit(h.folder, h.file)}
                   />
                 );
@@ -251,24 +283,41 @@ export function CacheExplorer({
             )
           ) : open ? (
             open.files.map((x, i) => (
-              <Row key={x.name} icon={ICON_OF[x.kind]} title={x.name} sub={KIND_LABEL[x.kind]} right={`${fileSizeKb(x)} KB`} onPress={() => setFile(i)} />
+              <Row
+                key={x.name}
+                icon={ICON_OF[x.kind]}
+                title={x.name}
+                sub={KIND_LABEL[x.kind]}
+                right={fileTag?.(folder!, i) ?? `${fileSizeKb(x)} KB`}
+                onPress={() => setFile(i)}
+              />
             ))
           ) : folders.length === 0 ? (
-            <Text style={styles.empty}>Der Cache ist leer.</Text>
+            <Text style={styles.empty}>Noch leer. Leg lose Ordner aus den Trümmerfeldern hier ab.</Text>
+          ) : grouped && group === null ? (
+            groups.map((g) => {
+              const n = folders.filter((f) => (f.group ?? '') === g).length;
+              return <Row key={g} icon="folder" title={g} sub={`${n} Ordner`} onPress={() => setGroup(g)} />;
+            })
           ) : organizing && manage ? (
-            folders.map((f, i) => (
+            visible.map(({ f, i }, k) => (
               <View key={f.name + i} style={styles.manageRow}>
                 <Icon name="folder" size={26} />
                 <Text style={[styles.rowTitle, { flex: 1 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                   {f.name}
                 </Text>
-                <MiniBtn label="▲" hint="Nach oben" disabled={i === 0} onPress={() => manage.onMove(i, -1)} />
-                <MiniBtn label="▼" hint="Nach unten" disabled={i === folders.length - 1} onPress={() => manage.onMove(i, 1)} />
+                <MiniBtn label="▲" hint="Nach oben" disabled={k === 0} onPress={() => manage.onSwap(i, visible[k - 1]!.i)} />
+                <MiniBtn
+                  label="▼"
+                  hint="Nach unten"
+                  disabled={k === visible.length - 1}
+                  onPress={() => manage.onSwap(i, visible[k + 1]!.i)}
+                />
                 <MiniBtn
                   label="✕"
                   hint={`Ordner ${f.name} löschen`}
                   onPress={() =>
-                    Alert.alert('Ordner löschen?', `„${f.name}“ wird aus dem Cache entfernt. Du kannst ihn später erneut aufsammeln.`, [
+                    Alert.alert('Ordner löschen?', `„${f.name}“ wird aus deinen Ordnern entfernt. Du kannst ihn später erneut ablegen.`, [
                       { text: 'Abbrechen', style: 'cancel' },
                       { text: 'Löschen', style: 'destructive', onPress: () => manage.onDelete(i) },
                     ])
@@ -277,7 +326,7 @@ export function CacheExplorer({
               </View>
             ))
           ) : (
-            folders.map((f, i) => (
+            visible.map(({ f, i }) => (
               <Row
                 key={f.name + i}
                 icon="folder"
@@ -290,7 +339,9 @@ export function CacheExplorer({
         </ScrollView>
       </View>
 
-      {manage && folder === null && !searching && folders.length > 0 ? (
+      {action ? <Button label={action.label} sub={action.sub} variant="ghost" disabled={action.disabled} onPress={action.onPress} /> : null}
+
+      {manage && folder === null && !searching && folders.length > 0 && (!grouped || group !== null) ? (
         <View style={styles.manageBar}>
           <View style={{ flex: 1 }}>
             <Button label={organizing ? 'Fertig' : 'Ordnen'} variant="ghost" onPress={() => setOrganizing((o) => !o)} />
@@ -302,12 +353,12 @@ export function CacheExplorer({
               </View>
               <View style={{ flex: 1 }}>
                 <Button
-                  label="Leeren"
+                  label="Alle löschen"
                   variant="ghost"
                   onPress={() =>
-                    Alert.alert('Cache leeren?', 'Alle Ordner werden entfernt.', [
+                    Alert.alert('Alle Ordner löschen?', 'Deine ganze Ordnerstruktur wird geleert.', [
                       { text: 'Abbrechen', style: 'cancel' },
-                      { text: 'Leeren', style: 'destructive', onPress: manage.onClear },
+                      { text: 'Löschen', style: 'destructive', onPress: manage.onClear },
                     ])
                   }
                 />
@@ -317,7 +368,13 @@ export function CacheExplorer({
         </View>
       ) : null}
       <Text style={styles.status} maxFontSizeMultiplier={1.2}>
-        {searching ? `${hits.length} Treffer` : open ? `${open.files.length} Objekt${open.files.length === 1 ? '' : 'e'}` : `${folders.length} Ordner`}
+        {searching
+          ? `${hits.length} Treffer`
+          : open
+            ? `${open.files.length} Objekt${open.files.length === 1 ? '' : 'e'}`
+            : grouped && group === null
+              ? `${groups.length} Themengebiet${groups.length === 1 ? '' : 'e'}, ${folders.length} Ordner`
+              : `${visible.length} Ordner`}
       </Text>
       {actions}
       <Button label={closeLabel} variant={actions ? 'ghost' : 'primary'} onPress={onClose} />
@@ -359,7 +416,7 @@ const styles = StyleSheet.create({
   },
   addressText: { color: INK, fontSize: 13 },
   content: {
-    minHeight: 220,
+    minHeight: 200,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderTopColor: WIN.shadow,

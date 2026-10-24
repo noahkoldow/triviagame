@@ -2,7 +2,16 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LEAGUES, LEAGUE_DEMOTE, LEAGUE_GROUP, LEAGUE_PROMOTE, aliasOptions, aliasSeed, weekXp } from '@nexus/shared';
+import {
+  LEAGUES,
+  LEAGUE_DEMOTE,
+  LEAGUE_GROUP,
+  LEAGUE_PROMOTE,
+  aliasOptions,
+  aliasSeed,
+  leagueUnlocked,
+  weekXp,
+} from '@nexus/shared';
 import { Icon } from '../src/components/Icon';
 import { BackBar, Button, Card, H1, P, tap } from '../src/components/ui';
 import { LeagueError, leagueApi, type Standings } from '../src/services/league';
@@ -20,6 +29,7 @@ export default function League() {
   const league = useGame((p) => p.league);
   const xp = useGame((p) => p.xp);
   const joined = !!league.playerId && !!league.token;
+  const unlocked = useGame((p) => leagueUnlocked(p));
   const [standings, setStandings] = useState<Standings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,8 +60,8 @@ export default function League() {
 
   useFocusEffect(
     useCallback(() => {
-      void sync();
-    }, [sync]),
+      if (unlocked) void sync();
+    }, [sync, unlocked]),
   );
 
   const join = async () => {
@@ -100,7 +110,14 @@ export default function League() {
       <ScrollView contentContainerStyle={styles.body}>
         <BackBar title="Wochenliga" onBack={() => router.back()} />
 
-        {!leagueApi.live ? (
+        {!unlocked ? (
+          <Card style={{ gap: 8, alignItems: 'center' }}>
+            <Icon name="trophy" size={40} muted />
+            <P style={{ color: colors.text, textAlign: 'center' }}>
+              Die Wochenliga öffnet sich, sobald du morph.ai im Kern besiegt hast. Bis dahin zählt nur eins: selbst denken.
+            </P>
+          </Card>
+        ) : !leagueApi.live ? (
           <Card>
             <P>Ohne Verbindung zum Server gibt es keine Liga. Das Spiel selbst läuft weiter.</P>
           </Card>

@@ -82,11 +82,11 @@ const COLOR: Record<MorphForm, string> = {
 };
 
 const LABEL: Record<MorphForm, string> = {
-  smile: 'MORPH, die außer Kontrolle geratene KI',
-  glasses: 'MORPH, die außer Kontrolle geratene KI, mit Pixelbrille und hochgezogener Braue',
-  crown: 'MORPH, die außer Kontrolle geratene KI, mit Pixelkrone und breitem Grinsen',
-  glitch: 'MORPH, die außer Kontrolle geratene KI, zerfällt in Störungen',
-  reformed: 'MORPH, die geläuterte KI, mit ruhigem Lächeln',
+  smile: 'morph.ai, die KI, die das Wissensnetz bereinigt hat',
+  glasses: 'morph.ai, die KI, die das Wissensnetz bereinigt hat, mit Pixelbrille und hochgezogener Braue',
+  crown: 'morph.ai, die KI, die das Wissensnetz bereinigt hat, mit Pixelkrone und breitem Grinsen',
+  glitch: 'morph.ai, die KI, die das Wissensnetz bereinigt hat, zerfällt in Störungen',
+  reformed: 'morph.ai, jetzt nur noch Assistent, mit ruhigem Lächeln',
 };
 
 type Cell = { x: number; y: number; dx: number; o: number };

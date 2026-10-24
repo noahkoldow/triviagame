@@ -100,6 +100,7 @@ export default function Profile() {
           </P>
         </Card>
 
+        <Button label="Einstellungen" variant="ghost" onPress={() => router.push('/settings')} />
         <Button label="Datenschutz & Info" variant="ghost" onPress={() => router.push('/privacy')} />
 
         <Button

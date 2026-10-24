@@ -65,6 +65,22 @@ describe('migrating old saves', () => {
     expect(migrateArea('nope')).toBeUndefined();
   });
 
+  it('moves the folders of the old cache into the folder structure', () => {
+    const p = initialPlayer(pool);
+    const old = {
+      ...p,
+      archive: [{ questionId: 'sci-light', fragmentId: 'sci-light-f1' }],
+      cache: [
+        { questionId: 'sci-light', fragmentId: 'sci-light-f1' },
+        { questionId: 'sci-light', fragmentId: 'sci-light-f2' },
+        { questionId: 'nat-everest', fragmentId: 'nat-everest-f1', file: 'Notiz.txt' },
+      ],
+    } as unknown as PlayerState;
+    const m = migrateSave(old);
+    expect(m.archive.map((a) => a.fragmentId)).toEqual(['sci-light-f1', 'sci-light-f2']);
+    expect(m.cache).toEqual([{ questionId: 'nat-everest', fragmentId: 'nat-everest-f1', file: 'Notiz.txt' }]);
+  });
+
   it('leaves a current save as it is', () => {
     const p = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0).player;
     const m = migrateSave(p);

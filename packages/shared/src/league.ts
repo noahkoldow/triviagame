@@ -106,6 +106,14 @@ export function initialLeague(): LeagueState {
   return { week: '', startXp: 0 };
 }
 
+/**
+ * The league opens after morph.ai is beaten: first the player learns to think again, then they
+ * compete. Players who joined earlier keep their place.
+ */
+export function leagueUnlocked(p: PlayerState): boolean {
+  return p.story.finale || !!p.league.playerId;
+}
+
 /** Starts a new league week when the calendar moved on (returns the same state otherwise). */
 export function rollWeek(p: PlayerState, now: number): PlayerState {
   const week = weekOf(now);
