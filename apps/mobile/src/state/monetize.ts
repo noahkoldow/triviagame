@@ -3,6 +3,7 @@ import {
   applyPurchase,
   claimPlusBonus,
   grantRewarded,
+  personalizedAds,
   productDef,
   rewardedOffer,
   takeAppOpen,
@@ -11,7 +12,9 @@ import {
   type RewardedPlacement,
 } from '@nexus/shared';
 import { useEffect, useState } from 'react';
-import { ads } from '../services/ads';
+import { IS_PROTOTYPE } from '../config';
+import { createAdMobProvider } from '../services/admob';
+import { ads, setAdProvider } from '../services/ads';
 import { track } from '../services/analytics';
 import { PRODUCT_TEXT, purchases, type StoreProduct } from '../services/purchases';
 import { getState, today, update } from './store';
@@ -79,6 +82,27 @@ export async function buy(productId: ProductId): Promise<boolean> {
   if (productDef(productId)?.kind !== 'consumable') update((p) => claimPlusBonus(p, today(), Date.now()));
   track({ name: 'purchase_done', product: productId });
   return true;
+}
+
+let started = false;
+
+/**
+ * Once the player is onboarded (the age is known): Plus from the store, then in store builds the
+ * real ad provider with its consent dialog, then maybe an app-open ad (cold start).
+ */
+export async function startMonetization(): Promise<void> {
+  if (started) return;
+  started = true;
+  await syncEntitlements();
+  if (!IS_PROTOTYPE) {
+    const p = getState().profile;
+    const real = await createAdMobProvider({
+      minor: p.ageGroup === 'minor',
+      personalized: personalizedAds(p.ageGroup, p.consent),
+    });
+    if (real) setAdProvider(real);
+  }
+  await appOpened(null);
 }
 
 /** At start: the store's view of Plus wins over the local copy (cancelled, refunded, renewed). */

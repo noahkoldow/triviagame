@@ -1,3 +1,5 @@
+import { IS_PROTOTYPE } from '../config';
+
 /**
  * Ad provider interface. Expo Go cannot load the native AdMob module, so the
  * default is a mock that shows an overlay. The real implementation
@@ -10,6 +12,8 @@ export interface AdProvider {
   showInterstitial(opts: { personalized: boolean }): Promise<void>;
   /** Full-screen ad when the app comes back to the foreground. */
   showAppOpen(opts: { personalized: boolean }): Promise<void>;
+  /** Lets the player change or withdraw ad consent (GDPR), where the region requires it. */
+  privacyOptions?: (() => Promise<void>) | null;
 }
 
 export type AdKind = 'rewarded' | 'interstitial' | 'appOpen';
@@ -56,7 +60,16 @@ export const mockAds: AdProvider = {
   },
 };
 
-export let ads: AdProvider = mockAds;
+/** A store build before AdMob is ready (or without it): no ads, never the test overlay. */
+const noAds: AdProvider = {
+  async showRewarded() {
+    return false;
+  },
+  async showInterstitial() {},
+  async showAppOpen() {},
+};
+
+export let ads: AdProvider = IS_PROTOTYPE ? mockAds : noAds;
 export function setAdProvider(p: AdProvider): void {
   ads = p;
 }
