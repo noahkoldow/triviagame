@@ -34,6 +34,7 @@ import {
 } from '@nexus/shared';
 import { colors, mix } from '../theme';
 import {
+  ANCHOR_Y,
   MAX_ZOOM,
   MIN_ZOOM,
   SQUASH,
@@ -71,6 +72,8 @@ interface Props {
   focusZoom?: number;
   /** Fraction of the screen height to place the focused node above the centre (room for a panel below). */
   focusLift?: number;
+  /** Screen y (in the map's own coordinates) where the focused node should sit; wins over `focusLift`. */
+  focusMidY?: number;
   showStrand?: boolean;
   /** Disturbed areas still to be connected. */
   outposts?: Outpost[];
@@ -98,6 +101,7 @@ function NetMapBase({
   focusId,
   focusZoom,
   focusLift = 0,
+  focusMidY,
   showStrand = false,
   outposts = [],
   onOutpost,
@@ -281,7 +285,11 @@ function NetMapBase({
     if (!n) return;
     const s = focusZoom ?? Math.max(cam.current.s, 1.1);
     // the camera looks at a point below the node, so the node sits higher on the screen
-    const cyTarget = n.pos.y + (focusLift * sizeRef.current.height) / (s * SQUASH);
+    const { height: h } = sizeRef.current;
+    const cyTarget =
+      focusMidY !== undefined
+        ? n.pos.y - (focusMidY - h * ANCHOR_Y) / (s * SQUASH)
+        : n.pos.y + (focusLift * h) / (s * SQUASH);
     cam.current = { cx: n.pos.x, cy: cyTarget, s };
     cx.value = withTiming(n.pos.x, { duration: 450 });
     cy.value = withTiming(cyTarget, { duration: 450 });

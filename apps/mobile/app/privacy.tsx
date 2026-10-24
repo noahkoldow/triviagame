@@ -20,7 +20,7 @@ const SECTIONS: { title: string; text: string }[] = [
   },
   {
     title: 'Inhalte von KI',
-    text: 'Fragen und Fragmente werden künftig teilweise mit KI erstellt und automatisch geprüft. Fehler können trotzdem vorkommen. Eine Meldefunktion für falsche Inhalte ist vorgesehen.',
+    text: 'Wenn der Gemini-Dienst aktiv ist, senden wir Google anonyme Themen- und Aufgabentexte, um Quizfragen zu erstellen und zu prüfen. Name, Geburtsjahr, Spielstand und Interessenprofil werden nicht mitgesendet. Angenommene Fragen werden auf deinem Gerät gespeichert. KI-Fehler können trotzdem vorkommen; eine Meldefunktion für falsche Inhalte ist vorgesehen.',
   },
   {
     title: 'Deine Rechte',

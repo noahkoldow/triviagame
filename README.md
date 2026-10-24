@@ -12,7 +12,9 @@ pnpm start          # Expo-Dev-Server, QR-Code mit Expo Go scannen
 
 Ausführliche Anleitung (lokal, EAS Update, CI): [docs/TESTING.md](docs/TESTING.md).
 
-Der Prototyp läuft komplett lokal: Mock-Fragen, Mock-Werbung (Overlay statt AdMob), Mock-Käufe. Der Spielstand liegt in `AsyncStorage`.
+Der Spielfluss funktioniert offline mit Mock-Fragen, Mock-Werbung (Overlay statt AdMob) und Mock-Käufen. Wenn das Gemini-Backend aktiv ist, ergänzt es den Fragenpool höchstens einmal pro Tag. Der Spielstand liegt in `AsyncStorage`.
+
+Firebase-/Gemini-Backend und Einrichtung: [docs/FIREBASE.md](docs/FIREBASE.md). Ohne gesetzten Endpoint spielt die App mit den eingebauten Fragen weiter.
 
 ## Aufbau
 

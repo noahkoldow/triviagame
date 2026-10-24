@@ -34,5 +34,5 @@ Der Workflow `.github/workflows/eas-update.yml` prüft Typen und Tests und verö
 
 ## Hinweise
 
-- Werbung, Käufe und Daten sind Mocks (siehe `docs/DECISIONS.md` D1). Der Spielstand liegt lokal im Gerät.
+- Werbung und Käufe sind Mocks (siehe `docs/DECISIONS.md` D1). Der Spielstand und angenommene KI-Fragen liegen lokal im Gerät. Das Gemini-Backend kann mit `EXPO_PUBLIC_AI_ENDPOINT` überschrieben werden (siehe `docs/FIREBASE.md`).
 - Zurücksetzen: Profil → „Spielstand zurücksetzen“.

@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdOverlay } from '../src/components/AdOverlay';
 import { Bolt } from '../src/components/Bolt';
+import { primeAiPool } from '../src/services/content';
 import { hydrate, useGame, useHydrated } from '../src/state/store';
 import { colors } from '../src/theme';
 
@@ -15,7 +16,7 @@ export default function RootLayout() {
   const segments = useSegments();
 
   useEffect(() => {
-    hydrate();
+    void hydrate().then(() => primeAiPool());
   }, []);
 
   useEffect(() => {

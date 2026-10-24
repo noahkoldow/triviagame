@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
 import { initialPlayer, type PlayerState } from '@nexus/shared';
-import { pool } from '../services/content';
+import { pool, restoreAiQuestions } from '../services/content';
 
 const KEY = 'nexus:v1';
 
@@ -23,31 +23,37 @@ function persist() {
 
 export async function hydrate(): Promise<void> {
   try {
+    await restoreAiQuestions();
     const raw = await AsyncStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw) as Partial<PlayerState>;
       const base = initialPlayer(pool);
-      state = {
-        ...base,
-        ...saved,
-        profile: { ...base.profile, ...saved.profile },
-        streak: { ...base.streak, ...saved.streak },
-        ads: { ...base.ads, ...saved.ads },
-        stats: { ...base.stats, ...saved.stats },
-        network: saved.network?.nodes
-          ? {
-              ...saved.network,
-              firewalls: saved.network.firewalls ?? base.network.firewalls,
-              // saves from before outposts: areas that were already bought count as connected
-              outposts:
-                saved.network.outposts ??
-                base.network.outposts?.map((o) => ({
-                  ...o,
-                  connected: (saved.unlockedAreas ?? base.unlockedAreas).includes(o.area),
-                })),
-            }
-          : base.network,
-      };
+      const hasQuestions =
+        !saved.network?.nodes ||
+        Object.values(saved.network.nodes).every((node) => pool.byId.has(node.questionId));
+      if (hasQuestions) {
+        state = {
+          ...base,
+          ...saved,
+          profile: { ...base.profile, ...saved.profile },
+          streak: { ...base.streak, ...saved.streak },
+          ads: { ...base.ads, ...saved.ads },
+          stats: { ...base.stats, ...saved.stats },
+          network: saved.network?.nodes
+            ? {
+                ...saved.network,
+                firewalls: saved.network.firewalls ?? base.network.firewalls,
+                // saves from before outposts: areas that were already bought count as connected
+                outposts:
+                  saved.network.outposts ??
+                  base.network.outposts?.map((o) => ({
+                    ...o,
+                    connected: (saved.unlockedAreas ?? base.unlockedAreas).includes(o.area),
+                  })),
+              }
+            : base.network,
+        };
+      }
     }
   } catch {
     // corrupt or unavailable storage: start fresh

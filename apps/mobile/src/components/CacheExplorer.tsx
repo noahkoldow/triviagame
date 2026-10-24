@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -42,6 +43,23 @@ function Highlighted({ text, query, style }: { text: string; query: string; styl
   });
   if (at < text.length) parts.push(text.slice(at));
   return <Text style={style}>{parts}</Text>;
+}
+
+function MiniBtn({ label, hint, disabled, onPress }: { label: string; hint: string; disabled?: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={hint}
+      style={({ pressed }) => [styles.mini, raised, pressed && pressedIn, disabled && { opacity: 0.35 }]}
+    >
+      <Text style={styles.upText}>{label}</Text>
+    </Pressable>
+  );
 }
 
 function Row({
@@ -97,7 +115,24 @@ function Row({
  * The cache as a file manager, opened inside a question: folders, the files in them, a viewer,
  * and a search that looks through everything. Searching is free; finding the right file is the task.
  */
-export function CacheExplorer({ folders, onClose }: { folders: SearchFolder[]; onClose: () => void }) {
+export interface CacheManage {
+  onMove: (index: number, dir: -1 | 1) => void;
+  onSort: () => void;
+  onDelete: (index: number) => void;
+  onClear: () => void;
+}
+
+export function CacheExplorer({
+  folders,
+  onClose,
+  manage,
+}: {
+  folders: SearchFolder[];
+  onClose: () => void;
+  /** When given, folders can be ordered and deleted (on the map). */
+  manage?: CacheManage;
+}) {
+  const [organizing, setOrganizing] = useState(false);
   const { width, height } = useWindowDimensions();
   const [query, setQuery] = useState('');
   const [folder, setFolder] = useState<number | null>(null);
@@ -207,6 +242,27 @@ export function CacheExplorer({ folders, onClose }: { folders: SearchFolder[]; o
             ))
           ) : folders.length === 0 ? (
             <Text style={styles.empty}>Der Cache ist leer.</Text>
+          ) : organizing && manage ? (
+            folders.map((f, i) => (
+              <View key={f.name + i} style={styles.manageRow}>
+                <Icon name="folder" size={26} />
+                <Text style={[styles.rowTitle, { flex: 1 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+                  {f.name}
+                </Text>
+                <MiniBtn label="▲" hint="Nach oben" disabled={i === 0} onPress={() => manage.onMove(i, -1)} />
+                <MiniBtn label="▼" hint="Nach unten" disabled={i === folders.length - 1} onPress={() => manage.onMove(i, 1)} />
+                <MiniBtn
+                  label="✕"
+                  hint={`Ordner ${f.name} löschen`}
+                  onPress={() =>
+                    Alert.alert('Ordner löschen?', `„${f.name}“ wird aus dem Cache entfernt. Du kannst ihn später erneut aufsammeln.`, [
+                      { text: 'Abbrechen', style: 'cancel' },
+                      { text: 'Löschen', style: 'destructive', onPress: () => manage.onDelete(i) },
+                    ])
+                  }
+                />
+              </View>
+            ))
           ) : (
             folders.map((f, i) => (
               <Row
@@ -221,6 +277,32 @@ export function CacheExplorer({ folders, onClose }: { folders: SearchFolder[]; o
         </ScrollView>
       </View>
 
+      {manage && folder === null && !searching && folders.length > 0 ? (
+        <View style={styles.manageBar}>
+          <View style={{ flex: 1 }}>
+            <Button label={organizing ? 'Fertig' : 'Ordnen'} variant="ghost" onPress={() => setOrganizing((o) => !o)} />
+          </View>
+          {organizing ? (
+            <>
+              <View style={{ flex: 1 }}>
+                <Button label="A–Z" variant="ghost" onPress={manage.onSort} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Leeren"
+                  variant="ghost"
+                  onPress={() =>
+                    Alert.alert('Cache leeren?', 'Alle Ordner werden entfernt.', [
+                      { text: 'Abbrechen', style: 'cancel' },
+                      { text: 'Leeren', style: 'destructive', onPress: manage.onClear },
+                    ])
+                  }
+                />
+              </View>
+            </>
+          ) : null}
+        </View>
+      ) : null}
       <Text style={styles.status} maxFontSizeMultiplier={1.2}>
         {searching ? `${hits.length} Treffer` : open ? `${open.files.length} Objekt${open.files.length === 1 ? '' : 'e'}` : `${folders.length} Ordner`}
       </Text>
@@ -230,6 +312,9 @@ export function CacheExplorer({ folders, onClose }: { folders: SearchFolder[]; o
 }
 
 const styles = StyleSheet.create({
+  manageRow: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingHorizontal: 6, paddingVertical: 2 },
+  manageBar: { flexDirection: 'row', gap: 6 },
+  mini: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   toolbar: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   upBtn: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center' },
   upText: { color: WIN.text, fontSize: 13, fontWeight: '700' },

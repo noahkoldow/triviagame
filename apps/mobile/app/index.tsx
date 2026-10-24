@@ -12,7 +12,10 @@ import {
   buildField,
   canStartNode,
   cacheAdd,
+  cacheClear,
   cacheDrop,
+  cacheMove,
+  cacheReorder,
   cacheFragments,
   fragmentFiles,
   chooseNode,
@@ -79,10 +82,21 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
+  // free band between the HUD on top and the panel below: a selected node is centred in it
+  const [topEdge, setTopEdge] = useState(0);
+  const [panelTop, setPanelTop] = useState<number | null>(null);
+  const focusMidY = debrisId && panelTop !== null ? (topEdge + panelTop) / 2 : undefined;
+
   const focus = (id: string) => {
     setFocusId(id);
     setFocusKey((k) => k + 1);
   };
+
+  // the panel appears after the tap and changes the free band: centre the node again
+  useEffect(() => {
+    if (debrisId && panelTop !== null) focus(debrisId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelTop, topEdge]);
 
   useFocusEffect(
     useCallback(() => {
@@ -133,10 +147,26 @@ export default function Home() {
   const shardEntry: CacheEntry | null =
     shard && debrisQ ? { questionId: debrisQ.id, fragmentId: shard.id } : null;
   const inCache = !!shardEntry && cache.some((c) => c.questionId === shardEntry.questionId && c.fragmentId === shardEntry.fragmentId);
+  const cachedFragments = useMemo(() => cacheFragments(getState(), pool), [cache]);
   const cachedFolders = useMemo(
-    () => cacheFragments(getState(), pool).map((f) => ({ name: f.hint, files: fragmentFiles(f) })),
-    [cache],
+    () => cachedFragments.map((f) => ({ name: f.hint, files: fragmentFiles(f) })),
+    [cachedFragments],
   );
+  const entryOf = (i: number): CacheEntry => ({ questionId: cachedFragments[i]!.questionId, fragmentId: cachedFragments[i]!.id });
+  const manageCache = {
+    onMove: (i: number, dir: -1 | 1) => update((p) => cacheMove(p, entryOf(i), dir)),
+    onSort: () =>
+      update((p) =>
+        cacheReorder(
+          p,
+          [...cachedFragments.keys()]
+            .sort((a, b) => cachedFragments[a]!.hint.localeCompare(cachedFragments[b]!.hint, 'de'))
+            .map(entryOf),
+        ),
+      ),
+    onDelete: (i: number) => update((p) => cacheDrop(p, entryOf(i))),
+    onClear: () => update((p) => cacheClear(p)),
+  };
 
   const outpost = outpostId ? outposts.find((o) => o.id === outpostId && !o.connected) : undefined;
   const outpostSteps = outpost
@@ -202,6 +232,7 @@ export default function Home() {
         focusId={focusId}
         focusZoom={debrisId ? 1.15 : undefined}
         focusLift={debrisId ? 0.25 : 0}
+        focusMidY={focusMidY}
         outposts={outposts}
         firewalls={firewalls}
         onFirewall={(id) => {
@@ -221,7 +252,12 @@ export default function Home() {
         onSelect={onSelect}
       />
 
-      <SafeAreaView edges={['top']} style={styles.top} pointerEvents="box-none">
+      <SafeAreaView
+        edges={['top']}
+        style={styles.top}
+        pointerEvents="box-none"
+        onLayout={(e) => setTopEdge(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
+      >
         <MapHud />
         {integrity === 0 ? (
           <Pressable style={[styles.banner, styles.bannerBad]} onPress={() => setUnstable(true)} accessibilityRole="button">
@@ -259,7 +295,12 @@ export default function Home() {
         </Pressable>
       ) : null}
 
-      <SafeAreaView edges={['bottom']} style={styles.bottom} pointerEvents="box-none">
+      <SafeAreaView
+        edges={['bottom']}
+        style={styles.bottom}
+        pointerEvents="box-none"
+        onLayout={(e) => setPanelTop(e.nativeEvent.layout.y)}
+      >
         <View style={styles.stack} pointerEvents="box-none">
           {debrisNode && debrisQ ? (
             <Window title={debrisQ.topic} icon="folder" onClose={() => setDebrisId(null)}>
@@ -338,7 +379,7 @@ export default function Home() {
       <Modal transparent animationType="fade" visible={explorerOpen} onRequestClose={() => setExplorerOpen(false)}>
         <Pressable style={styles.center} onPress={() => setExplorerOpen(false)}>
           <Pressable onPress={() => undefined}>
-            <CacheExplorer folders={cachedFolders} onClose={() => setExplorerOpen(false)} />
+            <CacheExplorer folders={cachedFolders} manage={manageCache} onClose={() => setExplorerOpen(false)} />
           </Pressable>
         </Pressable>
       </Modal>

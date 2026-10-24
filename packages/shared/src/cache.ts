@@ -33,6 +33,28 @@ export function cacheDrop(p: PlayerState, e: CacheEntry): PlayerState {
   return { ...p, cache: p.cache.filter((c) => !same(c, e)) };
 }
 
+/** Moves a fragment one place up (-1) or down (+1) in the cache order. */
+export function cacheMove(p: PlayerState, e: CacheEntry, dir: -1 | 1): PlayerState {
+  const i = p.cache.findIndex((c) => same(c, e));
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= p.cache.length) return p;
+  const cache = [...p.cache];
+  [cache[i], cache[j]] = [cache[j]!, cache[i]!];
+  return { ...p, cache };
+}
+
+/** Puts the cache in the order of the given entries (entries not listed keep their place at the end). */
+export function cacheReorder(p: PlayerState, order: CacheEntry[]): PlayerState {
+  const first = order.filter((e) => cacheHas(p, e));
+  const rest = p.cache.filter((c) => !first.some((e) => same(e, c)));
+  return { ...p, cache: [...first, ...rest] };
+}
+
+/** Empties the cache. */
+export function cacheClear(p: PlayerState): PlayerState {
+  return p.cache.length === 0 ? p : { ...p, cache: [] };
+}
+
 /** Energy it costs to open a cache with this many folders: one per three folders, at most 5. */
 export function cacheOpenCost(folders: number): number {
   return Math.min(5, Math.max(1, Math.ceil(folders / 3)));

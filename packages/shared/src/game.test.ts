@@ -23,6 +23,9 @@ import {
   regenEnergy,
   cacheAdd,
   cacheDrop,
+  cacheMove,
+  cacheReorder,
+  cacheClear,
   debrisOffsets,
   type PlayerState,
 } from './index';
@@ -118,6 +121,17 @@ describe('cache', () => {
     expect(p.cache).toEqual([]);
     expect(cacheAdd(p, e('a'))).not.toBeNull();
     expect(cacheDrop(p, e('never-added'))).toBe(p);
+  });
+
+  it('orders folders: move one step, reorder, clear', () => {
+    let p = initialPlayer(pool);
+    for (const f of ['a', 'b', 'c']) p = cacheAdd(p, e(f))!;
+    const ids = (x: typeof p) => x.cache.map((c) => c.fragmentId);
+    expect(ids(cacheMove(p, e('c'), -1))).toEqual(['a', 'c', 'b']);
+    expect(cacheMove(p, e('a'), -1)).toBe(p);
+    expect(cacheMove(p, e('c'), 1)).toBe(p);
+    expect(ids(cacheReorder(p, [e('c'), e('a'), e('zzz')]))).toEqual(['c', 'a', 'b']);
+    expect(cacheClear(p).cache).toEqual([]);
   });
 
   it('opening costs more the bigger the cache is', () => {

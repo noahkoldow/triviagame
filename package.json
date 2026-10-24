@@ -10,6 +10,8 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "firebase:emulators": "firebase emulators:start --only functions,firestore",
+    "firebase:deploy": "pnpm --filter @nexus/functions build && firebase deploy --only firestore:rules,firestore:indexes,functions",
     "format": "prettier --write ."
   },
   "devDependencies": {

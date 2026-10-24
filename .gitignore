@@ -4,3 +4,11 @@ dist
 *.log
 .DS_Store
 coverage
+functions/lib
+functions/node_modules
+apps/mobile/.env
+apps/mobile/.env.*
+!apps/mobile/.env.example
+functions/.env
+functions/.env.*
+!functions/.env.example

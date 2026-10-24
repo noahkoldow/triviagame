@@ -1,19 +1,19 @@
 # KI-Anbindung: Fragen aus der KI, alle Typen
 
-Stand: Schema, Prüfung und Anbieter-Schicht stehen und sind getestet. **Noch nicht verbunden** mit dem laufenden Spiel: der Pool ist weiter die feste Liste `MOCK_QUESTIONS`. Es gibt auch noch kein Backend.
+Stand: Schema, Prüfung, Firebase-Backend und Laufzeit-Anbindung stehen. Einrichtung und Projektangaben: [FIREBASE.md](FIREBASE.md). Wenn das Backend nicht erreichbar oder deaktiviert ist, bleibt die App mit ihren lokalen Fragen spielbar.
 
 ## Fragetypen
 
 Sechs Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`):
 
-| Typ | Spiel | Felder der KI |
-|---|---|---|
-| `choice` | Auswahl | `options` (3 bis 5), `answer` (Index) |
-| `estimate` | Schätzen | `answer`, `tolerance` (0 = exakt, bis 0,5), `unit` |
-| `order` | Reihenfolge | `items` (3 bis 6, in richtiger Ordnung) |
-| `truefalse` | Stimmt / Stimmt nicht | `answer` (boolean); die Aussage ist `stem` |
-| `match` | Zuordnen | `pairs` (3 bis 6, links und rechts je eindeutig) |
-| `cloze` | Lückentext | `text` mit `{0}`, `{1}` …, `answers`, `bank` (inkl. falscher Wörter) |
+| Typ         | Spiel                 | Felder der KI                                                        |
+| ----------- | --------------------- | -------------------------------------------------------------------- |
+| `choice`    | Auswahl               | `options` (3 bis 5), `answer` (Index)                                |
+| `estimate`  | Schätzen              | `answer`, `tolerance` (0 = exakt, bis 0,5), `unit`                   |
+| `order`     | Reihenfolge           | `items` (3 bis 6, in richtiger Ordnung)                              |
+| `truefalse` | Stimmt / Stimmt nicht | `answer` (boolean); die Aussage ist `stem`                           |
+| `match`     | Zuordnen              | `pairs` (3 bis 6, links und rechts je eindeutig)                     |
+| `cloze`     | Lückentext            | `text` mit `{0}`, `{1}` …, `answers`, `bank` (inkl. falscher Wörter) |
 
 Alle Typen haben dazu: `area`, `difficulty`, `topic`, `intro`, `stem`, `explanation`, `fragments`.
 
@@ -40,22 +40,21 @@ Ein Test prüft, dass alle vorhandenen Fragen diese Regeln bestehen, damit die R
 
 ## Anbieter in der App (`apps/mobile/src/services/ai.ts`)
 
-- `httpGenerator` und `httpChecker` rufen **unser eigenes Backend** auf (`AI_ENDPOINT` in `src/config.ts`, leer = aus). Die App sendet nur `{ task, prompt }`, keine Spielerdaten, und kennt weder Schlüssel noch Modell.
-- `mockGenerator` antwortet offline im selben JSON-Format aus den eingebauten Fragen (Entwicklung, Tests, solange es kein Backend gibt).
+- `httpGenerator` und `httpChecker` rufen **unser eigenes Backend** auf (`AI_ENDPOINT` in `src/config.ts`). Die App sendet nur `{ task, prompt }`, keine Spielerdaten, und kennt weder Schlüssel noch Modell.
+- `mockGenerator` antwortet offline im selben JSON-Format aus den eingebauten Fragen (Entwicklung, Tests und wenn kein Backend konfiguriert ist).
 - `questionSource(endpoint)` wählt je nach Konfiguration.
 
-## Was das Backend tun muss
+## Firebase-Backend
 
 - `POST { task: "generate" | "check", prompt }` → `{ text }`.
 - Den Schlüssel und den **Modellnamen aus der Konfiguration** (nicht im Code) verwenden.
-- **Tagesbudget und Kill-Switch** durchsetzen, Anfragen begrenzen, nur anonyme Eingaben.
-- Geprüfte Fragen in einen **gemeinsamen Pool** legen (Konzept 7.2), nicht pro Klick neu erzeugen.
-- Eine **Meldefunktion** für Fragen bereitstellen; gemeldete Fragen sperren und neu prüfen.
+- **Tagesbudget und Kill-Switch** durchsetzen und nur anonyme Prompts verarbeiten. Der Gemini-Schlüssel liegt in Secret Manager.
+- Die App erzeugt beim Start höchstens eine Frage pro UTC-Tag. Die Shared-Pipeline validiert sie, ruft den Prüfer auf und fügt sie lokal dem Pool hinzu. Geprüfte KI-Fragen bleiben im Gerätespeicher verfügbar.
+- Gemeinsamer Firestore-Fragenpool und Meldefunktion für Fragen sind noch offen.
 
 ## Offen
 
-- Backend und Pool-Speicher (Firebase, siehe Konzept 8).
-- Pool im Spiel aus dem Backend nachladen statt aus `MOCK_QUESTIONS` (der `Pool` kann beliebige `Question`s halten).
+- Geprüften Fragenpool in Firestore speichern und zwischen Geräten teilen.
 - Meldefunktion in der App.
 - Verzweigungen (`deepen`/`bridge`) und Bereichs-Nachbarschaft für KI-Fragen vorschlagen lassen; bisher wählt das Spiel selbst per Bereichs-Links.
 - Weitere Fragetypen, die zum Windows-95-Stil passen, etwa „In Ordner sortieren“ oder „Fehler im Text finden“.

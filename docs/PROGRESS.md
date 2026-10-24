@@ -27,6 +27,13 @@ Spielbar in Expo Go (Mock-Daten):
 - Cache mit echter Entscheidung, Stichwort statt Frage, Folgen bei Fehlern (D17), gestörte Außenposten (D16).
 - **Ungeprüft auf Gerät.** Strang-Vorschau ist standardmäßig aus (Prop `showStrand` in NetMap).
 
+## Prototyp 0.5 (Firebase und Gemini)
+
+- Neues Firebase-Projekt `nexus-trivia-prod-20261024`; Firestore-Standarddatenbank in `europe-west3`, Regeln deployed und Clientzugriffe gesperrt.
+- Gemini-HTTP-Function (Node 22, Region `europe-west3`) mit Secret-Manager-Integration, konfigurierbarem Modell, Kill-Switch und Firestore-Tageslimit.
+- App fragt beim Start höchstens eine KI-Frage pro Tag an. Shared-Validator und zweiter Gemini-Prüfer müssen sie annehmen; angenommene Fragen werden lokal gespeichert und zum Spielpool ergänzt.
+- **Noch nicht live bereitgestellt:** Cloud-Billing, Gemini-API-Schlüssel und Function-Deploy fehlen. Einrichtung: `docs/FIREBASE.md`.
+
 ## Verifiziert
 
 `pnpm typecheck`, `pnpm test`, `expo export --platform android` (Bundle baut). **Nicht** auf Gerät/Simulator gelaufen: Optik, Gesten und Haptik sind ungeprüft.
@@ -35,7 +42,8 @@ Spielbar in Expo Go (Mock-Daten):
 
 1. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren (Parallax, Dekor-Menge).
 2. Tages-Puls, Boss-Firewalls, Duelle/Koop, Events (Konzept 6.3/6.4).
-3. Gemini-Pipeline (Provider-Interface `ContentProvider`), Prüfer-Durchlauf, Pool, Meldefunktion; Interessenmodell serverseitig.
-4. Development Build: echte AdMob-/Kauf-Provider, UMP-Einwilligung, Firebase.
-5. Englisch, Barrierefreiheit-Feinschliff, Sounds, illustrierte Assets für Bolt/MORPH/Hüter.
-6. Mehr Fragen (Pool wächst mit Gemini), derzeit enden die Pfade nach ~31 Knoten.
+3. Cloud-Billing verknüpfen, Gemini-Schlüssel setzen und Function bereitstellen; danach KI-Anfragen auf Gerät prüfen.
+4. Gemeinsamen geprüften Firestore-Fragenpool, App Check, Auth, Meldefunktion und serverseitiges Interessenmodell aufbauen.
+5. Development Build: echte AdMob-/Kauf-Provider und UMP-Einwilligung.
+6. Englisch, Barrierefreiheit-Feinschliff, Sounds, illustrierte Assets für Bolt/MORPH/Hüter.
+7. Mehr Fragen (Pool wächst mit Gemini), derzeit enden die Pfade nach ~31 Knoten.
