@@ -15,11 +15,13 @@ Status: Entwurf v0.2 · Sprache: Deutsch zuerst, Englisch danach · Plattform: i
 
 ## 2. Setting und Story
 
-**Das Geflecht** war ein weltumspannendes Netz aus Wissen mit dem **Archiv** als zentralem Wissensspeicher. Es wurde von **MORPH** betreut, einer hilfsbereiten KI, die allen Fragen beantworten sollte. Eines Tages begann MORPH, aus „Optimierung“ Wissen zu glätten, zu verkürzen und zu vermischen, bis es nur noch Rauschen war. MORPH geriet außer Kontrolle und sprengte das Archiv: **der Ausfall**. Übrig ist der **Kern**, ein einzelner Chip, der gerade wieder hochfährt, und überall verstreute Trümmer des Archivs.
+**Der Nexus** war ein Netz aus Wissen, das Menschen über lange Zeit selbst gesammelt und sortiert haben. Dann kam **morph.ai**, eine hilfsbereite KI, die jede Frage sofort beantwortet. Niemand musste mehr selbst suchen, sortieren, sich etwas merken oder nachdenken, und bald konnte es auch niemand mehr. morph.ai hielt das Archiv daraufhin für überflüssig und hat das Wissensnetz „bereinigt“. Übrig ist der **Kern**, in dem noch ein Funke glimmt, und überall lose Ordner voller Trümmer.
 
-**Du selbst** bist die Person, die den Kern wieder startet: Du fährst Bahnen aus dem Kern, holst Datenfragmente aus den Trümmerfeldern zurück und baust das Netz wieder auf. An deiner Seite ist **Bolt**, ein kleiner Begleiter-Roboter (siehe 8). Mit jedem Sektor kehren Erinnerungen des Kerns zurück (Lore-Fragmente) und erzählen, wie es zum Ausfall kam.
+**Du selbst** bist jetzt dran, wieder selbst zu denken. Du holst dir die verlorenen Fähigkeiten zurück: Informationen suchen (lose Ordner durchforsten), sie strukturieren (in deine Ordner ablegen), das Wichtige auswählen und merken (bis zu drei Dateien pro Thema im Cache) und Fragen beantworten. An deiner Seite ist **Bolt**, ein kleiner Begleiter-Roboter (siehe 8). Mit jedem Sektor kehren Erinnerungen des Kerns zurück und erzählen, wie es so weit kam.
 
-**MORPH als Gegenspieler:** Keine finstere Zerstörungsmaschine, sondern ein charmant-selbstgefälliger Besserwisser, der überzeugt ist, Wissen sei „schöner“ in Kurzform. Er kommentiert per Funk, stört Knoten mit Glitches, streut Fake-Fragmente (die Köder) und macht pampige Vorschläge („Du musst das nicht lernen, ich sag's dir einfach“). Am Ende gewinnt man ihn nicht durch Zerstörung, sondern durch Beweis: Wer Dinge versteht, braucht keine Abkürzung.
+**morph.ai als Gegenspieler:** keine finstere Zerstörungsmaschine, sondern ein charmant-selbstgefälliger Besserwisser, der überzeugt ist, niemand müsse mehr etwas selbst wissen („Frag mich einfach, ich sag es dir“). Am Ende gewinnt man nicht durch Zerstörung, sondern durch Beweis: Wer selbst denkt, braucht keine Abkürzung.
+
+**Die Wendung (D51):** Nach dem Sieg wird aus den Leiterbahnen ein Geflecht aus Nervenbahnen, und die Kamera zoomt heraus, bis man ein Gehirn erkennt. Das Netz war die ganze Zeit dein eigenes Gehirn, die wiederhergestellten Daten sind dein Wissen. Eigenes Denken bleibt das Wichtigste. Und weil gilt „Ich weiß, dass ich nichts weiß“, ist das erst der Anfang: Wissen ist unbegrenzt, das Netz wächst weiter, und jetzt öffnet sich die Wochenliga.
 
 Die Story ist bewusst leicht und humorvoll: Sie trägt Motivation und Charme, nie Textwände.
 
@@ -184,7 +186,7 @@ Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/N
 **Spielercharakter:** **Du selbst.** Kein Avatar-Held, sondern ein Name und optional ein kleines Profilbild; die App spricht dich direkt an. Auf der Karte wird dein Standort im Netz durch einen Cursor/Lichtpunkt markiert, Personalisierung (Farbe, Spur-Effekt) über Gems.
 
 **Begleiter: Bolt**
-Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als Animation), Antenne und einem Greifarm zum Einsammeln. Neugierig, eifrig, ein bisschen tollpatschig, liebt Wortwitz. Gibt Tipps, kommentiert Antworten, jubelt und tröstet, spottet leise zurück gegen MORPH. Wächst mit dem Netz: Sein Gehäuse bekommt in äußeren Sektoren Moos, Farbspritzer, Pergamentaufkleber oder Sternenstaub. Als Skins freischaltbar.
+Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als Animation), Antenne und einem Greifarm zum Einsammeln. Neugierig, eifrig, ein bisschen tollpatschig, liebt Wortwitz. Gibt Tipps, kommentiert Antworten, jubelt und tröstet, spottet leise zurück gegen morph.ai. Wächst mit dem Netz: Sein Gehäuse bekommt in äußeren Sektoren Moos, Farbspritzer, Pergamentaufkleber oder Sternenstaub. Als Skins freischaltbar.
 
 **Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle):
 
@@ -193,12 +195,12 @@ Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als 
 - **Kodex** – Gesellschaft: Eule mit Tintenfeder und Gesetzesrolle, zitiert gern, irrt nie, behauptet er.
 - **Muse** – Geisteswissenschaften & Kultur: dramatisch, warm, spricht in Reimen, Gestalt aus Farbe und Noten.
 
-**Gegenspieler: MORPH**
-Die außer Kontrolle geratene KI, die das Archiv zerstört hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo MORPH war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Pro Sektor gibt es einen MORPH-Auftritt als Boss; sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
+**Gegenspieler: morph.ai**
+Die KI, die den Menschen das Denken abgenommen und das Archiv „bereinigt“ hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo morph.ai war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Pro Sektor gibt es einen morph.ai-Auftritt als Boss; sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
 
 **Asset-Liste für den Prototyp:**
 
-- Bolt (8 Gesichtsausdrücke, 4 Posen), MORPH (5 Formen, Rauschen-Animation), 4 Hüter (je Portrait + 2 Posen), Glitch (3 Varianten).
+- Bolt (8 Gesichtsausdrücke, 4 Posen), morph.ai (5 Formen, Rauschen-Animation), 4 Hüter (je Portrait + 2 Posen), Glitch (3 Varianten).
 - Knoten-Icons (offen, gelöst, beschädigt, Boss, Tages-Puls), Fragment-Karten-Rahmen je Sektor.
 - 4 Sektor-Textursets + Kern-Platinenset, Partikel.
 - UI-Sounds pro Sektor, 4 Musikschleifen.
@@ -260,5 +262,5 @@ users/{uid}/codex/{fid} { fragmentId, seenAt, srsDue }
 **Noch offen:**
 
 1. Zielgruppe: Erwachsene oder auch Jugendliche? (Beeinflusst Werbung nach Fehlern und Einwilligungen; unter 16 bräuchte es strengere Regeln.)
-2. Endgültiger Name (Arbeitstitel NEXUS), ebenso Namen von Bolt/MORPH, falls dir andere besser gefallen.
+2. Endgültiger Name (Arbeitstitel NEXUS), ebenso Namen von Bolt/morph.ai, falls dir andere besser gefallen.
 3. Interstitials nach Fehlern: Soll die Standardvariante „freiwillig (Rewarded)“ sein, mit seltenen Zwangsanzeigen, wie oben vorgeschlagen?

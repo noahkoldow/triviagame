@@ -22,12 +22,14 @@ Aufgaben mit 👤 brauchen einen Menschen (Konto, Geld, Rechtstext, Gerät). Ber
 
 - Kernschleife, Netzwachstum, Außenposten, Firewalls, sechs Fragetypen, Cache-Explorer, Energie, Integrität, Leitner-Reparaturen, Interessen-Bandit, Wissens-Fußabdruck.
 - **Sektoren** (D44): vier Sektoren mit je drei Bereichen und Themenbeschreibung für die KI, 61 eingebaute Fragen, Migration alter Spielstände.
-- **Plot** (`story.ts`): fünf Kapitel mit Zielleiste, 18 Story-Momente, Logbuch im Codex, vier Hüter, Finale gegen MORPH (`/boss/core`), danach endlose Meilensteine.
+- **Plot** (`story.ts`): fünf Kapitel mit Zielleiste, 18 Story-Momente, Logbuch im Codex, vier Hüter, Finale gegen morph.ai (`/boss/core`), danach endlose Meilensteine.
 - **Offenes Ende** (D46): Nachschub je Bereich (`refillPool`), wartende Zweige wachsen nach (`growWaitingNodes`).
 - **Content-API ohne offenen Proxy** (D45): Function `questions` mit gemeinsamem geprüftem Pool. **Im Code fertig, noch nicht deployed** (siehe P0.1).
-- **Wochenliga** (D47): Function `league`, Bildschirm `app/league.tsx`, erzeugte Rufnamen, Austreten löscht.
+- **Wochenliga** (D47): Function `league`, Bildschirm `app/league.tsx`, erzeugte Rufnamen, Austreten löscht. Sie öffnet sich erst nach dem Sieg über morph.ai (D51).
+- **Cache und Ordnerstruktur** (D49): bis zu 3 Dateien pro Thema im Cache (in der Frage gratis), dauerhafte Ordnerstruktur (in der Frage 1–3 ⚡).
+- **Enthüllung** (D51): `app/brain.tsx`, das Netz war das eigene Gehirn; abspielbar in `app/settings.tsx`.
 - **Kein Softlock** bei Integrität 0 (D39), Reparaturen zählen nur bei Fälligkeit (D40), **Knotenliste** für VoiceOver.
-- **Assets** (`docs/ASSETS.md`): App-Symbol (iOS ohne Alpha), adaptives Android-Symbol, Splash, Hüter-Porträts, fünf MORPH-Formen, acht Bolt-Stimmungen.
+- **Assets** (`docs/ASSETS.md`): App-Symbol (iOS ohne Alpha), adaptives Android-Symbol, Splash, Hüter-Porträts, fünf morph.ai-Formen, acht Bolt-Stimmungen.
 
 ## 2. Entscheidungen vorab 👤
 
@@ -84,7 +86,7 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 - Test-Anzeigen-IDs im Dev-Build, echte IDs als EAS-Umgebungsvariable 👤.
 - `decideAds` in `packages/shared/src/monetization.ts` bleibt die einzige Regelquelle. Wenn E4 = nur Rewarded gilt, eine Konfiguration `interstitials: false` dort einführen und testen.
 
-**P2.3 Einstellungen** (`apps/mobile/app/settings.tsx`, Konzept §9.7).
+**P2.3 Einstellungen** (`apps/mobile/app/settings.tsx`, Konzept §9.7). Der Bildschirm existiert als Gerüst (Gehirn-Sequenz, Datenschutz) und ist aus dem Profil erreichbar; ergänzen:
 - Werbe-Einwilligung jederzeit ändern (UMP-„Privacy Options“). Heute geht das nur durch Zurücksetzen des Spielstands. Nach DSGVO muss der Widerruf so leicht sein wie die Zustimmung.
 - Dazu: Ton an/aus, Haptik an/aus, Liga verlassen, Spielstand löschen, Links zu Datenschutz, Impressum und Support.
 - Erreichbar aus dem Profil.
@@ -124,11 +126,11 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 **P5.4 VoiceOver-Durchgang** auf dem Gerät: Knotenliste, Story-Dialoge, Liga und alle sechs Fragetypen. Zuordnen und Reihenfolge müssen ohne Ziehen bedienbar sein.
 **P5.5 Crash-Reporting:** Sentry (`@sentry/react-native` mit Expo-Plugin) als Provider, nur im Store-Build aktiv; in die App-Privacy-Angaben aufnehmen.
 **P5.6 Klang** (ASSETS.md §5) mit `expo-audio`, Stummschalter aus P2.3. Nur CC0 oder eigene Aufnahmen; jede Datei mit Quelle in `docs/CREDITS.md`.
-**P5.7 Rauchtest:** ein Maestro-Flow gegen den Dev-Build: Onboarding → erster Knoten → richtige Antwort → Story-Dialog „Die erste Bahn“ → Codex-Logbuch zeigt `KERN_001.LOG` → Liga-Bildschirm öffnet.
+**P5.7 Rauchtest:** ein Maestro-Flow gegen den Dev-Build: Onboarding → erster Knoten → richtige Antwort → Story-Dialog „Die erste Bahn“ → Codex-Logbuch zeigt `KERN_001.LOG` → im Dock ist noch keine Liga → Einstellungen → Gehirn-Sequenz läuft bis „Weiter wachsen“. Ein zweiter Flow mit Demo-Spielstand nach dem Finale prüft, dass die Liga dann im Dock erscheint.
 
 ### P6 Store-Eintrag und Einreichung
 
-**P6.1 Screenshots** in 6,9″ (1320×2868), die fünf Motive aus ASSETS.md §4 plus die Wochenliga, automatisiert mit Maestro im Simulator. Für ansehnliche Karten einen Demo-Spielstand laden, der nur unter `__DEV__` erreichbar ist.
+**P6.1 Screenshots** in 6,9″ (1320×2868), die fünf Motive aus ASSETS.md §4 plus die Wochenliga, automatisiert mit Maestro im Simulator. Die Gehirn-Enthüllung nicht zeigen (sie ist die Pointe der Geschichte). Für ansehnliche Karten einen Demo-Spielstand laden, der nur unter `__DEV__` erreichbar ist.
 **P6.2 Texte** (de-DE) über EAS Metadata (`store.config.json`, `eas metadata:push`): Name, Untertitel (30 Zeichen), Schlüsselwörter (100), Beschreibung, Werbetext, Support-URL, Kategorie Spiele › Quiz, Zweitkategorie Bildung. Die vier Sektoren und das offene Lernen nennen, die Geschichte nur anreißen.
 **P6.3 Hinweise für die Prüfung:** kein Login nötig, was Gems und „Werbefrei“ tun, Käufe in der Sandbox, die Liga ist freiwillig und löschbar. Wie man Firewalls und Finale erreicht, wird beschrieben; eine Abkürzung im Store-Build gibt es nicht.
 **P6.4 Altersfreigabe-Fragebogen** als Entwurf (nach E3): Werbung ja, keine Gewalt, KI-erzeugte Inhalte mit Meldefunktion, keine freie Nutzerkommunikation (Rufnamen sind erzeugt), kein offener Web-Zugang.
@@ -136,7 +138,7 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 
 ## 4. Bewusst nach 1.0
 
-Tages-Puls mit MORPH als Gastgeber (DIRECTION.md §6), Wochen-Events, Belohnungen für Liga-Aufstiege und Freundes-Ligen, Duelle und Koop, Englisch, Bolt-Skins und weitere Bit-Senken, Glitches auf Ordnern, iPad-Layout (`supportsTablet: false` bleibt; die App muss im iPad-Kompatibilitätsmodus trotzdem ohne Fehler laufen, weil Apple dort mitprüft).
+Tages-Puls mit morph.ai als Gastgeber (DIRECTION.md §6), Wochen-Events, Belohnungen für Liga-Aufstiege und Freundes-Ligen, Duelle und Koop, Englisch, Bolt-Skins und weitere Bit-Senken, Glitches auf Ordnern, iPad-Layout (`supportsTablet: false` bleibt; die App muss im iPad-Kompatibilitätsmodus trotzdem ohne Fehler laufen, weil Apple dort mitprüft).
 
 ## 5. Fertig heißt
 

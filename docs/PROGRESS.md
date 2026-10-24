@@ -6,7 +6,7 @@ Spielbar in Expo Go (Mock-Daten):
 
 - **Spielkern** (`packages/shared`, 27 Tests): vier Sektoren, Hauptsektor + Nebengewichte, organisches Layout mit ungleichen Abständen, Vertiefung/Brücke-Wachstum, Schwierigkeit (Elo), Interessen-Bandit mit 20 % „Weitblick“, Spaced Repetition für beschädigte Knoten, Belohnungen/Streak, Werbe- und Gem-Regeln, 31 Mock-Fragen mit Fragmenten, Ködern und Fairnessregel (Schlüsselfragmente immer im Feld).
 - **App**: Onboarding (Story, Name, Altersabfrage, Werbe-Einwilligung nur ab 16), Netzkarte (Skia, Pan/Zoom, Parallax-Ebenen, 2,5D-Schatten, Sektor-Szenerie, die vom Chip-Look zu Wald/Archiv/Molekülen/Noten übergeht), Knoten-Ablauf (Intro → Trümmerfeld sammeln → Cache → Frage → Auflösung; Fragetypen Auswahl/Schätzfrage/Reihenfolge; Rückspulen gegen Energie), Codex, Shop (Gems für Bereiche, Trümmerfelder; Mock-Käufe; Farben für Bits), Profil mit Wissens-Fußabdruck, Reparatur-Läufe.
-- **Figuren**: Bolt (Skia-gezeichnet, Stimmungen), MORPH (Rauschen-Gesicht).
+- **Figuren**: Bolt (Skia-gezeichnet, Stimmungen), morph.ai (Rauschen-Gesicht).
 - **Werbung**: Mock-Overlay. Rewarded nach falscher Antwort (zweite Chance + Hinweis), Interstitial höchstens jede 3. Fehlantwort, mind. 3 min Abstand, nur ab 16, nie in Sammel-/Fragephase.
 
 ## Prototyp 0.2 (Karte)
@@ -35,23 +35,30 @@ Spielbar in Expo Go (Mock-Daten):
 
 ## Prototyp 0.6 (Regie: Plot, offenes Ende, Liga, neue Sektoren)
 
-- **Plot** (D36–D38): fünf Kapitel mit Zielleiste unter dem HUD, 18 Story-Momente als Dialoge, Logbuch im Codex, vier Hüter mit Porträts (erwachen bei 3 Knoten je Sektor, kommentieren richtige Antworten), Finale gegen MORPH im Kern. Danach endlos weiter mit Meilensteinen.
+- **Plot** (D36–D38): fünf Kapitel mit Zielleiste unter dem HUD, 18 Story-Momente als Dialoge, Logbuch im Codex, vier Hüter mit Porträts (erwachen bei 3 Knoten je Sektor, kommentieren richtige Antworten), Finale gegen morph.ai im Kern. Danach endlos weiter mit Meilensteinen.
 - **Regeln** (D39–D43): kein Softlock bei Integrität 0 (Wartung), Reparatur zählt nur bei Fälligkeit, Streak-Freezes monatlich, Ergebnis-Screens frieren ihren Start ein, Knotenliste im Dock.
 - **Sektoren** (D44): Naturwissenschaften, Technik & Medizin · Geographie & Erde · Geisteswissenschaften & Kultur · Gesellschaft, Politik & Wirtschaft, je drei Bereiche, 61 eingebaute Fragen, Migration alter Spielstände.
 - **Kein offener Proxy** (D45): Functions `questions` (gemeinsamer geprüfter Pool, Erzeugung nur serverseitig, Limits pro IP) und `league`. **Im Code fertig, aber noch nicht deployed**; bis zum Deploy läuft live noch die alte `gemini`-Function.
 - **Offenes Ende** (D46): Nachschub je Bereich, wartende Zweige wachsen nach.
 - **Wochenliga** (D47): Dock → „Liga“, freiwillig, erzeugte Rufnamen, Austreten löscht den Eintrag.
-- **Assets:** App-Symbol, Splash, Hüter, MORPH-Formen, Bolt-Stimmungen (`docs/ASSETS.md`); HIG-Review in `docs/DESIGN_REVIEW.md`.
+- **Assets:** App-Symbol, Splash, Hüter, morph.ai-Formen, Bolt-Stimmungen (`docs/ASSETS.md`); HIG-Review in `docs/DESIGN_REVIEW.md`.
 - **Ungeprüft auf Gerät:** Story-Dialoge, Zielleiste, Porträts, Liga-Bildschirm.
+
+## Prototyp 0.7 (selbst denken: morph.ai, Cache, Gehirn)
+
+- **morph.ai** (D50): Die KI hat den Menschen Suchen, Sortieren und Merken abgenommen und das Netz „bereinigt“; Onboarding, Story-Momente und Sprüche erzählen das so.
+- **Cache und Ordner** (D49): Lose Ordner im Trümmerfeld lesen, in die Ordnerstruktur ablegen, bis zu 3 Dateien pro Thema in den Cache. In der Frage ist der Cache gratis, die Ordnerstruktur kostet 1–3 ⚡.
+- **Enthüllung** (D51): Nach dem Finale werden Leiterbahnen zu Nervenbahnen, Zoom bis zum Gehirn, „Ich weiß, dass ich nichts weiß“. Danach öffnet sich die Wochenliga. In den neuen Einstellungen (Profil → Einstellungen) jederzeit abspielbar.
+- **Ungeprüft auf Gerät:** die Gehirn-Animation (Skia + Reanimated), die neuen Cache-Fenster.
 
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (142 + 35 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (150 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
 1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Liga beitreten/abgleichen/austreten.
 2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
 3. Store-Launch nach `docs/CODEX_HANDOFF.md` (Käufe, Werbung, Meldefunktion, App Check, Recht, Store-Eintrag).
-4. Tages-Puls mit MORPH als Gastgeber, Duelle/Koop, Events.
+4. Tages-Puls mit morph.ai als Gastgeber, Duelle/Koop, Events.
 5. Englisch, Sounds, Design-Review abarbeiten.

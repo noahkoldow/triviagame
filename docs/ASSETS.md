@@ -10,11 +10,11 @@ Drei Ebenen, die zusammen die Geschichte erzählen:
 
 | Ebene | Look | Warum |
 |---|---|---|
-| **Nexus OS** (Fenster, Dialoge, Taskleiste) | Windows 95/98: graues Relief, blaue Titelleisten, türkiser Desktop (`Win.tsx`) | Das ist das Betriebssystem des alten Archivs. MORPH.EXE ist ein Prozess darin. |
+| **Nexus OS** (Fenster, Dialoge, Taskleiste) | Windows 95/98: graues Relief, blaue Titelleisten, türkiser Desktop (`Win.tsx`) | Das ist das Betriebssystem des alten Archivs. morph.ai läuft darin. |
 | **Die Karte** | Hexagon-Platine im Kern, nach außen Biome (Wald, Archiv, Atelier, Labor), kräftige Duolingo-Farben, Low-Poly-Objekte | Je weiter vom Kern, desto weniger Computer. |
 | **Figuren** | Runde, dicke Formen; 2–3 flache Töne plus ein Leuchten in der Sektorfarbe; Gesicht auf einem Display oder klar lesbare Augen | Lesbar bei 40 px, freundlich, kein Kindchenschema-Kitsch. |
 
-- **Farben** (Tokens in `theme.ts`): Naturwissenschaften `#1CB0F6`, Erde `#58CC02`, Geisteswissenschaften `#CE82FF`, Gesellschaft `#FFC800`, MORPH `#FF86D0`, Grund `#131F24`, Display `#0B1220`.
+- **Farben** (Tokens in `theme.ts`): Naturwissenschaften `#1CB0F6`, Erde `#58CC02`, Geisteswissenschaften `#CE82FF`, Gesellschaft `#FFC800`, morph.ai `#FF86D0`, Grund `#131F24`, Display `#0B1220`.
 - **Bewegung:** sanft (Schweben, Atmen, Blinzeln). Höchstens drei Wechsel pro Sekunde (Blitzregel). Bei „Bewegung reduzieren“ steht alles still.
 - **Keine Fotos, keine KI-Bilder, keine fremden Marken.** Rechte bleiben sauber, die App bleibt klein.
 - Jede Figur hat ein `accessibilityLabel` mit Namen und Rolle.
@@ -33,12 +33,12 @@ Schwebender runder Roboter mit Display-Gesicht, Antenne, zwei Kugel-Armen und Ba
 | `wow` ✅ | große Augen, runder Mund | richtige Antwort |
 | `wink` ✅ | ein Auge als Strich | Wortwitz |
 | `proud` ✅ | Augen als Bögen (^ ^), Antenne leuchtet heller | Hüter geweckt, Kapitel geschafft |
-| `worried` ✅ | Augen schräg nach innen, Mund als Welle | Netz instabil, MORPH taucht auf |
+| `worried` ✅ | Augen schräg nach innen, Mund als Welle | Netz instabil, morph.ai taucht auf |
 | `sleepy` ✅ | Augen als flache Striche, kleines „z“ über der Antenne | Onboarding: Bolt bootet |
 
 Später (📋): Skins pro Sektor (Moos, Farbspritzer, Pergament-Aufkleber, Sternenstaub), freischaltbar mit Bits.
 
-### MORPH, der Gegenspieler ✅
+### morph.ai, der Gegenspieler ✅
 
 Gesicht aus 12×12 flackernden Pixeln in Magenta (`Morph.tsx`). Emblem: sechs verschlungene Schleifen (`MorphScene.tsx`).
 
@@ -65,7 +65,7 @@ Später (📋): je zwei Posen (ruhig, jubelnd) für Hüter-Momente.
 
 ### Glitches 📋
 
-Kleine Störwesen, die Köder-Fragmente tragen. Drei Varianten: **Pix** (Pixelhaufen mit zwei Augen), **Zack** (Zickzack-Blitz), **Loop** (eine einzelne MORPH-Schleife). Sie sitzen auf Köder-Ordnern im Trümmerfeld, sobald ein Knoten Schwierigkeit 3 oder mehr hat. Sie verraten nicht, welcher Ordner der Köder ist (sie sitzen auch auf Kontext-Ordnern), sie sind nur Stimmung.
+Kleine Störwesen, die Köder-Fragmente tragen. Drei Varianten: **Pix** (Pixelhaufen mit zwei Augen), **Zack** (Zickzack-Blitz), **Loop** (eine einzelne morph.ai-Schleife). Sie sitzen auf Köder-Ordnern im Trümmerfeld, sobald ein Knoten Schwierigkeit 3 oder mehr hat. Sie verraten nicht, welcher Ordner der Köder ist (sie sitzen auch auf Kontext-Ordnern), sie sind nur Stimmung.
 
 ## 3. Spielobjekte
 
@@ -78,7 +78,9 @@ Kleine Störwesen, die Köder-Fragmente tragen. Drei Varianten: **Pix** (Pixelha
 | Fragment-Ordner | ✅ | gelbe Desktop-Ordner (D25) |
 | **Logbuch-Datei** | ✅ (Codex) | `.LOG`-Dateien im Ordner `SYSTEM/LOGS`, im Codex lesbar |
 | Diagramme in Ordnern | ✅ | Balken, Zeitleiste, Tabelle (`ChartView.tsx`) |
-| Szenerie (16 Bereiche) | ✅ | Low-Poly-Objekte im Atlas (`propAtlas.ts`) |
+| Szenerie (12 Bereiche) | ✅ | Low-Poly-Objekte im Atlas (`propAtlas.ts`) |
+| Ordnerstruktur und Cache | ✅ | Explorer mit Gebietsebene (`Ordner\Thema\Ordner\Datei`), Cache-Fenster mit 3 Plätzen je Thema (`CacheFiles.tsx`) |
+| **Gehirn-Enthüllung** | ✅ | `app/brain.tsx`: das eigene Netz als Leiterbahnen im Winkel, die zu geschwungenen Nervenbahnen mit Dendriten werden; Zoom bis zum seitlichen Gehirn (Großhirn mit Furchen, Kleinhirn, Hirnstamm) voller prozeduraler Bahnen in Violett. Geometrie in `brain.logic.ts`. Später (📋): eigene Musik und ein illustrierteres Gehirn. |
 | Tages-Puls-Marker | 📋 | pulsierender Ring am Kern, eine Ziffer für die Serie |
 
 ## 4. App-Symbol, Splash, Store ✅ / 📋
@@ -91,7 +93,7 @@ Kleine Störwesen, die Köder-Fragmente tragen. Drei Varianten: **Pix** (Pixelha
 1. „Baue das Netz des Wissens wieder auf“: Karte mit gewachsenem Netz
 2. „Sammle Fragmente und merke sie dir“: Trümmerfeld mit Ordnern
 3. „Antworte ohne Spickzettel“: Frage mit versiegeltem Cache
-4. „Brich MORPHs Firewalls“: Boss-Fenster
+4. „Brich morph.ais Firewalls“: Boss-Fenster
 5. „Dein Wissens-Fußabdruck“: Netzdiagramm im Profil
 
 ## 5. Klang 📋
@@ -103,7 +105,7 @@ Nur freie Lizenzen (CC0, z. B. Kenney-Audio-Pakete) oder Auftragsarbeit; jede Da
 | Tippen, Fenster auf/zu | kurzer trockener Klick wie bei alten Systemen |
 | Richtig, pro Sektor | Naturwissenschaften: Synth-Pling · Erde: Marimba · Geisteswissenschaften: Pizzicato · Gesellschaft: weiches Horn |
 | Falsch / Glitch | kurzer Bitcrush-Knackser, nie schrill |
-| MORPH erscheint | gefiltertes Rauschen, das anschwillt |
+| morph.ai erscheint | gefiltertes Rauschen, das anschwillt |
 | Firewall bricht | Glas-Splitter plus aufsteigender Akkord |
 | Musik | Kern: ruhiges Chiptune-Pad, 80 bpm · je Sektor eine Schleife (Synth-Arpeggio, Marimba mit Vögeln, Klavier mit Streichern, Laute) · leise, unter 90 s, nahtlos |
 
