@@ -1,0 +1,32 @@
+<!-- NEXUS app icon "Funke im Kern" (Android adaptive foreground, background #131F24 comes from app.json). Source of truth; PNGs are rendered from these files. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  
+  <g transform="translate(512 512) scale(0.72) translate(-512 -512)">
+  <defs>
+    <linearGradient id="die" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B3A47"/>
+      <stop offset="1" stop-color="#10232C"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="512" cy="512" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C8F0FF" stop-opacity="0.75"/>
+      <stop offset="0.45" stop-color="#7FD6FF" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#7FD6FF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="dieClip"><path d="M473.9 312 Q512 290 550.1 312 L666.2 379 Q704.3 401 704.3 445 L704.3 579 Q704.3 623 666.2 645 L550.1 712 Q512 734 473.9 712 L357.8 645 Q319.7 623 319.7 579 L319.7 445 Q319.7 401 357.8 379 Z"/></clipPath>
+  </defs>
+  <!-- four traces in the sector colours: science top, nature right, culture bottom, history left -->
+  <g>
+    <line x1="512" y1="512" x2="512" y2="140" stroke="#1CB0F6" stroke-width="80" stroke-linecap="round"/><circle cx="512" cy="140" r="64" fill="#1CB0F6"/><circle cx="512" cy="140" r="22" fill="#131F24"/>
+    <line x1="512" y1="512" x2="884" y2="512" stroke="#58CC02" stroke-width="80" stroke-linecap="round"/><circle cx="884" cy="512" r="64" fill="#58CC02"/><circle cx="884" cy="512" r="22" fill="#131F24"/>
+    <line x1="512" y1="512" x2="512" y2="884" stroke="#CE82FF" stroke-width="80" stroke-linecap="round"/><circle cx="512" cy="884" r="64" fill="#CE82FF"/><circle cx="512" cy="884" r="22" fill="#131F24"/>
+    <line x1="512" y1="512" x2="140" y2="512" stroke="#FFC800" stroke-width="80" stroke-linecap="round"/><circle cx="140" cy="512" r="64" fill="#FFC800"/><circle cx="140" cy="512" r="22" fill="#131F24"/>
+  </g>
+  <!-- the die: flat hexagon with a light rim -->
+  <path d="M473.9 312 Q512 290 550.1 312 L666.2 379 Q704.3 401 704.3 445 L704.3 579 Q704.3 623 666.2 645 L550.1 712 Q512 734 473.9 712 L357.8 645 Q319.7 623 319.7 579 L319.7 445 Q319.7 401 357.8 379 Z" fill="url(#die)" stroke="#E4F3FA" stroke-width="30" stroke-linejoin="round"/>
+  <!-- the spark in the core with a soft glow -->
+  <g clip-path="url(#dieClip)">
+    <circle cx="512" cy="512" r="210" fill="url(#glow)"/>
+  </g>
+  <path d="M512 384 Q534 490 640 512 Q534 534 512 640 Q490 534 384 512 Q490 490 512 384 Z" fill="#FFFFFF"/>
+  </g>
+</svg>

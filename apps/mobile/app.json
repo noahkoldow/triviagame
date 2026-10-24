@@ -7,10 +7,20 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#070B16",
+    "icon": "./assets/icon.png",
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#070B16"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false
@@ -33,7 +43,12 @@
       }
     },
     "android": {
-      "package": "app.nexus.game"
+      "package": "app.nexus.game",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-mono.png",
+        "backgroundColor": "#131F24"
+      }
     },
     "extra": {
       "router": {

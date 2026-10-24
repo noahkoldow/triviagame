@@ -1,0 +1,21 @@
+<!-- NEXUS app icon "Funke im Kern" (Android themed/monochrome). Source of truth; PNGs are rendered from these files. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  
+  <g transform="translate(512 512) scale(0.72) translate(-512 -512)">
+  <defs>
+    <mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <path d="M481.5 337.6 Q512 320 542.5 337.6 L647.8 398.4 Q678.3 416 678.3 451.2 L678.3 572.8 Q678.3 608 647.8 625.6 L542.5 686.4 Q512 704 481.5 686.4 L376.2 625.6 Q345.7 608 345.7 572.8 L345.7 451.2 Q345.7 416 376.2 398.4 Z" fill="#000"/>
+      <circle cx="512" cy="140" r="22" fill="#000"/><circle cx="884" cy="512" r="22" fill="#000"/><circle cx="512" cy="884" r="22" fill="#000"/><circle cx="140" cy="512" r="22" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#m)">
+    <line x1="512" y1="512" x2="512" y2="140" stroke="#FFFFFF" stroke-width="80" stroke-linecap="round"/><circle cx="512" cy="140" r="64" fill="#FFFFFF"/>
+    <line x1="512" y1="512" x2="884" y2="512" stroke="#FFFFFF" stroke-width="80" stroke-linecap="round"/><circle cx="884" cy="512" r="64" fill="#FFFFFF"/>
+    <line x1="512" y1="512" x2="512" y2="884" stroke="#FFFFFF" stroke-width="80" stroke-linecap="round"/><circle cx="512" cy="884" r="64" fill="#FFFFFF"/>
+    <line x1="512" y1="512" x2="140" y2="512" stroke="#FFFFFF" stroke-width="80" stroke-linecap="round"/><circle cx="140" cy="512" r="64" fill="#FFFFFF"/>
+    <path d="M473.9 312 Q512 290 550.1 312 L666.2 379 Q704.3 401 704.3 445 L704.3 579 Q704.3 623 666.2 645 L550.1 712 Q512 734 473.9 712 L357.8 645 Q319.7 623 319.7 579 L319.7 445 Q319.7 401 357.8 379 Z" fill="#FFFFFF"/>
+  </g>
+  <path d="M512 384 Q534 490 640 512 Q534 534 512 640 Q490 534 384 512 Q490 490 512 384 Z" fill="#FFFFFF"/>
+  </g>
+</svg>
