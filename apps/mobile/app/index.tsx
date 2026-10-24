@@ -379,43 +379,49 @@ export default function Home() {
         </View>
       </SafeAreaView>
 
-      {/* a piece of debris */}
+      {/* a piece of debris: its folder opens right away, so the player reads before deciding (D48) */}
       <Modal transparent animationType="fade" visible={!!shard} onRequestClose={() => setShardId(null)}>
         <Pressable style={styles.center} onPress={() => setShardId(null)}>
-          <Dialog title={shard?.hint ?? 'Trümmerteil'} icon="folder" onClose={() => setShardId(null)}>
+          <Pressable onPress={() => undefined}>
             {shard && shardEntry && debrisQ ? (
-              <>
-                {inCache ? (
-                  <>
-                    <Text style={styles.cardSub}>Liegt in deinem Cache.</Text>
-                    <Button
-                      label="Aus dem Cache nehmen"
-                      variant="ghost"
-                      onPress={() => {
-                        update((p) => cacheDrop(p, shardEntry));
-                        setShardId(null);
-                      }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.cardSub}>
-                      Nimm es mit, wenn es dir nützen könnte. Der Cache hat keine Obergrenze, aber in der Frage kostet das
-                      Öffnen Energie, je größer er ist.
-                    </Text>
-                    <Button
-                      label="Mitnehmen"
-                      onPress={() => {
-                        update((p) => cacheAdd(p, shardEntry));
-                        setShardId(null);
-                      }}
-                    />
-                  </>
-                )}
-                <Button label="Liegen lassen" variant="ghost" onPress={() => setShardId(null)} />
-              </>
+              <CacheExplorer
+                key={shard.id}
+                folders={[{ name: shard.hint, files: fragmentFiles(shard) }]}
+                root="Trümmerfeld"
+                single
+                closeLabel={inCache ? 'Schließen' : 'Liegen lassen'}
+                onClose={() => setShardId(null)}
+                actions={
+                  inCache ? (
+                    <>
+                      <Text style={styles.winNote}>Liegt in deinem Cache.</Text>
+                      <Button
+                        label="Aus dem Cache nehmen"
+                        variant="ghost"
+                        onPress={() => {
+                          update((p) => cacheDrop(p, shardEntry));
+                          setShardId(null);
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.winNote}>
+                        In der Frage ist der Cache versiegelt: Öffnen kostet dort Energie, je mehr Ordner er hat.
+                      </Text>
+                      <Button
+                        label="Mitnehmen"
+                        onPress={() => {
+                          update((p) => cacheAdd(p, shardEntry));
+                          setShardId(null);
+                        }}
+                      />
+                    </>
+                  )
+                }
+              />
             ) : null}
-          </Dialog>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -710,6 +716,8 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { color: colors.text, fontSize: 24, fontWeight: '800' },
   sheetText: { color: colors.dim, fontSize: 15, lineHeight: 22 },
+  // dark text on the grey face of a light window
+  winNote: { color: '#404040', fontSize: 13, lineHeight: 18 },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingVertical: 4 },
   listDot: { width: 12, height: 12 },
   listTopic: { color: colors.text, fontSize: 15, fontWeight: '800' },

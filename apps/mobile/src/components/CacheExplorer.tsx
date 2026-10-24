@@ -126,16 +126,27 @@ export function CacheExplorer({
   folders,
   onClose,
   manage,
+  root = 'Cache',
+  single = false,
+  actions,
+  closeLabel = 'Schließen',
 }: {
   folders: SearchFolder[];
   onClose: () => void;
   /** When given, folders can be ordered and deleted (on the map). */
   manage?: CacheManage;
+  /** Name of the top level in the address bar, e.g. "Trümmerfeld". */
+  root?: string;
+  /** Opens the first folder and stays in it: a single debris folder before it is taken. */
+  single?: boolean;
+  /** Buttons above the close button, e.g. "Mitnehmen"; the close button then turns secondary. */
+  actions?: React.ReactNode;
+  closeLabel?: string;
 }) {
   const [organizing, setOrganizing] = useState(false);
   const { width, height } = useWindowDimensions();
   const [query, setQuery] = useState('');
-  const [folder, setFolder] = useState<number | null>(null);
+  const [folder, setFolder] = useState<number | null>(single ? 0 : null);
   const [file, setFile] = useState<number | null>(null);
   const searching = query.trim().length >= 2;
   const hits = useMemo(() => searchFiles(folders, query), [folders, query]);
@@ -143,12 +154,14 @@ export function CacheExplorer({
   const open = folder !== null ? folders[folder] : undefined;
   const current = open && file !== null ? open.files[file] : undefined;
   const viewW = Math.min(width, 480) - 24 - 6 - 20 - 4;
+  // the top a player can go up to: the folder itself in single mode, else the list of folders
+  const atTop = single ? file === null : folder === null;
 
   const up = () => {
     if (file !== null) setFile(null);
-    else setFolder(null);
+    else if (!single) setFolder(null);
   };
-  const path = ['Cache', open?.name, current?.name].filter(Boolean).join('\\');
+  const path = [root, open?.name, current?.name].filter(Boolean).join('\\');
   const title = current ? current.name : open ? open.name : 'Cache';
 
   const openHit = (f: number, g: number) => {
@@ -160,15 +173,15 @@ export function CacheExplorer({
     <Window title={title} icon="folder" tone="light" onClose={onClose} style={{ maxWidth: 480, alignSelf: 'center', width: '100%' }}>
       <View style={styles.toolbar}>
         <Pressable
-          disabled={folder === null && !searching}
+          disabled={atTop && !searching}
           onPress={() => {
             tap();
-            if (searching && folder === null) setQuery('');
+            if (searching && (folder === null || (single && file === null))) setQuery('');
             else up();
           }}
           accessibilityRole="button"
           accessibilityLabel="Eine Ebene nach oben"
-          style={({ pressed }) => [styles.upBtn, raised, pressed && pressedIn, folder === null && !searching && { opacity: 0.4 }]}
+          style={({ pressed }) => [styles.upBtn, raised, pressed && pressedIn, atTop && !searching && { opacity: 0.4 }]}
         >
           <Text style={styles.upText}>↑ Hoch</Text>
         </Pressable>
@@ -180,12 +193,12 @@ export function CacheExplorer({
               setQuery(t);
               if (t.trim().length >= 2) setFile(null);
             }}
-            placeholder="Suchen in Cache …"
+            placeholder={single ? 'Suchen in diesem Ordner …' : 'Suchen in Cache …'}
             placeholderTextColor={WIN.shadow}
             returnKeyType="search"
             autoCorrect={false}
             autoCapitalize="none"
-            accessibilityLabel="Im Cache suchen"
+            accessibilityLabel={single ? 'In diesem Ordner suchen' : 'Im Cache suchen'}
             style={styles.searchInput}
           />
         </View>
@@ -306,7 +319,8 @@ export function CacheExplorer({
       <Text style={styles.status} maxFontSizeMultiplier={1.2}>
         {searching ? `${hits.length} Treffer` : open ? `${open.files.length} Objekt${open.files.length === 1 ? '' : 'e'}` : `${folders.length} Ordner`}
       </Text>
-      <Button label="Schließen" onPress={onClose} />
+      {actions}
+      <Button label={closeLabel} variant={actions ? 'ghost' : 'primary'} onPress={onClose} />
     </Window>
   );
 }
