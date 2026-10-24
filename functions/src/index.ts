@@ -6,29 +6,28 @@ import { defineBoolean, defineInt, defineSecret, defineString } from 'firebase-f
 import { onRequest, type Request } from 'firebase-functions/v2/https';
 import type { Response } from 'express';
 import {
-  LEAGUES,
-  LEAGUE_DEMOTE,
-  LEAGUE_GROUP,
-  LEAGUE_PROMOTE,
+  OVERALL,
   POOL_MAX_COUNT,
-  acceptXp,
+  RANKING_TOP,
+  acceptScores,
   avoidTopicsOf,
   buildCheckPrompt,
   choosePoolEntries,
   generateQuestions,
   isAlias,
+  isBoard,
   nextQuestionType,
   parseCheck,
   parsePoolRequest,
   poolEntryOf,
-  rankMembers,
-  tierAfter,
-  weekEndsAt,
-  weekOf,
+  rankEntries,
+  scoreOn,
+  zeroScores,
   type PoolEntry,
   type Question,
   type QuestionChecker,
   type QuestionGenerator,
+  type Scores,
 } from '@nexus/shared';
 
 /**
@@ -36,7 +35,7 @@ import {
  * and level, and the server answers from a shared pool of checked questions. Only when the
  * pool has nothing new for that player does the server let the model write more, with the
  * prompt built here from the fixed taxonomy, the shared validator and a second checker pass,
- * inside a daily budget and per-client limits. `league` runs the weekly league.
+ * inside a daily budget and per-client limits. `league` runs the ranking of all players.
  */
 
 if (getApps().length === 0) initializeApp();
@@ -217,15 +216,10 @@ export const questions = onRequest(
   },
 );
 
-// --- weekly league -----------------------------------------------------
-
-interface Member {
-  alias: string;
-  xp: number;
-}
+// --- ranking -------------------------------------------------------------
+// Everybody is on it (D57); the endpoint keeps its name from the weekly league it replaced.
 
 const players = () => db.collection('leaguePlayers');
-const groups = () => db.collection('leagueGroups');
 
 function credentials(body: Record<string, unknown>): { playerId: string; token: string } {
   const { playerId, token } = body;
@@ -233,6 +227,16 @@ function credentials(body: Record<string, unknown>): { playerId: string; token: 
     throw new HttpError(400, 'missing credentials');
   }
   return { playerId, token };
+}
+
+/** The field of a board in a player's entry. */
+const fieldOf = (board: string) => (board === OVERALL ? 'xp' : `areas.${board}`);
+
+function storedScores(snap: FirebaseFirestore.DocumentSnapshot): Scores {
+  return {
+    xp: Number(snap.get('xp') ?? 0),
+    areas: { ...zeroScores().areas, ...((snap.get('areas') ?? {}) as Record<string, number>) },
+  };
 }
 
 export const league = onRequest(
@@ -246,13 +250,11 @@ export const league = onRequest(
         if (!(await allow('join', clientKey(request), JOINS_PER_HOUR))) throw new HttpError(429, 'too many requests');
         const playerId = randomUUID();
         const token = randomBytes(24).toString('base64url');
+        // every score field from the start: a board leaves out entries without its field
         await players().doc(playerId).set({
           tokenHash: sha(token),
           alias: body.alias,
-          tier: 0,
-          week: '',
-          group: '',
-          xp: 0,
+          ...zeroScores(),
           createdAt: FieldValue.serverTimestamp(),
         });
         response.status(200).json({ playerId, token });
@@ -263,74 +265,42 @@ export const league = onRequest(
       const ref = players().doc(playerId);
 
       if (body.action === 'leave') {
-        await db.runTransaction(async (tx) => {
-          const snap = await tx.get(ref);
-          if (!snap.exists || snap.get('tokenHash') !== sha(token)) throw new HttpError(401, 'unknown player');
-          const group = String(snap.get('group') ?? '');
-          if (group) tx.set(groups().doc(group), { members: { [playerId]: FieldValue.delete() } }, { merge: true });
-          tx.delete(ref);
-        });
+        // only resetting the save takes a player off the ranking
+        const snap = await ref.get();
+        if (!snap.exists || snap.get('tokenHash') !== sha(token)) throw new HttpError(401, 'unknown player');
+        await ref.delete();
         response.status(200).json({ ok: true });
         return;
       }
 
       if (body.action !== 'sync') throw new HttpError(400, 'unknown action');
       if (!(await allow('sync', playerId, SYNCS_PER_HOUR))) throw new HttpError(429, 'too many requests');
+      const board = isBoard(body.board) ? body.board : OVERALL;
+      const field = fieldOf(board);
       const now = Date.now();
-      const week = weekOf(now);
-      const result = await db.runTransaction(async (tx) => {
-        // all reads first (Firestore transactions), then the writes
+      const { alias, scores } = await db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         if (!snap.exists || snap.get('tokenHash') !== sha(token)) throw new HttpError(401, 'unknown player');
-        const alias = String(snap.get('alias'));
-        let tier = Number(snap.get('tier') ?? 0);
-        let group = String(snap.get('group') ?? '');
-        let xp = Number(snap.get('xp') ?? 0);
-        let slot: { ref: FirebaseFirestore.DocumentReference; n: number; size: number } | undefined;
-
-        if (snap.get('week') !== week) {
-          // last week's rank decides this week's tier
-          if (group) {
-            const old = await tx.get(groups().doc(group));
-            const ranked = rankMembers(
-              Object.entries((old.get('members') ?? {}) as Record<string, Member>).map(([id, m]) => ({ id, ...m })),
-            );
-            const rank = ranked.findIndex((m) => m.id === playerId) + 1;
-            if (rank > 0) tier = tierAfter(tier, rank, ranked.length, ranked[rank - 1]!.xp);
-          }
-          const slotRef = db.collection('leagueSlots').doc(`${week}_${tier}`);
-          const s = await tx.get(slotRef);
-          let n = Number(s.get('n') ?? 0);
-          let size = Number(s.get('size') ?? 0);
-          if (size >= LEAGUE_GROUP) {
-            n += 1;
-            size = 0;
-          }
-          slot = { ref: slotRef, n, size };
-          group = `${week}_${tier}_${n}`;
-          xp = 0;
-        }
-        const groupRef = groups().doc(group);
-        const current = await tx.get(groupRef);
-        xp = acceptXp(xp, Number(body.weekXp));
-        const members = { ...((current.get('members') ?? {}) as Record<string, Member>), [playerId]: { alias, xp } };
-        const expiresAt = Timestamp.fromMillis(weekEndsAt(now) + 21 * 24 * HOUR);
-
-        if (slot) tx.set(slot.ref, { n: slot.n, size: slot.size + 1, expiresAt }, { merge: true });
-        tx.set(groupRef, { week, tier, members, expiresAt });
-        tx.set(ref, { tier, week, group, xp, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-        return { tier, members };
+        // the first sync brings the save along, later ones grow only as fast as someone plays
+        const syncedAt = snap.get('syncedAt') as number | undefined;
+        const next = acceptScores(syncedAt ? storedScores(snap) : undefined, body.scores, now - (syncedAt ?? now));
+        tx.set(ref, { ...next, syncedAt: now }, { merge: true });
+        return { alias: String(snap.get('alias')), scores: next };
       });
 
-      const ranked = rankMembers(Object.entries(result.members).map(([id, m]) => ({ id, ...m })));
+      const mine = scoreOn(scores, board);
+      const [top, above, all] = await Promise.all([
+        players().orderBy(field, 'desc').limit(RANKING_TOP).select('alias', field).get(),
+        players().where(field, '>', mine).count().get(),
+        players().count().get(),
+      ]);
       response.status(200).json({
-        week,
-        tier: result.tier,
-        league: LEAGUES[result.tier],
-        endsAt: weekEndsAt(now),
-        promote: LEAGUE_PROMOTE,
-        demote: ranked.length >= LEAGUE_PROMOTE + LEAGUE_DEMOTE ? LEAGUE_DEMOTE : 0,
-        members: ranked.map((m) => ({ alias: m.alias, xp: m.xp, me: m.id === playerId })),
+        board,
+        players: all.data().count,
+        me: { alias, rank: above.data().count + 1, score: mine },
+        top: rankEntries(
+          top.docs.map((d) => ({ alias: String(d.get('alias')), score: Number(d.get(field) ?? 0), me: d.id === playerId })),
+        ),
       });
     } catch (error) {
       fail(response, error, 'league');

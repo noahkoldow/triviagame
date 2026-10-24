@@ -304,7 +304,7 @@ export default function Shop() {
           })}
         </Card>
 
-        <P>Alles hier ist auch erspielbar, Gems sparen nur Zeit. Kein Vorteil bei Antworten oder in der Liga.</P>
+        <P>Alles hier ist auch erspielbar, Gems sparen nur Zeit. Kein Vorteil bei Antworten oder in der Rangliste.</P>
         <Button label="Käufe wiederherstellen" variant="ghost" disabled={busy} onPress={restore} />
         <Text style={{ color: colors.dim, fontSize: 12 }}>{AREAS.length} Bereiche insgesamt.</Text>
       </ScrollView>

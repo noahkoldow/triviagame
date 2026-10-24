@@ -82,7 +82,7 @@ export default function PlusScreen() {
               <Text style={styles.benefitText}>{b.text}</Text>
             </View>
           ))}
-          <P>Kein Vorteil bei Antworten oder in der Liga: Tageslimits und Regeln bleiben gleich.</P>
+          <P>Kein Vorteil bei Antworten oder in der Rangliste: Tageslimits und Regeln bleiben gleich.</P>
         </Card>
 
         {active ? (

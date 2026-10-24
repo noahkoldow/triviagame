@@ -48,7 +48,6 @@ import {
   leagueIsNew,
   leagueUnlocked,
   LEAGUE_NOTICED_ID,
-  rollWeek,
   seededRng,
   storyFacts,
   type CacheEntry,
@@ -67,6 +66,7 @@ import type { Shard } from '../src/map/NodeViews';
 import { pool } from '../src/services/content';
 import { watchRewarded } from '../src/state/monetize';
 import { getHint, takeDebrisReturn, takeRecentlySpawned } from '../src/state/session';
+import { syncRankingQuietly } from '../src/state/ranking';
 import { getState, today, update, useGame } from '../src/state/store';
 import { de } from '../src/strings';
 import { colors } from '../src/theme';
@@ -111,6 +111,8 @@ export default function Home() {
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
+      // everybody is on the ranking: register and report scores in the background (D57)
+      syncRankingQuietly();
       return () => setFocused(false);
     }, []),
   );
@@ -119,7 +121,7 @@ export default function Home() {
     const tick = () =>
       update((p) => {
         const now = Date.now();
-        const r = rollWeek(regenEnergy(p, now), now);
+        const r = regenEnergy(p, now);
         return r === p ? null : r;
       });
     tick();
@@ -408,11 +410,11 @@ export default function Home() {
                 { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
                 { label: 'Shop', icon: 'gem', tint: colors.gem, badge: dailyDue, onPress: () => router.push('/shop') },
                 { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
-                // the league opens once morph.ai is beaten; right after the reveal its button glows
+                // the ranking shows once morph.ai is beaten; right after the reveal its button glows
                 ...(leagueUnlocked(player)
                   ? [
                       {
-                        label: 'Liga',
+                        label: 'Rangliste',
                         icon: 'trophy' as const,
                         glow: leagueIsNew(player),
                         onPress: () => {

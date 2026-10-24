@@ -1,21 +1,28 @@
+import type { Scores } from '@nexus/shared';
 import { API_BASE } from '../config';
 import type { Fetch } from './ai';
 
 /**
- * The weekly league on our backend. Joining is voluntary and creates nothing but a random id, a
- * token and the chosen generated alias on the server; the app then reports its weekly XP.
+ * The ranking on our backend (endpoint `league`). Every save registers by itself with a random
+ * id, a token and a generated alias, then reports its scores and reads one board at a time.
  */
 
+export interface BoardEntry {
+  alias: string;
+  score: number;
+  /** Equal scores share a place. */
+  rank: number;
+  me: boolean;
+}
+
 export interface Standings {
-  week: string;
-  tier: number;
-  league: string;
-  /** When the week ends (ms). */
-  endsAt: number;
-  promote: number;
-  demote: number;
-  /** Best first. */
-  members: { alias: string; xp: number; me: boolean }[];
+  /** `OVERALL` or an area id. */
+  board: string;
+  /** Everybody on the ranking. */
+  players: number;
+  me: { alias: string; rank: number; score: number };
+  /** The best places, best first. */
+  top: BoardEntry[];
 }
 
 export interface Credentials {
@@ -32,7 +39,7 @@ export class LeagueError extends Error {
 export interface LeagueApi {
   live: boolean;
   join(alias: string): Promise<Credentials>;
-  sync(c: Credentials, weekXp: number): Promise<Standings>;
+  sync(c: Credentials, scores: Scores, board: string): Promise<Standings>;
   leave(c: Credentials): Promise<void>;
 }
 
@@ -53,9 +60,9 @@ export function httpLeagueApi(base: string, doFetch: Fetch = fetch as unknown as
       if (typeof r.playerId !== 'string' || typeof r.token !== 'string') throw new LeagueError(502);
       return { playerId: r.playerId, token: r.token };
     },
-    async sync(c, weekXp) {
-      const r = await call({ action: 'sync', ...c, weekXp });
-      if (!Array.isArray(r.members) || typeof r.league !== 'string') throw new LeagueError(502);
+    async sync(c, scores, board) {
+      const r = await call({ action: 'sync', ...c, scores, board });
+      if (!Array.isArray(r.top) || typeof r.me !== 'object' || typeof r.players !== 'number') throw new LeagueError(502);
       return r as unknown as Standings;
     },
     async leave(c) {

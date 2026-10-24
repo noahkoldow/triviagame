@@ -240,7 +240,9 @@ export function Dock({
           {it.glow ? <DockGlow /> : null}
           <Icon name={it.icon} size={22} />
           {it.badge ? <View style={styles.badge} /> : null}
-          <Text style={styles.dockLabel}>{it.label}</Text>
+          <Text style={styles.dockLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            {it.label}
+          </Text>
           {it.glow ? <Text style={styles.dockNew}>NEU</Text> : null}
         </Pressable>
       ))}

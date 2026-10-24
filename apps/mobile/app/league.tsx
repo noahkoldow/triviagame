@@ -1,62 +1,60 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  LEAGUES,
-  LEAGUE_DEMOTE,
-  LEAGUE_GROUP,
-  LEAGUE_PROMOTE,
-  aliasOptions,
-  aliasSeed,
-  leagueUnlocked,
-  weekXp,
-} from '@nexus/shared';
+import { AREAS, OVERALL, SECTOR_COLOR, leagueUnlocked } from '@nexus/shared';
 import { Icon } from '../src/components/Icon';
-import { BackBar, Button, Card, H1, P, tap } from '../src/components/ui';
-import { LeagueError, leagueApi, type Standings } from '../src/services/league';
-import { getState, update, useGame } from '../src/state/store';
+import { BackBar, Button, Card, H1, P } from '../src/components/ui';
+import { leagueApi, type BoardEntry, type Standings } from '../src/services/league';
+import { syncRanking } from '../src/state/ranking';
+import { useGame } from '../src/state/store';
 import { colors } from '../src/theme';
 
-/** Days and hours until the week ends, e.g. "3 T 4 Std". */
-function remaining(endsAt: number): string {
-  const h = Math.max(0, Math.floor((endsAt - Date.now()) / 3_600_000));
-  return h >= 24 ? `${Math.floor(h / 24)} T ${h % 24} Std` : `${h} Std`;
+/** Overall by XP, then every area by solved nodes. */
+const BOARDS = [
+  { id: OVERALL, label: 'Gesamt', color: colors.accent },
+  ...AREAS.map((a) => ({ id: a.id, label: a.de, color: SECTOR_COLOR[a.sector] })),
+];
+const MEDALS = ['#FFD23F', '#C0C0C0', '#CD7F32'];
+
+const unit = (board: string, n: number) => (board === OVERALL ? `${n} XP` : `${n} gelöst`);
+
+function Row({ e, board }: { e: BoardEntry; board: string }) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Platz ${e.rank}, ${e.alias}${e.me ? ' (du)' : ''}, ${unit(board, e.score)}`}
+      style={[styles.row, e.rank <= MEDALS.length && { borderLeftColor: MEDALS[e.rank - 1] }, e.me && styles.meRow]}
+    >
+      <Text style={styles.rank}>{e.rank}</Text>
+      <Text style={[styles.alias, e.me && styles.me]} numberOfLines={1}>
+        {e.alias}
+        {e.me ? ' (du)' : ''}
+      </Text>
+      <Text style={[styles.score, e.me && styles.me]}>{e.score}</Text>
+    </View>
+  );
 }
 
+/** The ranking of everybody who plays (D57): overall and per area. */
 export default function League() {
   const router = useRouter();
-  // right after the brain reveal: the player is placed in the league and greeted
+  // right after the brain reveal: a greeting on top
   const welcome = useLocalSearchParams<{ welcome?: string }>().welcome === '1';
-  const league = useGame((p) => p.league);
-  const xp = useGame((p) => p.xp);
-  const joined = !!league.playerId && !!league.token;
   const unlocked = useGame((p) => leagueUnlocked(p));
+  const [board, setBoard] = useState(OVERALL);
   const [standings, setStandings] = useState<Standings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [round, setRound] = useState(0);
-  const options = useMemo(() => aliasOptions(`${aliasSeed(getState())}:${round}`), [round]);
-  const [picked, setPicked] = useState(0);
-  const [placing, setPlacing] = useState(() => welcome && unlocked && leagueApi.live && !joined);
-  const mine = weekXp({ ...getState(), xp, league });
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-  const sync = useCallback(async () => {
-    const p = getState();
-    if (!p.league.playerId || !p.league.token) return;
+  const load = useCallback(async (b: string) => {
     setBusy(true);
     setError(null);
     try {
-      setStandings(await leagueApi.sync({ playerId: p.league.playerId, token: p.league.token }, weekXp(p)));
-    } catch (e) {
-      if (e instanceof LeagueError && e.status === 401) {
-        // the server no longer knows this player: start over
-        update((s) => ({ ...s, league: { week: s.league.week, startXp: s.league.startXp } }));
-        setError('Dein Liga-Zugang ist nicht mehr gültig. Du kannst neu beitreten.');
-      } else {
-        setError('Die Liga ist gerade nicht erreichbar. Versuch es später noch einmal.');
-      }
+      setStandings(await syncRanking(b));
+    } catch {
+      setError('Die Rangliste ist gerade nicht erreichbar. Versuch es später noch einmal.');
     } finally {
       setBusy(false);
     }
@@ -64,187 +62,95 @@ export default function League() {
 
   useFocusEffect(
     useCallback(() => {
-      if (unlocked) void sync();
-    }, [sync, unlocked]),
+      if (unlocked && leagueApi.live) void load(board);
+    }, [load, unlocked, board]),
   );
 
-  const join = async (alias = options[picked]!) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const c = await leagueApi.join(alias);
-      update((p) => ({ ...p, league: { ...p.league, ...c, alias } }));
-      tap('success');
-    } catch {
-      setError('Beitreten hat nicht geklappt. Versuch es später noch einmal.');
-    } finally {
-      setBusy(false);
-    }
-    await sync();
-  };
-
-  // placed under the first suggested alias; if that fails, the usual join form shows with the error
-  useEffect(() => {
-    if (placing) void join(options[0]!).finally(() => setPlacing(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const leave = () =>
-    Alert.alert(
-      'Aus der Liga austreten?',
-      'Dein Rufname und deine Wochen-XP werden vom Server gelöscht. Dein Spielstand bleibt.',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Austreten',
-          style: 'destructive',
-          onPress: async () => {
-            const p = getState();
-            if (p.league.playerId && p.league.token) {
-              await leagueApi.leave({ playerId: p.league.playerId, token: p.league.token }).catch(() => undefined);
-            }
-            update((s) => ({ ...s, league: { week: s.league.week, startXp: s.league.startXp } }));
-            setStandings(null);
-          },
-        },
-      ],
-    );
-
-  const size = standings?.members.length ?? 0;
-  const zone = (rank: number) =>
-    standings && rank <= standings.promote ? 'up' : standings && rank > size - standings.demote ? 'down' : null;
+  const shown = standings?.board === board ? standings : null;
+  const label = BOARDS.find((b) => b.id === board)!.label;
 
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <BackBar title="Wochenliga" onBack={back} />
+        <BackBar title="Rangliste" onBack={back} />
 
         {!unlocked ? (
           <Card style={{ gap: 8, alignItems: 'center' }}>
             <Icon name="trophy" size={40} muted />
             <P style={{ color: colors.text, textAlign: 'center' }}>
-              Die Wochenliga öffnet sich, sobald du morph.ai im Kern besiegt hast. Bis dahin zählt nur eins: selbst denken.
+              Die Rangliste öffnet sich, sobald du morph.ai im Kern besiegt hast. Bis dahin zählt nur eins: selbst denken.
             </P>
           </Card>
         ) : !leagueApi.live ? (
           <Card>
-            <P>Ohne Verbindung zum Server gibt es keine Liga. Das Spiel selbst läuft weiter.</P>
+            <P>Ohne Verbindung zum Server gibt es keine Rangliste. Das Spiel selbst läuft weiter.</P>
           </Card>
-        ) : placing ? (
-          <Card style={{ gap: 8, alignItems: 'center' }}>
-            <Icon name="trophy" size={40} />
-            <P style={{ color: colors.text, textAlign: 'center' }}>Du wirst in deine erste Liga eingeordnet …</P>
-          </Card>
-        ) : !joined ? (
-          <>
-            <H1>Jede Woche ein neues Ziel</H1>
-            <Card style={{ gap: 8 }}>
-              <P style={{ color: colors.text }}>
-                Du trittst mit bis zu {LEAGUE_GROUP - 1} anderen in einer Gruppe an. Es zählen die XP, die du diese Woche
-                sammelst. Die besten {LEAGUE_PROMOTE} steigen in die nächste Liga auf, die letzten {LEAGUE_DEMOTE} ab.
-              </P>
-              <P>Ligen: {LEAGUES.join(' › ')}</P>
-              <P>
-                Sichtbar sind nur dein Rufname und deine Wochen-XP. Dein Name und dein Alter bleiben auf dem Gerät. Du kannst
-                jederzeit austreten, dann wird alles gelöscht.
-              </P>
-            </Card>
-            <Text style={styles.section}>DEIN RUFNAME</Text>
-            <Card style={{ gap: 4 }}>
-              {options.map((o, i) => (
-                <Pressable
-                  key={o}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: picked === i }}
-                  accessibilityLabel={o}
-                  onPress={() => setPicked(i)}
-                  style={styles.option}
-                >
-                  <View style={[styles.radio, picked === i && styles.radioOn]} />
-                  <Text style={styles.optionText}>{o}</Text>
-                </Pressable>
-              ))}
-              <Button
-                label="Andere Vorschläge"
-                variant="ghost"
-                onPress={() => {
-                  setRound(round + 1);
-                  setPicked(0);
-                }}
-              />
-            </Card>
-            <Button label={busy ? 'Einen Moment …' : 'Mitmachen'} disabled={busy} onPress={() => join()} />
-          </>
         ) : (
           <>
             {welcome ? (
               <>
-                <H1>Willkommen in der Wochenliga</H1>
+                <H1>Willkommen in der Rangliste</H1>
                 <Card style={{ gap: 8 }}>
                   <P style={{ color: colors.text }}>
-                    Du bist dabei als {league.alias}. Es zählen die XP, die du diese Woche sammelst: Die besten{' '}
-                    {LEAGUE_PROMOTE} deiner Gruppe steigen am Montag auf, die letzten {LEAGUE_DEMOTE} ab.
+                    Hier steht jeder, der NEXUS spielt. Ihr messt euch insgesamt nach XP und in jedem Bereich nach gelösten
+                    Knoten.
                   </P>
-                  <P>
-                    Andere sehen nur deinen Rufnamen und deine Wochen-XP. Willst du nicht mitmachen, tritt unten aus, dann wird
-                    dein Eintrag gelöscht.
-                  </P>
+                  <P>Andere sehen nur deinen Rufnamen und deine Punkte. Dein Name und dein Alter bleiben auf dem Gerät.</P>
                 </Card>
               </>
             ) : null}
-            <Card style={{ gap: 4 }}>
-              <View style={styles.head}>
-                <Icon name="trophy" size={28} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.league}>{standings?.league ?? LEAGUES[0]}</Text>
-                  <Text style={styles.dim}>
-                    {league.alias}
-                    {standings ? ` · endet in ${remaining(standings.endsAt)}` : ''}
-                  </Text>
-                </View>
-                <Text style={styles.myXp} accessibilityLabel={`${mine} XP diese Woche`}>
-                  {mine} XP
-                </Text>
-              </View>
-            </Card>
 
-            {standings ? (
-              <Card style={{ gap: 2 }}>
-                {standings.members.map((m, i) => {
-                  const rank = i + 1;
-                  const z = zone(rank);
-                  return (
-                    <View
-                      key={`${m.alias}-${i}`}
-                      accessible
-                      accessibilityLabel={`Platz ${rank}, ${m.alias}${m.me ? ' (du)' : ''}, ${m.xp} XP${
-                        z === 'up' ? ', Aufstiegszone' : z === 'down' ? ', Abstiegszone' : ''
-                      }`}
-                      style={[
-                        styles.row,
-                        z === 'up' && { borderLeftColor: colors.primary },
-                        z === 'down' && { borderLeftColor: colors.bad },
-                        m.me && styles.meRow,
-                      ]}
-                    >
-                      <Text style={styles.rank}>{rank}</Text>
-                      <Text style={[styles.alias, m.me && styles.me]} numberOfLines={1}>
-                        {m.alias}
-                        {m.me ? ' (du)' : ''}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.boards}>
+              {BOARDS.map((b) => (
+                <Pressable
+                  key={b.id}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: board === b.id }}
+                  onPress={() => setBoard(b.id)}
+                  style={[styles.chip, { borderColor: b.color }, board === b.id && { backgroundColor: b.color }]}
+                >
+                  <Text style={[styles.chipText, board === b.id && styles.chipOn]}>{b.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {shown ? (
+              <>
+                <Card style={{ gap: 4 }}>
+                  <View style={styles.head}>
+                    <Icon name="trophy" size={28} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.place}>
+                        Platz {shown.me.rank} von {shown.players}
                       </Text>
-                      <Text style={[styles.xp, m.me && styles.me]}>{m.xp}</Text>
+                      <Text style={styles.dim}>
+                        {shown.me.alias} · {label}
+                      </Text>
                     </View>
-                  );
-                })}
-                <Text style={styles.dim}>
-                  Grün: Aufstieg (Plätze 1–{standings.promote}).
-                  {standings.demote > 0 ? ` Rot: Abstieg (die letzten ${standings.demote}).` : ' Abstieg erst ab 10 Teilnehmenden.'}
-                </Text>
+                    <Text style={styles.myScore}>{unit(board, shown.me.score)}</Text>
+                  </View>
+                </Card>
+                <Card style={{ gap: 2 }}>
+                  {shown.top.map((e, i) => (
+                    <Row key={`${e.alias}-${i}`} e={e} board={board} />
+                  ))}
+                  {/* outside the top: the player's own place below a gap */}
+                  {!shown.top.some((e) => e.me) ? (
+                    <>
+                      <Text style={styles.gap}>…</Text>
+                      <Row e={{ ...shown.me, me: true }} board={board} />
+                    </>
+                  ) : null}
+                </Card>
+              </>
+            ) : busy ? (
+              <Card>
+                <P>{welcome && !standings ? 'Du wirst eingeordnet …' : 'Lädt …'}</P>
               </Card>
             ) : null}
 
             {welcome ? <Button label="Zur Karte" onPress={back} /> : null}
-            <Button label={busy ? 'Lädt …' : 'Aktualisieren'} variant="ghost" disabled={busy} onPress={sync} />
-            <Button label="Aus der Liga austreten" variant="danger" onPress={leave} />
+            <Button label={busy ? 'Lädt …' : 'Aktualisieren'} variant="ghost" disabled={busy} onPress={() => load(board)} />
           </>
         )}
 
@@ -261,15 +167,14 @@ export default function League() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   body: { padding: 16, gap: 12 },
-  section: { color: colors.dim, fontSize: 12, fontWeight: '900', letterSpacing: 1.2, marginTop: 6 },
-  option: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.dim },
-  radioOn: { borderColor: colors.accent, backgroundColor: colors.accent },
-  optionText: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  boards: { gap: 6 },
+  chip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, borderWidth: 2, borderRadius: 20 },
+  chipText: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  chipOn: { color: '#0B1116' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  league: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  place: { color: colors.text, fontSize: 20, fontWeight: '900' },
   dim: { color: colors.dim, fontSize: 13 },
-  myXp: { color: colors.accent, fontSize: 18, fontWeight: '900' },
+  myScore: { color: colors.accent, fontSize: 18, fontWeight: '900' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -280,8 +185,9 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
   },
   meRow: { backgroundColor: colors.panelHi },
-  rank: { color: colors.dim, width: 24, fontSize: 15, fontWeight: '900' },
+  rank: { color: colors.dim, width: 32, fontSize: 15, fontWeight: '900' },
   alias: { flex: 1, color: colors.text, fontSize: 15 },
-  xp: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  score: { color: colors.text, fontSize: 15, fontWeight: '800' },
   me: { color: colors.accent, fontWeight: '900' },
+  gap: { color: colors.dim, textAlign: 'center', fontSize: 15 },
 });

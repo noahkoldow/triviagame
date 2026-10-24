@@ -338,8 +338,8 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'league',
     speaker: 'bolt',
     mood: 'proud',
-    title: 'Neu: die Wochenliga',
-    text: 'Jetzt, wo du wieder selbst denkst, ist die Wochenliga offen: der leuchtende Knopf unten im Dock. Jede Woche trittst du in einer Gruppe bis 20 unter einem Rufnamen an, es zählen die XP der Woche. Die besten fünf steigen auf. Austreten kannst du dort jederzeit.',
+    title: 'Neu: die Rangliste',
+    text: 'Jetzt, wo du wieder selbst denkst, siehst du die Rangliste: der leuchtende Knopf unten im Dock. Dort steht jeder, der NEXUS spielt, unter einem Rufnamen. Ihr messt euch insgesamt nach XP und in jedem Bereich nach gelösten Knoten.',
     when: (f) => f.finale && f.revealed,
   },
   {
@@ -417,7 +417,7 @@ export const BRAIN_REVEAL: RevealStep[] = [
   {
     speaker: 'bolt',
     mood: 'happy',
-    text: 'Und genau deshalb ist das erst der Anfang. Wissen ist unbegrenzt, und dein Netz kann immer weiter wachsen. Neu freigeschaltet: die Wochenliga.',
+    text: 'Und genau deshalb ist das erst der Anfang. Wissen ist unbegrenzt, und dein Netz kann immer weiter wachsen. Neu freigeschaltet: die Rangliste.',
     zoom: 1,
     nerve: 1,
     brain: 1,

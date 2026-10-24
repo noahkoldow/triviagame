@@ -1,11 +1,11 @@
 # Firebase- und Gemini-Backend
 
-Das Backend liegt in `functions/` und hat zwei HTTP-Functions in `europe-west3`. Die App schickt **nie einen Prompt**. Ohne erreichbares Backend spielt sie mit den eingebauten Fragen weiter, und die Liga ist dann nicht verfügbar.
+Das Backend liegt in `functions/` und hat zwei HTTP-Functions in `europe-west3`. Die App schickt **nie einen Prompt**. Ohne erreichbares Backend spielt sie mit den eingebauten Fragen weiter, und die Rangliste ist dann nicht verfügbar.
 
 | Function | Vertrag | Zweck |
 |---|---|---|
 | `questions` | `POST { area, difficulty, count, have }` → `{ questions }` | Fragen aus dem gemeinsamen, geprüften Pool; bei Bedarf schreibt der Server neue |
-| `league` | `POST { action: "join" \| "sync" \| "leave", … }` | Wochenliga (siehe unten) |
+| `league` | `POST { action: "join" \| "sync" \| "leave", … }` | Rangliste aller Spieler (siehe unten) |
 
 Die frühere Function `gemini` nahm freie Prompts an und war damit ein offener Gemini-Proxy. Sie ist aus dem Code entfernt und wird beim nächsten Deploy gelöscht (D45).
 
@@ -26,15 +26,15 @@ Basis-URL der App: `https://europe-west3-nexus-trivia-prod-20261024.cloudfunctio
 
 - **Tagesbudget** über alle Modellaufrufe (Generieren und Prüfen): `AI_DAILY_CALL_LIMIT`, derzeit 100 pro UTC-Tag. Eine Erzeugung kostet bis zu 4 Aufrufe. Für viele Spieler das Limit anheben; der gemeinsame Pool senkt die Kosten pro Spieler mit der Zeit.
 - **Kill-Switch:** `AI_ENABLED=false` stoppt neue Erzeugung, der Pool wird weiter ausgeliefert.
-- **Pro Client und Stunde** (gehashte IP, `limits/`): 60 Fragen-Anfragen, davon höchstens 6 mit Erzeugung; 5 Liga-Beitritte; 120 Liga-Abgleiche je Spieler.
-- **TTL:** `limits`, `leagueSlots` und `leagueGroups` tragen `expiresAt`. Die TTL-Regeln stehen in `firestore.indexes.json` und gehen mit `firestore:indexes` raus. Rate-Limit-Einträge verschwinden so nach etwa zwei Stunden.
+- **Pro Client und Stunde** (gehashte IP, `limits/`): 60 Fragen-Anfragen, davon höchstens 6 mit Erzeugung; 5 Anmeldungen zur Rangliste; 120 Abgleiche je Spieler.
+- **TTL:** `limits` trägt `expiresAt`. Die TTL-Regeln stehen in `firestore.indexes.json` und gehen mit `firestore:indexes` raus. Rate-Limit-Einträge verschwinden so nach etwa zwei Stunden.
 - **Restrisiko:** Die Endpunkte sind öffentlich. Wer viele IP-Adressen hat, kann das Tagesbudget für neue Fragen aufbrauchen; der vorhandene Pool bleibt dann trotzdem nutzbar. Vor dem Launch kommt Firebase App Check dazu (`docs/CODEX_HANDOFF.md`).
 
-## Wochenliga
+## Rangliste (D57)
 
-- `join` mit einem **erzeugten Rufnamen** (`isAlias`, keine freie Eingabe) legt `leaguePlayers/{uuid}` an (Rufname, Hash des Tokens, Liga, Woche, Gruppe, XP) und gibt `playerId` und `token` zurück.
-- `sync` meldet die XP der Woche (nie weniger als zuvor, höchstens 20.000). Zu Wochenbeginn bestimmt der Rang der Vorwoche die neue Liga, dann teilt der Server in Gruppen bis 20 ein (`leagueSlots`, `leagueGroups`). Die Antwort enthält Rangliste, Zonen und Wochenende, aber keine fremden Kennungen.
-- `leave` löscht den Eintrag; das passiert auch beim Zurücksetzen des Spielstands.
+- `join` mit einem **erzeugten Rufnamen** (`isAlias`, keine freie Eingabe) legt `leaguePlayers/{uuid}` an (Rufname, Hash des Tokens, `xp` und `areas.<bereich>` auf 0) und gibt `playerId` und `token` zurück. Die App macht das von selbst.
+- `sync` mit `scores` (`{ xp, areas }`) und `board` (`"all"` oder eine Bereichs-ID) nimmt die Punkte über `acceptScores` an (nur steigend, höchstens 6000 XP und 120 Knoten pro Stunde seit dem letzten Abgleich `syncedAt`; der erste Abgleich bringt den Spielstand mit) und liefert die besten 50 dieser Ansicht, die Gesamtzahl und den eigenen Platz (Zählabfrage `> eigene Punkte`). Fremde Kennungen gehen nie raus. Sortiert wird über die automatischen Einzelfeld-Indizes auf `xp` und `areas.*`, ein zusammengesetzter Index ist nicht nötig.
+- `leave` löscht den Eintrag; das passiert nur beim Zurücksetzen des Spielstands.
 
 ## Deploy und Konfiguration
 

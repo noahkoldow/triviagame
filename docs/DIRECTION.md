@@ -43,7 +43,7 @@ morph.ais vier Logbücher (je Firewall eins) erzählen, wie die Menschen das Sel
 | 4 | Das große Resümee | Stelle morph.ai im Kern | Finale: 8 Fragen aus allen Sektoren, ohne Cache und Ordner, 6 müssen stimmen. Sieg: die Enthüllung (das Netz ist dein Gehirn), danach ist morph.ai nur noch Assistent (KERN_004) und die Wochenliga öffnet sich. |
 | 5 | Endlos | Verbinde alle 12 Bereiche, danach alle 25 gelösten Knoten ein neuer Meilenstein | **Kein Ende.** „Ich weiß, dass ich nichts weiß“: Alle Säle offen ergibt KERN_005, das Archiv schreibt sich weiter. Gemini liefert laufend neue Fragen, die Wochenliga setzt jede Woche ein neues Ziel. |
 
-Kleine Momente zwischendurch: erster beschädigter Knoten, Netz instabil (erklärt die Wartung), erster verbundener Bereich (KERN_003). Die Wochenliga stellt Bolt erst nach der Enthüllung vor.
+Kleine Momente zwischendurch: erster beschädigter Knoten, Netz instabil (erklärt die Wartung), erster verbundener Bereich (KERN_003). Die Rangliste stellt Bolt erst nach der Enthüllung vor.
 
 **Das Spiel ist offen.** Die Geschichte hat einen Höhepunkt (das Finale), aber das Lernen hört nie auf: Wenn einem Bereich die Fragen ausgehen, holt die App neue aus dem gemeinsamen Pool, den Gemini auf dem Server füllt. Zweige, die kurz keine Frage fanden, warten und wachsen weiter, sobald Nachschub da ist.
 
@@ -67,7 +67,7 @@ Alte Spielstände sehen nur den jüngsten fälligen Moment, nicht einen Stapel D
 | Cache | beliebig viele Ordner, Öffnen in der Frage nach Größe teuer | Cache = höchstens 3 Dateien pro Thema, in der Frage gratis; Ordnerstruktur dauerhaft, in der Frage 1–3 ⚡ | Auswählen und Merken statt Horten (D49) |
 | Zweige ohne Frage | starben ab | warten und wachsen bei Nachschub | offenes Ende |
 | Fragen-Nachschub | höchstens 3 je Gebiet, Prompt aus der App | je Bereich, sobald weniger als 3 ungenutzte übrig sind; Server bedient aus gemeinsamem Pool | nie ausgehen, kein offener Proxy |
-| Rangliste | keine | Wochenliga (Gruppen bis 20, Top 5 steigen auf), freiwillig, erzeugte Rufnamen | wöchentliches Ziel ohne globale Hetze |
+| Rangliste | keine | eine Rangliste aller Spieler, insgesamt (XP) und je Bereich (gelöste Knoten), automatisch, erzeugte Rufnamen (D57) | sich mit allen messen, auch im Lieblingsbereich |
 
 Unverändert und bewusst so gelassen: 1. Versuch lässt Vertiefung und Brücke wachsen, der 2. nur die Vertiefung, ab dem 3. wächst nichts bis zur Reparatur (D17). Energie füllt sich nur mit der Zeit. Der Cache wird nach jedem Versuch geleert (Merken bleibt die Leistung).
 
@@ -100,6 +100,6 @@ Wenn der erste Hüter in Tests später als nach 12 Minuten kommt, `GUARDIAN_WAKE
 2. **Wochen-Event „Rückfall“:** morph.ai verfällt für eine Woche in alte Muster, ein Thema ist verrauscht und bringt doppelte Bits.
 3. **Glitches auf Ordnern** (Asset-Bibel §2) als Stimmung im Trümmerfeld.
 4. **Inhalte:** Nachschub kommt jetzt laufend aus dem Pool. Zum Start sollte der Pool trotzdem vorgefüllt sein (mindestens 25 geprüfte Fragen je Bereich, also 300), damit die ersten Spieler nicht auf die Erzeugung warten.
-5. **Liga-Ausbau:** Belohnung für Aufstiege (Gems, Rahmen fürs Profil), Freundes-Ligen.
+5. **Ranglisten-Ausbau:** Belohnung für gute Plätze (Gems, Rahmen fürs Profil), Freundes-Ranglisten.
 
 Wer was davon baut, steht in `docs/CODEX_HANDOFF.md`.

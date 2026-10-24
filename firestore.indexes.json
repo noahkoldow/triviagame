@@ -1,8 +1,6 @@
 {
   "indexes": [],
   "fieldOverrides": [
-    { "collectionGroup": "limits", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "leagueSlots", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "leagueGroups", "fieldPath": "expiresAt", "ttl": true, "indexes": [] }
+    { "collectionGroup": "limits", "fieldPath": "expiresAt", "ttl": true, "indexes": [] }
   ]
 }

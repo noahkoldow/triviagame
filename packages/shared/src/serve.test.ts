@@ -1,28 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import {
-  LEAGUES,
-  LEAGUE_GROUP,
-  MAX_WEEK_XP,
+  AREAS,
+  FIRST_SOLVED,
+  FIRST_XP,
   MOCK_QUESTIONS,
+  OVERALL,
   Pool,
   QUESTION_TYPES,
+  acceptScores,
   acceptServed,
-  acceptXp,
+  aliasFor,
   aliasOptions,
   avoidTopicsOf,
   choosePoolEntries,
   initialPlayer,
   isAlias,
+  isBoard,
   nextQuestionType,
   parsePoolRequest,
   poolEntryOf,
-  rankMembers,
-  rollWeek,
-  tierAfter,
+  rankEntries,
+  scoreOn,
+  scoresOf,
   validateDraft,
-  weekEndsAt,
-  weekOf,
-  weekXp,
+  zeroScores,
 } from './index';
 
 describe('content API: requests', () => {
@@ -89,39 +90,51 @@ describe('content API: the shared pool', () => {
   });
 });
 
-describe('weekly league', () => {
-  it('names ISO weeks in UTC and knows when they end', () => {
-    expect(weekOf(Date.UTC(2026, 9, 24, 12))).toBe('2026-W43'); // Saturday
-    expect(weekOf(Date.UTC(2026, 9, 26))).toBe('2026-W44'); // Monday
-    expect(weekOf(Date.UTC(2027, 0, 1))).toBe('2026-W53');
-    expect(weekEndsAt(Date.UTC(2026, 9, 24, 12))).toBe(Date.UTC(2026, 9, 26));
+describe('ranking', () => {
+  const HOUR = 3_600_000;
+  const pool = new Pool(MOCK_QUESTIONS);
+
+  it('scores XP overall and solved nodes per area', () => {
+    const p = initialPlayer(pool);
+    const [id, node] = Object.entries(p.network.nodes).find(([, n]) => n.state === 'open')!;
+    const area = pool.get(node.questionId).area;
+    const solved = { ...p, xp: 140, network: { ...p.network, nodes: { ...p.network.nodes, [id]: { ...node, state: 'solved' as const } } } };
+    const s = scoresOf(solved, pool);
+    expect(Object.keys(s.areas).sort()).toEqual(AREAS.map((a) => a.id).sort());
+    expect(scoreOn(s, OVERALL)).toBe(140);
+    expect(scoreOn(s, area)).toBe(1);
+    expect(isBoard(OVERALL) && isBoard(area)).toBe(true);
+    expect(isBoard('nope')).toBe(false);
   });
 
-  it('moves the best up and the last down, but not in small groups', () => {
-    expect(tierAfter(0, 1, LEAGUE_GROUP, 300)).toBe(1);
-    expect(tierAfter(LEAGUES.length - 1, 1, LEAGUE_GROUP, 300)).toBe(LEAGUES.length - 1);
-    expect(tierAfter(2, 18, LEAGUE_GROUP, 40)).toBe(1);
-    expect(tierAfter(2, 10, LEAGUE_GROUP, 40)).toBe(2);
-    expect(tierAfter(2, 4, 4, 40)).toBe(3); // a small group: everybody with XP is in the top five
-    expect(tierAfter(2, 7, 8, 40)).toBe(2); // eight players: no demotion zone yet
-    expect(tierAfter(0, 20, LEAGUE_GROUP, 0)).toBe(0);
-    expect(tierAfter(2, 3, 6, 0)).toBe(1); // inactive players drop
+  it('takes the save along with the first sync', () => {
+    const s = acceptScores(undefined, { xp: 5400, areas: { physics: 12, nope: 99 } }, 0);
+    expect(s.xp).toBe(5400);
+    expect(s.areas.physics).toBe(12);
+    expect(s.areas.geography).toBe(0);
+    expect('nope' in s.areas).toBe(false);
+    expect(acceptScores(undefined, { xp: 10 ** 12, areas: { physics: 10 ** 9 } }, 0)).toMatchObject({
+      xp: FIRST_XP,
+      areas: { physics: FIRST_SOLVED },
+    });
   });
 
-  it('accepts only plausible, growing weekly XP', () => {
-    expect(acceptXp(100, 250)).toBe(250);
-    expect(acceptXp(100, 50)).toBe(100);
-    expect(acceptXp(0, 10 ** 9)).toBe(MAX_WEEK_XP);
-    expect(acceptXp(10, Number.NaN)).toBe(10);
+  it('never goes down and never grows faster than a person can play', () => {
+    const prev = { ...zeroScores(), xp: 1000, areas: { ...zeroScores().areas, physics: 10 } };
+    expect(acceptScores(prev, { xp: 500, areas: { physics: 3 } }, HOUR).xp).toBe(1000);
+    expect(acceptScores(prev, { xp: 1300, areas: { physics: 14 } }, HOUR / 6)).toMatchObject({ xp: 1300, areas: { physics: 14 } });
+    const flood = acceptScores(prev, { xp: 10 ** 9, areas: { physics: 10 ** 6 } }, HOUR);
+    expect(flood.xp).toBeLessThan(10_000);
+    expect(flood.areas.physics).toBeLessThan(200);
+    // a sync right after the last one adds (almost) nothing, the rest comes later
+    expect(acceptScores(prev, { xp: 1300 }, 1000).xp).toBeLessThan(1010);
+    expect(acceptScores(prev, { xp: 1300 }, HOUR).xp).toBe(1300);
+    expect(acceptScores(prev, { xp: Number.NaN, areas: 'x' }, HOUR)).toEqual(prev);
   });
 
-  it('ranks by XP, ties by alias', () => {
-    const r = rankMembers([
-      { alias: 'B', xp: 10 },
-      { alias: 'A', xp: 10 },
-      { alias: 'C', xp: 30 },
-    ]);
-    expect(r.map((m) => m.alias)).toEqual(['C', 'A', 'B']);
+  it('lets equal scores share a place', () => {
+    const r = rankEntries([{ score: 30 }, { score: 10 }, { score: 10 }, { score: 5 }]);
+    expect(r.map((e) => e.rank)).toEqual([1, 2, 2, 4]);
   });
 
   it('only allows generated aliases', () => {
@@ -130,19 +143,7 @@ describe('weekly league', () => {
     expect(new Set(opts).size).toBe(3);
     expect(opts.every(isAlias)).toBe(true);
     expect(aliasOptions('seed')).toEqual(opts);
+    expect(isAlias(aliasFor(initialPlayer(pool)))).toBe(true);
     for (const bad of ['Hans', 'Flinke Eule', 'Flinke Eule 123', 'Böse Eule 12', 42, '']) expect(isAlias(bad)).toBe(false);
-  });
-
-  it('counts the XP of the current week', () => {
-    const p = { ...initialPlayer(new Pool(MOCK_QUESTIONS)), xp: 120 };
-    const w1 = rollWeek(p, Date.UTC(2026, 9, 21));
-    expect(w1.league.week).toBe('2026-W43');
-    expect(weekXp(w1)).toBe(0);
-    const later = { ...w1, xp: 200 };
-    expect(rollWeek(later, Date.UTC(2026, 9, 24))).toBe(later);
-    expect(weekXp(later)).toBe(80);
-    const next = rollWeek(later, Date.UTC(2026, 9, 27));
-    expect(next.league.week).toBe('2026-W44');
-    expect(weekXp(next)).toBe(0);
   });
 });

@@ -5,7 +5,7 @@ import { AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdOverlay } from '../src/components/AdOverlay';
 import { Bolt } from '../src/components/Bolt';
-import { growWaitingNodes, rollWeek } from '@nexus/shared';
+import { growWaitingNodes } from '@nexus/shared';
 import { pool, refillPool } from '../src/services/content';
 import { appOpened, startMonetization } from '../src/state/monetize';
 import { addRecentlySpawned } from '../src/state/session';
@@ -21,10 +21,7 @@ export default function RootLayout() {
   const segments = useSegments();
 
   useEffect(() => {
-    void hydrate().then(() => update((p) => {
-      const r = rollWeek(p, Date.now());
-      return r === p ? null : r;
-    }));
+    void hydrate();
   }, []);
 
   // open end: whenever an area runs low, fetch more; branches that waited for questions grow

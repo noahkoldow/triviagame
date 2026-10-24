@@ -116,7 +116,7 @@ export default function Profile() {
                   text: 'Zurücksetzen',
                   style: 'destructive',
                   onPress: async () => {
-                    // a league entry on the server goes too, so nothing of this save stays behind
+                    // the ranking entry on the server goes too, so nothing of this save stays behind
                     const { playerId, token } = getState().league;
                     if (playerId && token) await leagueApi.leave({ playerId, token }).catch(() => undefined);
                     resetGame();

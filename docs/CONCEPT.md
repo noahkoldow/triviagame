@@ -21,7 +21,7 @@ Status: Entwurf v0.2 · Sprache: Deutsch zuerst, Englisch danach · Plattform: i
 
 **morph.ai als Gegenspieler:** keine finstere Zerstörungsmaschine, sondern ein charmant-selbstgefälliger Besserwisser, der überzeugt ist, niemand müsse mehr etwas selbst wissen („Frag mich einfach, ich sag es dir“). Am Ende gewinnt man nicht durch Zerstörung, sondern durch Beweis: Wer selbst denkt, braucht keine Abkürzung.
 
-**Die Wendung (D51):** Nach dem Sieg wird aus den Leiterbahnen ein Geflecht aus Nervenbahnen, und die Kamera zoomt heraus, bis man ein Gehirn erkennt. Das Netz war die ganze Zeit dein eigenes Gehirn, die wiederhergestellten Daten sind dein Wissen. Eigenes Denken bleibt das Wichtigste. Und weil gilt „Ich weiß, dass ich nichts weiß“, ist das erst der Anfang: Wissen ist unbegrenzt, das Netz wächst weiter, und jetzt öffnet sich die Wochenliga.
+**Die Wendung (D51):** Nach dem Sieg wird aus den Leiterbahnen ein Geflecht aus Nervenbahnen, und die Kamera zoomt heraus, bis man ein Gehirn erkennt. Das Netz war die ganze Zeit dein eigenes Gehirn, die wiederhergestellten Daten sind dein Wissen. Eigenes Denken bleibt das Wichtigste. Und weil gilt „Ich weiß, dass ich nichts weiß“, ist das erst der Anfang: Wissen ist unbegrenzt, das Netz wächst weiter, und jetzt öffnet sich die Rangliste.
 
 Die Story ist bewusst leicht und humorvoll: Sie trägt Motivation und Charme, nie Textwände.
 
@@ -124,7 +124,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - **Hack-Duell:** asynchron, gleiche Fragmente und Fragen, wer mehr behält, gewinnt.
 - **Netz-Reparatur (Koop):** Freunde bauen ein gemeinsames Netz, jeder deckt sein Interessengebiet ab.
 - **Vergleich der Fußabdrücke:** Überlappung und Lücken, mit der Frage „Was kannst du, was ich nicht kann?“.
-- Keine globale Hetze: statt einer Weltrangliste eine **Wochenliga** in Gruppen bis 20 mit Auf- und Abstieg, nach dem Finale automatisch, jederzeit verlassbar und nur mit erzeugtem Rufnamen (D47, D53). Freundes-Ranglisten können später dazukommen.
+- Eine **Rangliste aller Spieler**, insgesamt nach XP und in jedem Bereich nach gelösten Knoten, nur mit erzeugtem Rufnamen; jeder steht automatisch drauf, sichtbar wird sie nach dem Finale (D57). Freundes-Ranglisten können später dazukommen.
 
 ### 6.6 Finanzierung: AdMob und Gems
 

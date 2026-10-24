@@ -15,8 +15,8 @@ const SECTIONS: { title: string; text: string }[] = [
     text: 'Damit dir die Fragen nie ausgehen, fragt die App unseren Server nach neuen Fragen. Dabei sendet sie nur den Themenbereich, eine Schwierigkeitsstufe und die Kennungen der Fragen, die sie schon hat. Der Server sieht technisch bedingt deine IP-Adresse; wir speichern davon nur einen gekürzten Prüfwert für höchstens zwei Stunden, um Missbrauch zu begrenzen.',
   },
   {
-    title: 'Wochenliga (Austreten jederzeit)',
-    text: 'Nach dem Finale ordnet dich die App in die Liga ein. Dafür speichert der Server eine zufällige Kennung, einen erzeugten Rufnamen und deine XP der laufenden Woche. Andere sehen nur Rufname und Wochen-XP. Beim Austreten (im Liga-Bildschirm) oder Zurücksetzen des Spielstands wird dein Eintrag gelöscht.',
+    title: 'Rangliste',
+    text: 'Alle, die spielen, stehen auf einer gemeinsamen Rangliste. Dafür speichert der Server eine zufällige Kennung, einen erzeugten Rufnamen, deine XP und die Zahl deiner gelösten Knoten je Bereich. Andere sehen nur Rufname und diese Punkte, nie deinen Namen oder dein Alter. Beim Zurücksetzen des Spielstands wird dein Eintrag gelöscht.',
   },
   {
     title: 'Alter und Werbung',
@@ -32,7 +32,7 @@ const SECTIONS: { title: string; text: string }[] = [
   },
   {
     title: 'Deine Rechte',
-    text: 'Im Profil löscht „Spielstand zurücksetzen“ alle lokal gespeicherten Daten dieser App und deinen Liga-Eintrag auf dem Server. Weitere Daten von dir haben wir nicht.',
+    text: 'Im Profil löscht „Spielstand zurücksetzen“ alle lokal gespeicherten Daten dieser App und deinen Eintrag in der Rangliste auf dem Server. Weitere Daten von dir haben wir nicht.',
   },
 ];
 

@@ -4,7 +4,7 @@ Stand: 25.10.2026. Entscheidungen: D54–D56 in `DECISIONS.md`. Regeln im Code: 
 
 ## 1. Grundsatz
 
-**NEXUS ist überwiegend kostenlos, Werbung finanziert die App** (Vorgabe des Auftraggebers, 25.10.2026). Käufe kommen obendrauf: **NEXUS Plus** als Abo ersetzt die Werbung, Gems sparen Zeit. Nichts davon bringt einen Vorteil bei Antworten oder in der Liga.
+**NEXUS ist überwiegend kostenlos, Werbung finanziert die App** (Vorgabe des Auftraggebers, 25.10.2026). Käufe kommen obendrauf: **NEXUS Plus** als Abo ersetzt die Werbung, Gems sparen Zeit. Nichts davon bringt einen Vorteil bei Antworten oder in der Rangliste.
 
 Bei werbefinanzierten Apps entscheidet die Bindung über den Umsatz: Wer nach einer Woche noch spielt, sieht Werbung. Darum bleibt die erste Sitzung werbefrei, und Werbung kommt nie mitten ins Lernen.
 

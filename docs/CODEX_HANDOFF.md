@@ -4,7 +4,7 @@
 
 Ziel: **NEXUS 1.0 im iOS App Store**, zuerst im DACH-Raum auf Deutsch. Stand: 24.10.2026.
 
-Fertig sind Spiellogik, Plot, offenes Ende, Wochenliga, die neue Sektor-Gliederung und die Charakter-Assets (siehe §1). Es fehlt das Gerüst für einen echten Store-Build: Deploy und Härtung des Backends, echte Käufe und Werbung, Meldefunktion, Recht und der Store-Eintrag.
+Fertig sind Spiellogik, Plot, offenes Ende, Rangliste, die neue Sektor-Gliederung und die Charakter-Assets (siehe §1). Es fehlt das Gerüst für einen echten Store-Build: Deploy und Härtung des Backends, echte Käufe und Werbung, Meldefunktion, Recht und der Store-Eintrag.
 
 Aufgaben mit 👤 brauchen einen Menschen (Konto, Geld, Rechtstext, Gerät). Bereite dafür Code und Doku vor, markiere Platzhalter deutlich und trage den menschlichen Schritt in `docs/LAUNCH_CHECKLIST.md` ein (neu anlegen). **Nichts erfinden:** keine IDs, Preise, Firmendaten oder Rechtstexte als endgültig ausgeben.
 
@@ -17,7 +17,7 @@ Aufgaben mit 👤 brauchen einen Menschen (Konto, Geld, Rechtstext, Gerät). Ber
    - Keine Secrets im Code, keine festen Gemini-Modellnamen. **Die App sendet nie einen Prompt** (D45).
    - UI-Texte auf Deutsch, zentral in `apps/mobile/src/strings.ts` oder nah am Screen.
    - Vor jedem Commit `pnpm typecheck && pnpm test` (prüft shared, functions und mobile). Conventional Commits, eine Aufgabe pro Commit.
-3. Nicht ohne neue Entscheidung in `DECISIONS.md` ändern: Story-System (D36–D38), die Regeln D39–D42, die Taxonomie D44, das Content-API D45, das offene Ende D46 und die Liga D47. Der Test in `packages/shared/src/story.test.ts` spielt die Geschichte bis nach dem Finale durch; er muss grün bleiben.
+3. Nicht ohne neue Entscheidung in `DECISIONS.md` ändern: Story-System (D36–D38), die Regeln D39–D42, die Taxonomie D44, das Content-API D45, das offene Ende D46 und die Rangliste D57. Der Test in `packages/shared/src/story.test.ts` spielt die Geschichte bis nach dem Finale durch; er muss grün bleiben.
 4. Das Backend ist ein pnpm-Paket (`functions/`). `pnpm --filter @nexus/functions build` bündelt `packages/shared` per esbuild nach `functions/lib/index.js`. Abhängigkeiten liegen gehoistet im Root (`node-linker=hoisted`).
 
 ## 1. Was schon steht (nicht neu bauen)
@@ -27,7 +27,7 @@ Aufgaben mit 👤 brauchen einen Menschen (Konto, Geld, Rechtstext, Gerät). Ber
 - **Plot** (`story.ts`): fünf Kapitel mit Zielleiste, 18 Story-Momente, Logbuch im Codex, vier Hüter, Finale gegen morph.ai (`/boss/core`), danach endlose Meilensteine.
 - **Offenes Ende** (D46): Nachschub je Bereich (`refillPool`), wartende Zweige wachsen nach (`growWaitingNodes`).
 - **Content-API ohne offenen Proxy** (D45): Function `questions` mit gemeinsamem geprüftem Pool. **Im Code fertig, noch nicht deployed** (siehe P0.1).
-- **Wochenliga** (D47): Function `league`, Bildschirm `app/league.tsx`, erzeugte Rufnamen, Austreten löscht. Sie öffnet sich erst nach dem Sieg über morph.ai (D51).
+- **Rangliste** (D57, ersetzt die Wochenliga D47): Function `league`, Bildschirm `app/league.tsx`, alle Spieler automatisch, erzeugte Rufnamen, Zurücksetzen löscht. Sichtbar erst nach dem Sieg über morph.ai (D51).
 - **Cache und Ordnerstruktur** (D49): bis zu 3 Dateien pro Thema im Cache (in der Frage gratis), dauerhafte Ordnerstruktur (in der Frage 1–3 ⚡).
 - **Enthüllung** (D51): `app/brain.tsx`, das Netz war das eigene Gehirn; abspielbar in `app/settings.tsx`.
 - **Kein Softlock** bei Integrität 0 (D39), Reparaturen zählen nur bei Fälligkeit (D40), **Knotenliste** für VoiceOver.
@@ -57,7 +57,7 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
   - `POST /gemini` gibt 404.
   - `POST /questions` mit `{"task":"generate","prompt":"…"}` gibt 400.
   - `POST /questions` mit `{"area":"physics","difficulty":1,"count":1,"have":[]}` gibt Fragen zurück, die `acceptServed` besteht.
-  - Liga: `join` mit einem Rufnamen aus `aliasOptions`, dann `sync`, dann `leave`.
+  - Rangliste: `join` mit einem Rufnamen aus `aliasOptions`, dann `sync` mit `scores` und `board`, dann `leave`.
 - TTL-Regeln aus `firestore.indexes.json` sind aktiv (Firebase-Konsole → Firestore → TTL).
 
 **P0.2 Firebase App Check.** Die Endpunkte sind öffentlich; wer viele IPs hat, kann das Tagesbudget für neue Fragen leeren (der Pool bleibt nutzbar).
@@ -90,7 +90,7 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 
 **P2.3 Einstellungen** (`apps/mobile/app/settings.tsx`, Konzept §9.7). Der Bildschirm existiert als Gerüst (Gehirn-Sequenz, Datenschutz) und ist aus dem Profil erreichbar; ergänzen:
 - Werbe-Einwilligung jederzeit ändern (UMP-„Privacy Options“). Heute geht das nur durch Zurücksetzen des Spielstands. Nach DSGVO muss der Widerruf so leicht sein wie die Zustimmung.
-- Dazu: Ton an/aus, Haptik an/aus, Liga verlassen, Spielstand löschen, Links zu Datenschutz, Impressum und Support.
+- Dazu: Ton an/aus, Haptik an/aus, Spielstand löschen, Links zu Datenschutz, Impressum und Support.
 - Erreichbar aus dem Profil.
 
 ### P3 Inhalte und KI-Qualität
@@ -109,13 +109,13 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 ### P4 Recht und Datenschutz (Texte prüft ein Mensch 👤)
 
 **P4.1** Datenschutzerklärung und Impressum als statische Seiten auf Firebase Hosting (`hosting/public/datenschutz.html`, `impressum.html`), deutlich als Entwurf markiert. `PRIVACY_URL` und `SUPPORT_EMAIL` in `src/config.ts` füllen.
-**P4.2** `docs/APPLE.md` richtigstellen: Dort steht noch „keine Datenübertragung“. `app/privacy.tsx` ist schon angepasst (Fragen-Nachschub, Wochenliga, KI).
+**P4.2** `docs/APPLE.md` richtigstellen: Dort steht noch „keine Datenübertragung“. `app/privacy.tsx` ist schon angepasst (Fragen-Nachschub, Rangliste, KI).
 **P4.3** Entwurf der App-Privacy-Angaben (App Store Connect) in `docs/LAUNCH_CHECKLIST.md`: je Dienst, welche Daten, ob mit der Person verknüpft, ob Tracking.
-- Liga: zufällige Kennung, Rufname, Wochen-XP, nicht mit der Identität verknüpft.
+- Rangliste: zufällige Kennung, Rufname, XP und gelöste Knoten je Bereich, nicht mit der Identität verknüpft.
 - Fragen-API: IP-Adresse nur pseudonymisiert für Rate-Limits.
 - Dazu Werbung und Crash-Reporting, falls aktiv.
 **P4.4** EU-Händlerstatus (DSA) in App Store Connect angeben 👤.
-**P4.5** Konto-Löschung (Guideline 5.1.1(v)): Die Liga ist eine Art Konto. „Aus der Liga austreten“ und „Spielstand zurücksetzen“ löschen den Server-Eintrag; in den Prüfhinweisen erwähnen.
+**P4.5** Konto-Löschung (Guideline 5.1.1(v)): Die Rangliste ist eine Art Konto. „Spielstand zurücksetzen“ löscht den Server-Eintrag; in den Prüfhinweisen erwähnen.
 
 ### P5 Qualität
 
@@ -125,22 +125,22 @@ Frag den Auftraggeber, bevor du die blockierten Aufgaben baust. Bis zur Antwort 
 
 **P5.2 Speicher.** Der lokale Fragen-Cache (`nexus:ai-pool:v1` in AsyncStorage) wächst im offenen Spiel unbegrenzt. Ab etwa 500 Fragen auf eine Datei (`expo-file-system`) oder SQLite umziehen. Gelöste Fragen, die nur noch im Codex gebraucht werden, auf Fragmente reduzieren.
 **P5.3 Design-Review abarbeiten:** `docs/DESIGN_REVIEW.md`, von oben nach unten. Kritisch sind richtig/falsch nur über Farbe und die Dynamic-Type-Grenzen.
-**P5.4 VoiceOver-Durchgang** auf dem Gerät: Knotenliste, Story-Dialoge, Liga und alle sechs Fragetypen. Zuordnen und Reihenfolge müssen ohne Ziehen bedienbar sein.
+**P5.4 VoiceOver-Durchgang** auf dem Gerät: Knotenliste, Story-Dialoge, Rangliste und alle sechs Fragetypen. Zuordnen und Reihenfolge müssen ohne Ziehen bedienbar sein.
 **P5.5 Crash-Reporting:** Sentry (`@sentry/react-native` mit Expo-Plugin) als Provider, nur im Store-Build aktiv; in die App-Privacy-Angaben aufnehmen.
 **P5.6 Klang** (ASSETS.md §5) mit `expo-audio`, Stummschalter aus P2.3. Nur CC0 oder eigene Aufnahmen; jede Datei mit Quelle in `docs/CREDITS.md`.
-**P5.7 Rauchtest:** ein Maestro-Flow gegen den Dev-Build: Onboarding → erster Knoten → richtige Antwort → Story-Dialog „Die erste Bahn“ → Codex-Logbuch zeigt `KERN_001.LOG` → im Dock ist noch keine Liga → Einstellungen → Gehirn-Sequenz läuft bis „Weiter wachsen“. Ein zweiter Flow mit Demo-Spielstand nach dem Finale prüft, dass die Liga dann im Dock erscheint.
+**P5.7 Rauchtest:** ein Maestro-Flow gegen den Dev-Build: Onboarding → erster Knoten → richtige Antwort → Story-Dialog „Die erste Bahn“ → Codex-Logbuch zeigt `KERN_001.LOG` → im Dock ist noch keine Rangliste → Einstellungen → Gehirn-Sequenz läuft bis „Weiter wachsen“. Ein zweiter Flow mit Demo-Spielstand nach dem Finale prüft, dass die Liga dann im Dock erscheint.
 
 ### P6 Store-Eintrag und Einreichung
 
-**P6.1 Screenshots** in 6,9″ (1320×2868), die fünf Motive aus ASSETS.md §4 plus die Wochenliga, automatisiert mit Maestro im Simulator. Die Gehirn-Enthüllung nicht zeigen (sie ist die Pointe der Geschichte). Für ansehnliche Karten einen Demo-Spielstand laden, der nur unter `__DEV__` erreichbar ist.
+**P6.1 Screenshots** in 6,9″ (1320×2868), die fünf Motive aus ASSETS.md §4 plus die Rangliste, automatisiert mit Maestro im Simulator. Die Gehirn-Enthüllung nicht zeigen (sie ist die Pointe der Geschichte). Für ansehnliche Karten einen Demo-Spielstand laden, der nur unter `__DEV__` erreichbar ist.
 **P6.2 Texte** (de-DE) über EAS Metadata (`store.config.json`, `eas metadata:push`): Name, Untertitel (30 Zeichen), Schlüsselwörter (100), Beschreibung, Werbetext, Support-URL, Kategorie Spiele › Quiz, Zweitkategorie Bildung. Die vier Sektoren und das offene Lernen nennen, die Geschichte nur anreißen.
-**P6.3 Hinweise für die Prüfung:** kein Login nötig, was Gems und „Werbefrei“ tun, Käufe in der Sandbox, die Liga ist freiwillig und löschbar. Wie man Firewalls und Finale erreicht, wird beschrieben; eine Abkürzung im Store-Build gibt es nicht.
+**P6.3 Hinweise für die Prüfung:** kein Login nötig, was Gems und „Werbefrei“ tun, Käufe in der Sandbox, die Rangliste zeigt nur erzeugte Rufnamen und wird beim Zurücksetzen gelöscht. Wie man Firewalls und Finale erreicht, wird beschrieben; eine Abkürzung im Store-Build gibt es nicht.
 **P6.4 Altersfreigabe-Fragebogen** als Entwurf (nach E3): Werbung ja, keine Gewalt, KI-erzeugte Inhalte mit Meldefunktion, keine freie Nutzerkommunikation (Rufnamen sind erzeugt), kein offener Web-Zugang.
 **P6.5** TestFlight intern, dann extern, dann einreichen 👤.
 
 ## 4. Bewusst nach 1.0
 
-Tages-Puls mit morph.ai als Gastgeber (DIRECTION.md §6), Wochen-Events, Belohnungen für Liga-Aufstiege und Freundes-Ligen, Duelle und Koop, Englisch, Bolt-Skins und weitere Bit-Senken, Glitches auf Ordnern, iPad-Layout (`supportsTablet: false` bleibt; die App muss im iPad-Kompatibilitätsmodus trotzdem ohne Fehler laufen, weil Apple dort mitprüft).
+Tages-Puls mit morph.ai als Gastgeber (DIRECTION.md §6), Wochen-Events, Belohnungen für Ranglisten-Plätze und Freundes-Ranglisten, Duelle und Koop, Englisch, Bolt-Skins und weitere Bit-Senken, Glitches auf Ordnern, iPad-Layout (`supportsTablet: false` bleibt; die App muss im iPad-Kompatibilitätsmodus trotzdem ohne Fehler laufen, weil Apple dort mitprüft).
 
 ## 5. Fertig heißt
 

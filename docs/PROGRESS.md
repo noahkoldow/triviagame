@@ -48,9 +48,10 @@ Spielbar in Expo Go (Mock-Daten):
 
 - **morph.ai** (D50): Die KI hat den Menschen Suchen, Sortieren und Merken abgenommen und das Netz „bereinigt“; Onboarding, Story-Momente und Sprüche erzählen das so.
 - **Cache und Ordner** (D49): Lose Ordner im Trümmerfeld lesen, in die Ordnerstruktur ablegen, bis zu 3 Dateien pro Thema in den Cache. In der Frage ist der Cache gratis, die Ordnerstruktur kostet 1–3 ⚡.
-- **Enthüllung** (D51): Nach dem Finale werden Leiterbahnen zu Nervenbahnen, Zoom bis zum Gehirn, „Ich weiß, dass ich nichts weiß“. Danach öffnet sich die Wochenliga. In den neuen Einstellungen (Profil → Einstellungen) jederzeit abspielbar.
-- **Liga nach dem Gehirn** (D53): Nach der ersten Sequenz automatisch eingeordnet und Liga mit Begrüßung gezeigt; der Liga-Knopf im Dock leuchtet, bis man ihn antippt.
-- **Ungeprüft auf Gerät:** die Gehirn-Animation (Skia + Reanimated), die neuen Cache-Fenster, Einordnung und leuchtender Liga-Knopf.
+- **Enthüllung** (D51): Nach dem Finale werden Leiterbahnen zu Nervenbahnen, Zoom bis zum Gehirn, „Ich weiß, dass ich nichts weiß“. Danach öffnet sich die Rangliste. In den neuen Einstellungen (Profil → Einstellungen) jederzeit abspielbar.
+- **Liga nach dem Gehirn** (D53): Nach der ersten Sequenz kommt die Rangliste mit Begrüßung; der Knopf im Dock leuchtet, bis man ihn antippt.
+- **Rangliste für alle** (D57, ersetzt die Wochenliga): jeder Spielstand automatisch drauf, insgesamt nach XP und je Bereich nach gelösten Knoten, beste 50 plus eigener Platz, kein Austreten (nur Zurücksetzen löscht).
+- **Ungeprüft auf Gerät:** die Gehirn-Animation (Skia + Reanimated), die neuen Cache-Fenster, Rangliste und leuchtender Knopf; die neue `league`-Function ist nicht deployed.
 
 ## Prototyp 0.8 (Geld: Werbung trägt, Plus obendrauf)
 
@@ -63,11 +64,11 @@ Spielbar in Expo Go (Mock-Daten):
 
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (170 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (169 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
-1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Liga beitreten/abgleichen/austreten. Stand 24.10.2026: `gemini` ist noch live, `questions` und `league` geben 404.
+1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Rangliste: `join`, `sync` mit `board`, `leave`. Stand 24.10.2026: `gemini` ist noch live, `questions` und `league` geben 404.
 2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
 3. Store-Launch nach `docs/CODEX_SUBMISSION.md` (geprüfter Befund, Entscheidungen E1–E8, Reihenfolge); Details in `docs/CODEX_HANDOFF.md`.
 4. **Geld:** AdMob-Konto, Anzeigenblöcke, EAS-Variablen, UMP-Mitteilungen, `app-ads.txt` (`docs/MONETIZATION.md` §6); RevenueCat-Anbieter für Käufe; Development Build mit Test-Anzeigen auf einem Gerät.

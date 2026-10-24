@@ -1,62 +1,86 @@
+import { footprint } from './footprint';
 import type { PlayerState } from './game';
+import type { Pool } from './network';
 import { hashString, seededRng } from './rng';
+import { AREAS } from './taxonomy';
 
 /**
- * The weekly league: every week players are grouped (up to 20) by their league tier and
- * compete with the XP of that week. The best five move up a tier, the last five down.
- * Players appear only under a generated alias, never with a name they typed themselves.
+ * The ranking: every player is on it, under a generated alias and never with a name they typed.
+ * One board for everybody by XP and one per topic area by the nodes solved there (as in the
+ * knowledge footprint). The code keeps the name "league" from the weekly league it replaced (D57).
  */
 
-export const LEAGUE_GROUP = 20;
-export const LEAGUE_PROMOTE = 5;
-export const LEAGUE_DEMOTE = 5;
-/** Tiers from bottom to top; the circuit theme runs from copper to the nexus itself. */
-export const LEAGUES = ['Kupferliga', 'Siliziumliga', 'Glasfaserliga', 'Quantenliga', 'Nexusliga'];
-/** More XP than this in one week is not plausible and is capped. */
-export const MAX_WEEK_XP = 20_000;
+/** How many places a board lists; the player's own place is reported besides. */
+export const RANKING_TOP = 50;
+/** The board over everything; every other board is named by its area id. */
+export const OVERALL = 'all';
 
-const DAY = 86_400_000;
+/**
+ * More than this per hour is not plausible (a fast player makes about a thousand XP). The app
+ * always reports totals, so whatever a sync cuts off arrives with a later one.
+ */
+export const MAX_XP_PER_HOUR = 6000;
+export const MAX_SOLVED_PER_HOUR = 120;
+/** What the first sync may bring along (a save from before the ranking). */
+export const FIRST_XP = 100_000;
+export const FIRST_SOLVED = 1000;
 
-/** ISO week of a moment, in UTC: "2026-W43". Weeks start on Monday. */
-export function weekOf(ms: number): string {
-  const d = new Date(ms);
-  const day = (d.getUTCDay() + 6) % 7; // Monday = 0
-  const thursday = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day + 3);
-  const year = new Date(thursday).getUTCFullYear();
-  const week = 1 + Math.floor((thursday - Date.UTC(year, 0, 1)) / (7 * DAY));
-  return `${year}-W${String(week).padStart(2, '0')}`;
-}
+const HOUR = 3_600_000;
 
-/** When the week of `ms` ends (next Monday 00:00 UTC). */
-export function weekEndsAt(ms: number): number {
-  const d = new Date(ms);
-  const day = (d.getUTCDay() + 6) % 7;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day + 7);
-}
-
-/** The tier for next week from this week's rank (1 = best) in a group of `size`. */
-export function tierAfter(tier: number, rank: number, size: number, xp: number): number {
-  if (rank <= LEAGUE_PROMOTE && xp > 0) return Math.min(LEAGUES.length - 1, tier + 1);
-  // small groups only demote once they are big enough that the zones do not overlap
-  const demote = size >= LEAGUE_PROMOTE + LEAGUE_DEMOTE && rank > size - LEAGUE_DEMOTE;
-  if (demote || xp === 0) return Math.max(0, tier - 1);
-  return tier;
-}
-
-/** The weekly XP the server accepts: never less than before, never more than plausible. */
-export function acceptXp(previous: number, reported: number): number {
-  if (!Number.isFinite(reported)) return previous;
-  return Math.max(previous, Math.min(MAX_WEEK_XP, Math.floor(reported)));
-}
-
-export interface Ranked {
-  alias: string;
+export interface Scores {
   xp: number;
+  /** Solved nodes per area; every area is present (0 where nothing is solved). */
+  areas: Record<string, number>;
 }
 
-/** Best first; equal XP by alias, so the order is stable. */
-export function rankMembers<T extends Ranked>(members: T[]): T[] {
-  return [...members].sort((a, b) => b.xp - a.xp || a.alias.localeCompare(b.alias));
+export function isBoard(s: unknown): s is string {
+  return s === OVERALL || AREAS.some((a) => a.id === s);
+}
+
+export function zeroScores(): Scores {
+  return { xp: 0, areas: Object.fromEntries(AREAS.map((a) => [a.id, 0])) };
+}
+
+/** What the player stands on: XP overall, solved nodes per area. */
+export function scoresOf(p: PlayerState, pool: Pool): Scores {
+  return { xp: p.xp, areas: Object.fromEntries(footprint(p, pool).map((a) => [a.area, a.solved])) };
+}
+
+/** A player's score on one board. */
+export function scoreOn(s: Scores, board: string): number {
+  return board === OVERALL ? s.xp : (s.areas[board] ?? 0);
+}
+
+function accept(prev: number, reported: unknown, room: number): number {
+  if (typeof reported !== 'number' || !Number.isFinite(reported)) return prev;
+  return Math.max(prev, Math.floor(Math.min(reported, prev + room)));
+}
+
+/**
+ * The scores the server takes from a sync: never lower than before and never faster than a
+ * person can play since the last sync (`prev` undefined: the first sync). Unknown areas are dropped.
+ */
+export function acceptScores(prev: Scores | undefined, reported: unknown, elapsedMs: number): Scores {
+  const base = prev ?? zeroScores();
+  const r = (reported ?? {}) as { xp?: unknown; areas?: unknown };
+  const areas = (r.areas && typeof r.areas === 'object' ? r.areas : {}) as Record<string, unknown>;
+  const hours = Math.max(0, elapsedMs) / HOUR;
+  const xpRoom = prev ? MAX_XP_PER_HOUR * hours : FIRST_XP;
+  const solvedRoom = prev ? MAX_SOLVED_PER_HOUR * hours : FIRST_SOLVED;
+  return {
+    xp: accept(base.xp, r.xp, xpRoom),
+    areas: Object.fromEntries(AREAS.map((a) => [a.id, accept(base.areas[a.id] ?? 0, areas[a.id], solvedRoom)])),
+  };
+}
+
+/** Places on a board sorted best first: equal scores share a place (1, 2, 2, 4). */
+export function rankEntries<T extends { score: number }>(sorted: T[]): (T & { rank: number })[] {
+  const out: (T & { rank: number })[] = [];
+  sorted.forEach((e, i) => {
+    const before = out[i - 1];
+    out.push({ ...e, rank: before && before.score === e.score ? before.rank : i + 1 });
+  });
+  return out;
 }
 
 // --- aliases -----------------------------------------------------------
@@ -92,40 +116,30 @@ export function isAlias(s: unknown): s is string {
 // --- the player's side -------------------------------------------------
 
 export interface LeagueState {
-  /** The week the start XP belongs to ("" until the first week starts). */
-  week: string;
-  /** XP at the start of that week; weekly XP = xp − startXp. */
-  startXp: number;
-  /** Set once the player joined the league (optional, see the league screen). */
+  /** Set once the server registered this save; the app does that by itself (D57). */
   playerId?: string;
   token?: string;
   alias?: string;
 }
 
 export function initialLeague(): LeagueState {
-  return { week: '', startXp: 0 };
+  return {};
 }
 
 /**
- * The league opens after morph.ai is beaten: first the player learns to think again, then they
- * compete. Players who joined earlier keep their place.
+ * The ranking shows once morph.ai is beaten: first the player learns to think again, then they
+ * compare (D51). They are on it from the start, so it holds everybody who plays.
  */
 export function leagueUnlocked(p: PlayerState): boolean {
-  return p.story.finale || !!p.league.playerId;
+  return p.story.finale;
 }
 
-/** Starts a new league week when the calendar moved on (returns the same state otherwise). */
-export function rollWeek(p: PlayerState, now: number): PlayerState {
-  const week = weekOf(now);
-  if (p.league.week === week) return p;
-  return { ...p, league: { ...p.league, week, startXp: p.xp } };
-}
-
-export function weekXp(p: PlayerState): number {
-  return Math.max(0, p.xp - p.league.startXp);
-}
-
-/** A stable seed for alias suggestions of this device's save. */
+/** A stable seed for the alias of this device's save. */
 export function aliasSeed(p: PlayerState): string {
   return String(hashString(`${p.profile.name}|${p.profile.birthYear}|${p.stats.solved}`));
+}
+
+/** The alias this save appears under on the ranking. */
+export function aliasFor(p: PlayerState): string {
+  return aliasOptions(aliasSeed(p), 1)[0]!;
 }

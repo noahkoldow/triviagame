@@ -10,7 +10,7 @@ Geprüft mit `pnpm typecheck`, `npx expo-doctor`, HTTP-Proben gegen das Live-Bac
 
 | # | Bereich | Ist-Stand | Beleg | Schwere |
 |---|---|---|---|---|
-| B1 | Backend | Die alte Function `gemini` (offener Proxy, nimmt freie Prompts an) ist **noch live**. `questions` und `league` sind **nicht deployed**. Die App ruft beide auf und bekommt 404: kein Fragen-Nachschub, keine Liga. | GET am 24.10.: `/gemini` → 405 (existiert), `/questions` → 404, `/league` → 404 | Blocker, Kostenrisiko |
+| B1 | Backend | Die alte Function `gemini` (offener Proxy, nimmt freie Prompts an) ist **noch live**. `questions` und `league` sind **nicht deployed**. Die App ruft beide auf und bekommt 404: kein Fragen-Nachschub, keine Rangliste. | GET am 24.10.: `/gemini` → 405 (existiert), `/questions` → 404, `/league` → 404 | Blocker, Kostenrisiko |
 | B2 | Repo | `pnpm typecheck` ist rot, weil die Sprach-Umstellung (de/en/fr/es) im Arbeitsbaum unfertig ist: `localize.ts` importiert `./i18n/content.{en,fr,es}`, die es nicht gibt; `lang` fehlt in `ai.test.ts`, `serve.test.ts`, `questiontypes.test.ts:80` und `functions/src/index.ts:178`. | `pnpm typecheck` | Blocker |
 | B3 | Expo-Konfiguration | `expo-doctor`: `newArchEnabled` ist in SDK 58 kein gültiges Feld mehr in `app.json`. | expo-doctor 19/20 | Blocker (klein) |
 | B4 | Build | `eas.json` hat kein `production`-Profil und keinen `submit`-Block. `version` steht auf 0.1.0, die Bundle-ID `app.nexus.game` ist nicht entschieden. | `apps/mobile/eas.json`, `apps/mobile/app.json` | Blocker |
@@ -30,7 +30,7 @@ Geprüft mit `pnpm typecheck`, `npx expo-doctor`, HTTP-Proben gegen das Live-Bac
 - `ITSAppUsesNonExemptEncryption: false` und das Privacy Manifest für UserDefaults
 - „Käufe wiederherstellen“
 - Testhinweise erscheinen nur in Expo Go
-- „Spielstand zurücksetzen“ löscht auch den Liga-Eintrag
+- „Spielstand zurücksetzen“ löscht auch den Eintrag in der Rangliste
 - kein Login, also kein „Sign in with Apple“ nötig
 - Die App sendet keine Prompts und keine personenbezogenen Daten an die KI. Das erfüllt Guideline 5.1.2(i) (seit 11/2025 nennt sie Dritt-KI ausdrücklich) und soll so bleiben.
 
@@ -85,7 +85,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
   - `/gemini` gibt 404.
   - Ein freier Prompt an `/questions` gibt 400.
   - Eine gültige Anfrage an `/questions` gibt Fragen zurück.
-  - Liga: `join`, dann `sync`, dann `leave`.
+  - Rangliste: `join`, dann `sync` (mit `board`), dann `leave`.
 
 **2.2 Limits.**
 - `AI_DAILY_CALL_LIMIT` nach E7 in `functions/.env.nexus-trivia-prod-20261024` setzen.
@@ -153,7 +153,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 
 **5.2 Einstellungen** (→ H P2.3):
 - Ton an/aus, Haptik an/aus
-- Liga verlassen, Spielstand löschen
+- Spielstand löschen (nimmt auch den Eintrag aus der Rangliste)
 - Links zu Datenschutz, Impressum und Support
 - „Käufe wiederherstellen“
 - ~~Einwilligung ändern (UMP „Privacy Options“)~~ erledigt (D56), dazu „personalisierte Werbung“ an/aus
@@ -170,7 +170,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 ### Phase 6: Recht und Web (Entwürfe, ein Mensch prüft 👤)
 
 **6.1 Firebase Hosting:**
-- `hosting/public/` mit `index.html`, `datenschutz.html`, `impressum.html` und `support.html` (Kontakt-E-Mail, FAQ zu Käufen und Liga).
+- `hosting/public/` mit `index.html`, `datenschutz.html`, `impressum.html` und `support.html` (Kontakt-E-Mail, FAQ zu Käufen und Rangliste).
 - In `firebase.json` einen `hosting`-Block ergänzen.
 - Deployen nur mit Freigabe.
 - Danach `PRIVACY_URL` und `SUPPORT_EMAIL` in `src/config.ts` füllen.
@@ -180,7 +180,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 - Google Cloud/Firebase (Functions und Firestore in `europe-west3`)
 - Gemini nur auf dem Server und ohne Personenbezug
 - IP-Prüfwert höchstens 2 h
-- Liga-Daten
+- Ranglisten-Daten
 - App Check (App Attest)
 - Käufe über Apple und RevenueCat
 - gegebenenfalls Crash-Reporting
@@ -202,7 +202,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 
 **7.2 Netz-Fehlerfälle:**
 - Im Flugmodus und bei 5xx vom Backend läuft das Spiel mit den eingebauten Fragen weiter.
-- Die Liga zeigt eine klare Meldung.
+- Die Rangliste zeigt eine klare Meldung.
 - Nirgends bleibt ein Ladekreis ewig stehen.
 
 **7.3** `DESIGN_REVIEW.md` Punkte 1 und 2. Danach 3 bis 5, wenn Zeit bleibt.
@@ -227,12 +227,12 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 - Es braucht keinen Login.
 - So läuft eine Runde: Knoten antippen, Ordner lesen, Frage beantworten.
 - Was Gems tun; die Käufe laufen in der Sandbox.
-- Die Wochenliga öffnet sich erst nach dem Finale (D51) und ist in der Prüfzeit nicht erreichbar. Danach wird man automatisch eingeordnet (D53). Sagen, dass man jederzeit austreten kann, sie nur erzeugte Rufnamen zeigt und der Eintrag beim Austreten gelöscht wird.
+- Die Rangliste ist erst nach dem Finale sichtbar (D51) und in der Prüfzeit nicht erreichbar. Jeder Spielstand steht automatisch drauf, nur mit erzeugtem Rufnamen, XP und gelösten Knoten je Bereich (D57); „Spielstand zurücksetzen“ löscht den Eintrag.
 - Server-Fragen schreibt eine KI. Sie werden geprüft und lassen sich melden.
 
 **8.4 App-Datenschutz-Etikett** (Entwurf, → H P4.3), deckungsgleich mit 6.2.
 - Werbung (E4): Werbedaten und Geräte-ID; „zum Tracking verwendet“ für personalisierte Werbung mit ATT-Zustimmung. Angaben von Google für das AdMob-SDK übernehmen.
-- Die Liga zählt als „Gameplay Content“ und Kennung, gedacht für die App-Funktion.
+- Die Rangliste zählt als „Gameplay Content“ und Kennung, gedacht für die App-Funktion.
 - Käufe nach den Angaben von RevenueCat.
 
 **8.5 Altersfreigabe-Fragebogen** (Entwurf nach E8):

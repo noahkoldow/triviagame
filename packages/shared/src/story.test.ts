@@ -113,10 +113,10 @@ describe('story', () => {
     expect(after).toContain('league');
   });
 
-  it('keeps the league closed until morph.ai is beaten', () => {
+  it('keeps the ranking hidden until morph.ai is beaten, though everybody is on it', () => {
     const p = play(400, (x) => storyFacts(x, pool).finaleOpen);
     expect(leagueUnlocked(p)).toBe(false);
-    expect(leagueUnlocked({ ...p, league: { ...p.league, playerId: 'joined-before' } })).toBe(true);
+    expect(leagueUnlocked({ ...p, league: { ...p.league, playerId: 'registered' } })).toBe(false);
   });
 
   it('lets the league button glow after the reveal until it is tapped', () => {
