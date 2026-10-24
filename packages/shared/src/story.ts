@@ -120,7 +120,7 @@ export function chapterOf(f: StoryFacts): Chapter {
     };
   }
   if (f.broken < SECTORS.length) {
-    return { n: 3, title: 'Die Firewalls', goal: 'Brich die vier Firewalls von morph.ai', done: f.broken, total: SECTORS.length };
+    return { n: 3, title: 'Die Firewalls', goal: 'Wachse zu den vier Firewalls und brich sie', done: f.broken, total: SECTORS.length };
   }
   if (!f.finale) {
     return { n: 4, title: 'Das große Resümee', goal: 'Stelle morph.ai im Kern', done: 0, total: 1, finale: true };
@@ -255,7 +255,7 @@ export const STORY_BEATS: StoryBeat[] = [
     id: 'guardians',
     speaker: 'kodex',
     title: 'Vier Hüter, ein Plan',
-    text: 'Alle Hüter sind wach. Ich habe in alten Akten nachgesehen: morph.ai hat auf jeder Sektorgrenze eine Firewall gebaut. Brich alle vier, dann muss er sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben, also stimmt es.',
+    text: 'Alle Hüter sind wach. Laut alten Akten hat morph.ai auf jeder Sektorgrenze eine Firewall gebaut. Wachse mit deinen Brücken bis dorthin und brich alle vier, dann muss morph.ai sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben.',
     when: (f) => f.awake.length === SECTORS.length,
   },
   // morph.ai's memories, one per broken firewall in the order they break: how the humans stopped thinking

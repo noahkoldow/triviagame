@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BOSS_QUESTIONS,
   BRAIN_REVEAL,
+  firewallReached,
   REVEAL_ID,
   leagueUnlocked,
   FINALE_PASS,
@@ -34,14 +35,18 @@ import {
 const pool = new Pool(MOCK_QUESTIONS);
 const DAY = '2026-10-01';
 
-/** Plays with perfect answers: always the oldest open node, firewalls once the chapter asks for them. */
+/**
+ * Plays with perfect answers: always the oldest open node; a firewall once the chapter asks for
+ * it and the network has grown there (until then it keeps solving nodes).
+ */
 function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
   let p = initialPlayer(pool);
   for (let i = 0; i < steps && !until?.(p); i++) {
     const ch = chapterOf(storyFacts(p, pool));
-    if (ch.n === 3) {
-      const fw = p.network.firewalls!.find((f) => !f.broken)!;
-      p = recordBoss(p, pool, fw.id, BOSS_QUESTIONS).player;
+    const wall =
+      ch.n === 3 ? p.network.firewalls!.find((f) => !f.broken && firewallReached(Object.values(p.network.nodes), f)) : undefined;
+    if (wall) {
+      p = recordBoss(p, pool, wall.id, BOSS_QUESTIONS).player;
       continue;
     }
     if (ch.n === 4) {

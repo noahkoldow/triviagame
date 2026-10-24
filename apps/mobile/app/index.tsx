@@ -41,6 +41,8 @@ import {
   markSeen,
   pendingBeats,
   REVEAL_ID,
+  firewallReached,
+  firewallSteps,
   leagueUnlocked,
   rollWeek,
   seededRng,
@@ -513,6 +515,13 @@ export default function Home() {
                 </Text>
                 {firewall.broken ? (
                   <Text style={styles.fragText}>Diese Firewall ist gebrochen. Dahinter liegt die neue Zone.</Text>
+                ) : !firewallReached(nodes, firewall) ? (
+                  // the network has to grow there first
+                  <Text style={styles.fragText}>
+                    Noch außer Reichweite. morph.ai hat diese Firewall an der Grenze zwischen {de.sectorsShort[firewall.a]} und{' '}
+                    {de.sectorsShort[firewall.b]} errichtet. Wachse bis hierher: Brücken in diesen Sektoren neigen sich zur
+                    Firewall. Entfernung: etwa {firewallSteps(nodes, firewall)} Schritte.
+                  </Text>
                 ) : (
                   <>
                     <Text style={styles.fragText}>
@@ -655,7 +664,9 @@ export default function Home() {
                   <Pressable
                     key={f.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`Firewall ${de.sectors[f.a]} und ${de.sectors[f.b]}`}
+                    accessibilityLabel={`Firewall ${de.sectors[f.a]} und ${de.sectors[f.b]}, ${
+                      firewallReached(nodes, f) ? 'erreicht' : 'noch nicht erreicht'
+                    }`}
                     onPress={() => {
                       setListOpen(false);
                       setFirewallId(f.id);
@@ -666,7 +677,8 @@ export default function Home() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.listTopic}>Firewall</Text>
                       <Text style={styles.listSub}>
-                        {de.sectorsShort[f.a]} × {de.sectorsShort[f.b]}
+                        {de.sectorsShort[f.a]} × {de.sectorsShort[f.b]} ·{' '}
+                        {firewallReached(nodes, f) ? 'erreicht' : `noch etwa ${firewallSteps(nodes, f)} Schritte`}
                       </Text>
                     </View>
                   </Pressable>

@@ -24,6 +24,7 @@ import {
 import {
   areaById,
   areasOfSector,
+  firewallReached,
   type Firewall,
   type Outpost,
   sectorOfArea,
@@ -449,11 +450,12 @@ function NetMapBase({
       shard?: Shard;
       site?: Site;
       outpost?: { id: string; x: number; y: number; area: string };
-      wall?: { id: string; x: number; y: number; broken: boolean; a: string; b: string };
+      wall?: { id: string; x: number; y: number; broken: boolean; locked: boolean; a: string; b: string };
     }[] = [
       ...firewalls.map((f) => {
         const p = snapToHex(f.x, f.y);
-        return { y: p.y, wall: { id: f.id, x: p.x, y: p.y, broken: f.broken, a: f.a, b: f.b } };
+        const locked = !f.broken && !firewallReached(placed, f);
+        return { y: p.y, wall: { id: f.id, x: p.x, y: p.y, broken: f.broken, locked, a: f.a, b: f.b } };
       }),
       ...outposts
         .filter((o) => !o.connected)
@@ -534,7 +536,15 @@ function NetMapBase({
           <CoreTile />
           {stack.map((b) =>
             b.wall ? (
-              <FirewallTile key={`w-${b.wall.id}`} x={b.wall.x} y={b.wall.y} broken={b.wall.broken} label="Firewall" font={font} />
+              <FirewallTile
+                key={`w-${b.wall.id}`}
+                x={b.wall.x}
+                y={b.wall.y}
+                broken={b.wall.broken}
+                locked={b.wall.locked}
+                label="Firewall"
+                font={font}
+              />
             ) : b.outpost ? (
               <OutpostTile
                 key={`o-${b.outpost.id}`}

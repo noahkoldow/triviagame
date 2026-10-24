@@ -402,24 +402,29 @@ const brickPath = unitPath((p) => {
   brick(0.05, 0.25, 0.95, 0.7);
 });
 
-/** A firewall: a brick-red hexagon wall on the border of two sectors; green and open once broken. */
+/**
+ * A firewall: a brick-red hexagon wall on the border of two sectors; green and open once broken.
+ * Until the network has grown there it stands greyed out behind the noise (`locked`).
+ */
 function FirewallTileBase({
   x,
   y,
   broken,
+  locked = false,
   label,
   font,
 }: {
   x: number;
   y: number;
   broken: boolean;
+  locked?: boolean;
   label: string;
   font: SkFont;
 }) {
-  const face = broken ? colors.primary : '#E0452B';
+  const face = broken ? colors.primary : locked ? '#6E5F5C' : '#E0452B';
   const lw = font.getTextWidth(label);
   return (
-    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
+    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]} opacity={locked ? 0.7 : 1}>
       <Group transform={[{ translateY: 3 }]} opacity={0.5}>
         <Path path={NODE.top} color="#02060C" />
       </Group>
@@ -429,12 +434,12 @@ function FirewallTileBase({
           {broken ? (
             <Path path={checkPath} style="stroke" strokeWidth={0.36} strokeCap="round" strokeJoin="round" color="#FFFFFF" />
           ) : (
-            <Path path={brickPath} color="#FFFFFF" />
+            <Path path={brickPath} color={locked ? '#B9AEAB' : '#FFFFFF'} />
           )}
         </Group>
       </Group>
       <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
-      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color={broken ? '#CFF5A8' : '#FFD2C8'} />
+      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color={broken ? '#CFF5A8' : locked ? '#B9AEAB' : '#FFD2C8'} />
     </Group>
   );
 }

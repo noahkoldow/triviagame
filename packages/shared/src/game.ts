@@ -1,4 +1,4 @@
-import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, type BossOutcome } from './boss';
+import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, firewallReached, type BossOutcome } from './boss';
 import { cacheWithoutArea, type CacheEntry, type CacheFile } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
@@ -131,7 +131,10 @@ export function ctxFor(p: PlayerState, pool: Pool, seed: string): SpawnContext {
  */
 export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, correct: number): BossOutcome {
   const fw = p.network.firewalls?.find((f) => f.id === firewallId);
-  if (!fw || fw.broken) return { player: p, passed: false, spawned: [], areas: [] };
+  // a firewall the network has not grown to cannot be attacked
+  if (!fw || fw.broken || !firewallReached(Object.values(p.network.nodes), fw)) {
+    return { player: p, passed: false, spawned: [], areas: [] };
+  }
   const passed = correct >= BOSS_PASS;
   const firewalls = p.network.firewalls!.map((f) =>
     f.id === firewallId ? { ...f, broken: passed, attempts: passed ? f.attempts : f.attempts + 1 } : f,

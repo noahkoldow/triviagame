@@ -11,6 +11,7 @@ import {
   areaById,
   bossQuestions,
   finaleQuestions,
+  firewallReached,
   isCorrect,
   recordBoss,
   recordFinale,
@@ -46,7 +47,9 @@ export default function BossScreen() {
       ? 'Diese Firewall gibt es nicht.'
       : fw.broken
         ? 'Diese Firewall ist bereits gebrochen.'
-        : null;
+        : !firewallReached(Object.values(getState().network.nodes), fw)
+          ? 'Dein Netz ist noch nicht bis zu dieser Firewall gewachsen. Brücken in ihren Sektoren neigen sich dorthin.'
+          : null;
   // decided once when the screen opens: winning breaks the firewall (or ends the finale) and
   // losing can drop integrity to 0, but the outcome of this fight must stay on screen
   const [reason] = useState(

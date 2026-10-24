@@ -1,4 +1,7 @@
-import { createFirewalls } from './boss';
+import { createFirewalls, wallTarget } from './boss';
+
+/** How strongly a bridge leans toward a firewall it is growing to. */
+const WALL_PULL = 0.6;
 import { initialUnlockedAreas } from './monetization';
 import { pickArea, type InterestMap } from './interest';
 import { OUTPOST_REACH, areaDistance, createOutposts, steerTarget } from './outposts';
@@ -139,16 +142,26 @@ function addNode(
   extra: Partial<NetNode> = {},
   pull = 0,
 ): { state: NetworkState; node: NetNode } {
-  const out = steerTarget(state.outposts, parent.pos, sectorOfArea(q.area));
+  const sector = sectorOfArea(q.area);
+  const existing = Object.values(state.nodes);
+  // bridges reach for the borders: they lean toward a firewall the network has not reached yet;
+  // deepenings (and bridges without such a wall) lean toward the next disturbed outpost
+  const wall = kind === 'bridge' ? wallTarget(state.firewalls, existing, parent.pos, sector) : undefined;
+  const out = steerTarget(state.outposts, parent.pos, sector);
+  const target = wall
+    ? { x: wall.x, y: wall.y, pull: WALL_PULL }
+    : out && pull > 0
+      ? { x: out.x, y: out.y, pull }
+      : undefined;
   const id = nextId(state);
   const pos = placeNode({
     parent: parent.pos,
     kind,
-    mainSector: sectorOfArea(q.area),
+    mainSector: sector,
     side: q.side,
-    existing: Object.values(state.nodes).map((n) => n.pos),
+    existing: existing.map((n) => n.pos),
     seed: `${id}:${q.id}`,
-    target: out && pull > 0 ? { x: out.x, y: out.y, pull } : undefined,
+    target,
   });
   const node: NetNode = {
     id,
