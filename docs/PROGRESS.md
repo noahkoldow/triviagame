@@ -57,8 +57,8 @@ Spielbar in Expo Go (Mock-Daten):
 
 ## Offen / nächste Schritte
 
-1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Liga beitreten/abgleichen/austreten.
+1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Liga beitreten/abgleichen/austreten. Stand 24.10.2026: `gemini` ist noch live, `questions` und `league` geben 404.
 2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
-3. Store-Launch nach `docs/CODEX_HANDOFF.md` (Käufe, Werbung, Meldefunktion, App Check, Recht, Store-Eintrag).
+3. Store-Launch nach `docs/CODEX_SUBMISSION.md` (geprüfter Befund, Entscheidungen E1–E8, Reihenfolge); Details in `docs/CODEX_HANDOFF.md`.
 4. Tages-Puls mit morph.ai als Gastgeber, Duelle/Koop, Events.
 5. Englisch, Sounds, Design-Review abarbeiten.

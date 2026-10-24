@@ -1,5 +1,7 @@
 # Übergabe an Codex: Was bis zum App-Store-Launch fehlt
 
+> **Geprüfter Stand und Reihenfolge stehen in `docs/CODEX_SUBMISSION.md` (24.10.2026).** Diese Datei bleibt die Detailbeschreibung der Aufgaben; bei Widersprüchen gilt `CODEX_SUBMISSION.md` (u. a. neue Altersstufen statt 12+, Empfehlung „keine Werbung in 1.0“).
+
 Ziel: **NEXUS 1.0 im iOS App Store**, zuerst im DACH-Raum auf Deutsch. Stand: 24.10.2026.
 
 Fertig sind Spiellogik, Plot, offenes Ende, Wochenliga, die neue Sektor-Gliederung und die Charakter-Assets (siehe §1). Es fehlt das Gerüst für einen echten Store-Build: Deploy und Härtung des Backends, echte Käufe und Werbung, Meldefunktion, Recht und der Store-Eintrag.
