@@ -22,9 +22,12 @@ export const OVERALL = 'all';
  */
 export const MAX_XP_PER_HOUR = 6000;
 export const MAX_SOLVED_PER_HOUR = 120;
-/** What the first sync may bring along (a save from before the ranking). */
-export const FIRST_XP = 100_000;
-export const FIRST_SOLVED = 1000;
+/**
+ * What the first sync may bring along: a few hours of play, so one forged request cannot land on
+ * first place. A bigger save (from before the ranking) arrives with later syncs at the hourly pace.
+ */
+export const FIRST_XP = 5_000;
+export const FIRST_SOLVED = 60;
 
 const HOUR = 3_600_000;
 

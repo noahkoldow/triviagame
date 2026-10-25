@@ -117,8 +117,8 @@ describe('ranking', () => {
   });
 
   it('takes the save along with the first sync', () => {
-    const s = acceptScores(undefined, { xp: 5400, areas: { physics: 12, nope: 99 } }, 0);
-    expect(s.xp).toBe(5400);
+    const s = acceptScores(undefined, { xp: 4200, areas: { physics: 12, nope: 99 } }, 0);
+    expect(s.xp).toBe(4200);
     expect(s.areas.physics).toBe(12);
     expect(s.areas.geography).toBe(0);
     expect('nope' in s.areas).toBe(false);
