@@ -13,8 +13,10 @@ import {
   migrateArea,
   migrateSave,
   recordCorrect,
+  repairQuestions,
   sectorOfArea,
   zoneOf,
+  type NetworkState,
   type PlayerState,
 } from './index';
 
@@ -142,5 +144,26 @@ describe('open end', () => {
     const deep = r.spawned.map((id) => r.player.network.nodes[id]!).find((n) => n.kind === 'deepen');
     expect(deep).toBeDefined();
     expect(easier.length).toBeGreaterThan(0);
+  });
+});
+
+describe('repairQuestions', () => {
+  it('gives nodes with a lost question another one of the same area and keeps the rest', () => {
+    const p = initialPlayer(pool);
+    const root = Object.values(p.network.nodes)[0]!;
+    const area = pool.get(root.questionId).area;
+    const child = { ...root, id: 'n90', parentId: root.id, kind: 'deepen' as const, questionId: 'gone-1' };
+    const grandchild = { ...root, id: 'n91', parentId: 'n90', kind: 'deepen' as const, questionId: 'gone-2' };
+    const network: NetworkState = { ...p.network, nodes: { ...p.network.nodes, n90: child, n91: grandchild } };
+    const fixed = repairQuestions(network, pool);
+    const a = fixed.nodes.n90!.questionId;
+    const b = fixed.nodes.n91!.questionId;
+    expect(pool.get(a).area).toBe(area);
+    expect(pool.get(b).area).toBe(area);
+    expect(a).not.toBe(b);
+    expect(a).not.toBe(root.questionId);
+    expect(fixed.nodes[root.id]).toBe(network.nodes[root.id]);
+    expect(fixed.usedQuestions).toContain(a);
+    expect(repairQuestions(p.network, pool)).toBe(p.network);
   });
 });

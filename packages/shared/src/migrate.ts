@@ -110,3 +110,36 @@ export function migrateSave(p: PlayerState, pool?: Pool): PlayerState {
     story: { ...p.story, seen: [...new Set(p.story.seen.map((id) => OLD_BEATS[id] ?? id))] },
   };
 }
+
+/**
+ * Nodes whose question is gone (a generated question the stricter check of an update no longer
+ * accepts, or a lost local copy) get another question of the same area, so the save stays: the
+ * area is the nearest ancestor's, else the closest node's. Unused questions first.
+ */
+export function repairQuestions(network: NetworkState, pool: Pool): NetworkState {
+  const nodes = { ...network.nodes };
+  const lost = Object.values(nodes).filter((n) => !pool.byId.has(n.questionId));
+  if (!lost.length) return network;
+  const used = new Set(Object.values(nodes).map((n) => n.questionId));
+  const areaOf = (n: NetNode): string | undefined => {
+    for (let a: NetNode | undefined = n; a; a = a.parentId ? nodes[a.parentId] : undefined) {
+      const q = pool.byId.get(a.questionId);
+      if (q) return q.area;
+    }
+    const near = Object.values(nodes)
+      .filter((o) => pool.byId.has(o.questionId))
+      .sort((a, b) => Math.hypot(a.pos.x - n.pos.x, a.pos.y - n.pos.y) - Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y))[0];
+    return near ? pool.byId.get(near.questionId)!.area : undefined;
+  };
+  // parents before children, so a repaired parent passes its area on
+  for (const n of lost.sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)))) {
+    const area = areaOf(n);
+    const inArea = pool.list.filter((q) => q.area === area);
+    const q = inArea.find((x) => !used.has(x.id)) ?? inArea[0] ?? pool.list[0];
+    if (!q) continue;
+    used.add(q.id);
+    nodes[n.id] = { ...n, questionId: q.id };
+  }
+  const given = Object.values(nodes).map((n) => n.questionId);
+  return { ...network, nodes, usedQuestions: [...new Set([...network.usedQuestions, ...given])] };
+}

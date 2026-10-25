@@ -1,10 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
-import { catchUpStory, initialPlayer, migrateSave, relinkCacheFiles, type Lang, type PlayerState } from '@nexus/shared';
+import {
+  catchUpStory,
+  initialPlayer,
+  migrateSave,
+  relinkCacheFiles,
+  repairQuestions,
+  type Lang,
+  type PlayerState,
+} from '@nexus/shared';
 import { deviceLang } from '../locale';
 import { pool, restoreAiQuestions, setContentLanguage } from '../services/content';
 
 const KEY = 'nexus:v1';
+/** The last save that loaded, copied at every start: a later bad update can be rolled back. */
+const BACKUP_KEY = 'nexus:v1:backup';
+/** A save that did not load; kept before a fresh start overwrites `KEY`, for support. */
+const BROKEN_KEY = 'nexus:v1:broken';
 
 const withLang = (p: PlayerState, lang: Lang): PlayerState => ({ ...p, profile: { ...p.profile, lang } });
 
@@ -27,37 +39,36 @@ function persist() {
 }
 
 export async function hydrate(): Promise<void> {
+  let raw: string | null = null;
   try {
     await restoreAiQuestions();
-    const raw = await AsyncStorage.getItem(KEY);
+    raw = await AsyncStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw) as Partial<PlayerState>;
       const base = initialPlayer(pool);
-      const hasQuestions =
-        !saved.network?.nodes ||
-        Object.values(saved.network.nodes).every((node) => pool.byId.has(node.questionId));
-      if (hasQuestions) {
-        const merged: PlayerState = {
-          ...base,
-          ...saved,
-          profile: { ...base.profile, ...saved.profile },
-          streak: { ...base.streak, ...saved.streak },
-          ads: { ...base.ads, ...saved.ads },
-          shop: { ...base.shop, ...saved.shop },
-          stats: { ...base.stats, ...saved.stats },
-          story: { ...base.story, ...saved.story },
-          league: { ...base.league, ...saved.league },
-          // saves from before the walls get them in `migrateSave`
-          network: saved.network?.nodes ? saved.network : base.network,
-        };
-        // old saves: areas of the former taxonomy move to the new one (D44); saves from before the
-        // story count what already happened as seen, except the latest beat
-        const migrated = migrateSave(merged, pool);
-        state = saved.story ? migrated : catchUpStory(migrated, pool);
-      }
+      const merged: PlayerState = {
+        ...base,
+        ...saved,
+        profile: { ...base.profile, ...saved.profile },
+        streak: { ...base.streak, ...saved.streak },
+        ads: { ...base.ads, ...saved.ads },
+        shop: { ...base.shop, ...saved.shop },
+        stats: { ...base.stats, ...saved.stats },
+        story: { ...base.story, ...saved.story },
+        league: { ...base.league, ...saved.league },
+        // saves from before the walls get them in `migrateSave`; nodes whose question is gone get
+        // another one of their area instead of losing the whole save
+        network: saved.network?.nodes ? repairQuestions(saved.network, pool) : base.network,
+      };
+      // old saves: areas of the former taxonomy move to the new one (D44); saves from before the
+      // story count what already happened as seen, except the latest beat
+      const migrated = migrateSave(merged, pool);
+      state = saved.story ? migrated : catchUpStory(migrated, pool);
+      AsyncStorage.setItem(BACKUP_KEY, raw).catch(() => {});
     }
   } catch {
-    // corrupt or unavailable storage: start fresh
+    // corrupt or unavailable storage: start fresh, but keep what was there
+    if (raw) await AsyncStorage.setItem(BROKEN_KEY, raw).catch(() => {});
   }
   setContentLanguage(state.profile.lang);
   hydrated = true;
