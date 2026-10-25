@@ -97,13 +97,19 @@ Spielbar in Expo Go (Mock-Daten):
 - **Vorahnung** (D68): Bolt bemerkt die erste Wand im Rauschen, jeder Hüter nennt beim Erwachen seine zwei Säle hinter der Firewall, vor jedem Wandkampf eigene Worte von morph.ai und dem Hüter (Bolt, solange er schläft), nach der dritten Wand fängt der Kern morph.ais Vorbereitung auf das Finale auf. Zwei neue Logbuch-Einträge, alles in vier Sprachen.
 - **Ungeprüft auf Gerät:** Höhe des Kampf-Intros (drei Zeilen über der Frage) auf kleinen Bildschirmen. Die Reime der Muse und die neuen Texte sollten Muttersprachler gegenlesen.
 
+## Prototyp 0.15 (größere Bereiche, Server live)
+
+- **Größere Bereiche** (D69): Ring um die Kernzone bei 800 statt 470, äußere Bereiche bis 3500; die erste Wand kommt nach rund 30 statt 5 gelösten Knoten. Alte Spielstände: Lücken wandern auf die neue Wand, Knoten in der falschen Zone werden neu gesetzt.
+- **Functions deployed** (25.10.2026): `questions` und `league` sind live, `gemini` ist gelöscht. Geprüft mit `curl`: freier Prompt → 400, `gemini` → 404, gültige Anfrage → neu erzeugte Fragen, `league` ohne Kennung → 400.
+- **Ungeprüft auf Gerät:** wie sich der Weg bis zur Wand anfühlt; ob das Tagesbudget (100 Modellaufrufe, also etwa 75 neue Fragen am Tag) für die größere Kernzone reicht, solange der Pool noch klein ist.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (232 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (234 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
 
 ## Offen / nächste Schritte
 
-1. **Deploy** der Functions und Firestore-TTL (`pnpm firebase:deploy`, `gemini` beim Nachfragen löschen), danach mit `curl` prüfen: freier Prompt → 4xx, gültige Anfrage → Fragen, Rangliste: `join`, `sync` mit `board`, `leave`. Stand 24.10.2026: `gemini` ist noch live, `questions` und `league` geben 404.
+1. **Server beobachten:** Functions sind seit 25.10.2026 live. Noch prüfen: Rangliste mit `join`, `sync` mit `board`, `leave` aus der App; TTL-Regeln in der Konsole; Tagesbudget `AI_DAILY_CALL_LIMIT` anheben, wenn der Pool zu langsam wächst (D69 braucht Nachschub).
 2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
 3. Store-Launch nach `docs/CODEX_SUBMISSION.md` (geprüfter Befund, Entscheidungen E1–E8, Reihenfolge); Details in `docs/CODEX_HANDOFF.md`.
 4. **Geld:** AdMob-Konto, Anzeigenblöcke, EAS-Variablen, UMP-Mitteilungen, `app-ads.txt` (`docs/MONETIZATION.md` §6); RevenueCat-Anbieter für Käufe; Development Build mit Test-Anzeigen auf einem Gerät.

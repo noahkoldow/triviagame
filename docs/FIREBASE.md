@@ -39,7 +39,7 @@ Basis-URL der App: `https://europe-west3-nexus-trivia-prod-20261024.cloudfunctio
 
 ## Deploy und Konfiguration
 
-Nicht geheime Parameter liegen lokal in der ignorierten Datei `functions/.env.nexus-trivia-prod-20261024`. `pnpm firebase:deploy` bündelt `packages/shared` mit esbuild in `functions/lib/index.js` und deployt Regeln, Indizes und Functions. Beim ersten Deploy nach D45 fragt die CLI, ob `gemini` gelöscht werden soll: mit „Ja“ bestätigen (oder `--force`).
+Nicht geheime Parameter liegen lokal in der ignorierten Datei `functions/.env.nexus-trivia-prod-20261024` (`GEMINI_MODEL`, `AI_ENABLED`, `AI_DAILY_CALL_LIMIT`, `AI_CHECK_GROUNDING`; ohne Terminal verlangt `--non-interactive` jeden davon). `pnpm firebase:deploy` bündelt `packages/shared` mit esbuild in `functions/lib/index.js` und deployt Regeln, Indizes und Functions. Beim ersten Deploy nach D45 fragt die CLI, ob `gemini` gelöscht werden soll: mit „Ja“ bestätigen (oder `--force`).
 
 ```bash
 pnpm firebase:deploy
