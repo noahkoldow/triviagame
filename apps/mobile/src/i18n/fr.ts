@@ -149,6 +149,14 @@ export const fr: Strings = {
     synapseState: (resting: boolean) => (resting ? 'de nouveau demain' : 'prête'),
   },
 
+  report: {
+    link: 'Signaler la question',
+    title: 'Signaler la question',
+    intro: 'Qu’est-ce qui ne va pas avec cette question ?',
+    reasons: { wrong: 'Fausse', unclear: 'Floue ou ambiguë', offensive: 'Choquante', other: 'Autre chose' },
+    thanks: 'Merci, signalée',
+    thanksText: 'Merci ! Nous allons examiner cette question. Si l’IA l’a écrite, tu ne la reverras plus.',
+  },
   node: {
     unavailable: 'Ce nœud n’est pas disponible.',
     backA11y: 'Retour au réseau',

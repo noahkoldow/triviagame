@@ -149,6 +149,14 @@ export const en: Strings = {
     synapseState: (resting: boolean) => (resting ? 'again tomorrow' : 'ready'),
   },
 
+  report: {
+    link: 'Report question',
+    title: 'Report question',
+    intro: 'What is wrong with this question?',
+    reasons: { wrong: 'Factually wrong', unclear: 'Unclear or ambiguous', offensive: 'Offensive', other: 'Something else' },
+    thanks: 'Thanks, reported',
+    thanksText: 'Thank you! We will look at this question. If the AI wrote it, you will not get it again.',
+  },
   node: {
     unavailable: 'This node is not available.',
     backA11y: 'Back to the network',

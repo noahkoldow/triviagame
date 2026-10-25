@@ -12,10 +12,11 @@ import {
   targetDifficulty,
   type Lang,
   type Question,
+  type ReportReason,
   type SkillMap,
 } from '@nexus/shared';
 import { API_BASE } from '../config';
-import { questionApi, type QuestionApi } from './ai';
+import { questionApi, sendReport, type QuestionApi } from './ai';
 
 /**
  * The questions on this device: the built-in ones plus everything the backend delivered.
@@ -30,6 +31,8 @@ import { questionApi, type QuestionApi } from './ai';
 export const pool = new Pool(MOCK_QUESTIONS);
 
 const AI_POOL_KEY = 'nexus:ai-pool:v1';
+/** Generated questions this player reported: never drawn again on this device. */
+const REPORTED_KEY = 'nexus:reported:v1';
 /** Fetch more for an area once fewer unused questions than this are left. */
 const LOW_WATER = 3;
 /** After a failed or empty answer an area waits this long before asking again. */
@@ -37,6 +40,7 @@ const BACKOFF_MS = 10 * 60 * 1000;
 /** Everything the backend delivered, in every language, as delivered. */
 const delivered: Question[] = [];
 const retryAt = new Map<string, number>();
+const reported = new Set<string>();
 let current: Lang = DEFAULT_LANG;
 let running: { lang: Lang; done: Promise<number> } | null = null;
 
@@ -60,7 +64,7 @@ export function setContentLanguage(lang: Lang): void {
 }
 
 function add(q: Question): boolean {
-  if (pool.byId.has(q.id)) return false;
+  if (pool.byId.has(q.id) || reported.has(q.id)) return false;
   delivered.push(q);
   const shown = localizeQuestion(q, current);
   pool.byId.set(shown.id, shown);
@@ -70,6 +74,12 @@ function add(q: Question): boolean {
 
 /** Restore delivered questions before hydrating nodes that may refer to them. */
 export async function restoreAiQuestions(): Promise<void> {
+  try {
+    const ids: unknown = JSON.parse((await AsyncStorage.getItem(REPORTED_KEY)) ?? '[]');
+    if (Array.isArray(ids)) ids.forEach((id) => typeof id === 'string' && reported.add(id));
+  } catch {
+    // nothing reported, or unreadable
+  }
   try {
     const raw = await AsyncStorage.getItem(AI_POOL_KEY);
     if (!raw) return;
@@ -82,6 +92,28 @@ export async function restoreAiQuestions(): Promise<void> {
   } catch {
     // a damaged or unavailable local cache: the built-in questions remain playable
   }
+}
+
+/**
+ * The player flags a question. A generated one leaves this device's pool for good: no new node
+ * draws it, and a node that shows it gets another question of its area at the next start
+ * (`repairQuestions`). Built-in questions stay, the report reaches us for the next update.
+ */
+export async function reportQuestion(id: string, reason: ReportReason): Promise<boolean> {
+  const builtIn = MOCK_QUESTIONS.some((q) => q.id === id);
+  if (!builtIn && !reported.has(id)) {
+    reported.add(id);
+    const i = pool.list.findIndex((q) => q.id === id);
+    if (i >= 0) pool.list.splice(i, 1);
+    const kept = delivered.filter((q) => q.id !== id);
+    delivered.length = 0;
+    delivered.push(...kept);
+    await AsyncStorage.multiSet([
+      [REPORTED_KEY, JSON.stringify([...reported])],
+      [AI_POOL_KEY, JSON.stringify(delivered)],
+    ]).catch(() => {});
+  }
+  return sendReport(API_BASE, { questionId: id, reason, lang: current });
 }
 
 export interface RefillInput {

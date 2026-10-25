@@ -1,4 +1,4 @@
-import { acceptServed, type PoolRequest, type Question } from '@nexus/shared';
+import { acceptServed, type PoolRequest, type Question, type QuestionReport } from '@nexus/shared';
 
 /**
  * The content API: the app asks our backend for questions by area, level and language and never sends a
@@ -46,4 +46,24 @@ export const offlineQuestionApi: QuestionApi = { live: false, fetch: async () =>
 
 export function questionApi(base: string, doFetch?: Fetch): QuestionApi {
   return base ? httpQuestionApi(base, doFetch) : offlineQuestionApi;
+}
+
+/** Flags a question on the backend (`report`); false offline or when it did not arrive. */
+export async function sendReport(base: string, report: QuestionReport, doFetch: Fetch = fetch as unknown as Fetch): Promise<boolean> {
+  if (!base) return false;
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 15_000);
+  try {
+    const res = await doFetch(`${base}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report),
+      signal: abort.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }

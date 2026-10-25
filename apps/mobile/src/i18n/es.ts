@@ -149,6 +149,14 @@ export const es: Strings = {
     synapseState: (resting: boolean) => (resting ? 'de nuevo mañana' : 'lista'),
   },
 
+  report: {
+    link: 'Informar de la pregunta',
+    title: 'Informar de la pregunta',
+    intro: '¿Qué le pasa a esta pregunta?',
+    reasons: { wrong: 'Es incorrecta', unclear: 'Poco clara o ambigua', offensive: 'Ofensiva', other: 'Otra cosa' },
+    thanks: 'Gracias, informada',
+    thanksText: '¡Gracias! Revisaremos esta pregunta. Si la escribió la IA, no volverá a salirte.',
+  },
   node: {
     unavailable: 'Este nodo no está disponible.',
     backA11y: 'Volver a la red',

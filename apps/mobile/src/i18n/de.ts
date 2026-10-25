@@ -153,6 +153,14 @@ export const de = {
     synapseState: (resting: boolean): string => (resting ? 'morgen wieder' : 'bereit'),
   },
 
+  report: {
+    link: 'Frage melden',
+    title: 'Frage melden',
+    intro: 'Was stimmt mit dieser Frage nicht?',
+    reasons: { wrong: 'Sachlich falsch', unclear: 'Unklar oder mehrdeutig', offensive: 'Anstößig', other: 'Etwas anderes' },
+    thanks: 'Danke, gemeldet',
+    thanksText: 'Danke! Wir sehen uns die Frage an. Hat die KI sie geschrieben, bekommst du sie nicht wieder.',
+  },
   node: {
     unavailable: 'Dieser Knoten ist nicht verfügbar.',
     backA11y: 'Zurück zum Netz',

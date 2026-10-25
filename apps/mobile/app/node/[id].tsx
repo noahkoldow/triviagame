@@ -36,6 +36,7 @@ import { Icon } from '../../src/components/Icon';
 import { WIN, pressedIn, raised, sunken } from '../../src/components/Win';
 import { Morph } from '../../src/components/Morph';
 import { QuestionView } from '../../src/components/QuestionView';
+import { ReportQuestion } from '../../src/components/ReportQuestion';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { track } from '../../src/services/analytics';
 import { pool } from '../../src/services/content';
@@ -349,6 +350,7 @@ function NodeGame({
             <P style={{ color: colors.text }}>{q.explanation}</P>
           </Card>
           <Button label={t.common.backToMap} onPress={leave} />
+          <ReportQuestion questionId={q.id} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -525,6 +527,7 @@ function NodeGame({
             )}
           </>
         )}
+        <ReportQuestion questionId={q.id} />
       </ScrollView>
     </SafeAreaView>
   );
