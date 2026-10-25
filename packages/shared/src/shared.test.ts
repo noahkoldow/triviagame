@@ -34,6 +34,7 @@ import {
   applyReview,
   markDamaged,
   birthYearToAgeGroup,
+  adAudience,
   pickArea,
   wallBetween,
   type NetNode,
@@ -186,6 +187,12 @@ describe('monetization', () => {
     expect(appOpenDue({ ...base, ageGroup: 'minor', lastAppOpenAt: null, awayMs: null })).toBe(false);
     expect(birthYearToAgeGroup(2015, 2026)).toBe('minor');
     expect(birthYearToAgeGroup(2000, 2026)).toBe('adult');
+  });
+  it('tags children and minors for the ad SDK', () => {
+    expect(adAudience(2016, 2026)).toEqual({ childDirected: true, underAgeOfConsent: true, maxRating: 'G' });
+    expect(adAudience(2012, 2026)).toEqual({ childDirected: false, underAgeOfConsent: true, maxRating: 'PG' });
+    expect(adAudience(2000, 2026)).toEqual({ childDirected: false, underAgeOfConsent: false, maxRating: 'T' });
+    expect(adAudience(0, 2026).childDirected).toBe(true);
   });
   it('limits rewarded videos per placement and day', () => {
     let log: RewardedLog = { day: null, counts: {} };

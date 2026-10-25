@@ -1,13 +1,15 @@
 import { Platform } from 'react-native';
 import type * as GMA from 'react-native-google-mobile-ads';
+import type { AdAudience } from '@nexus/shared';
 import type { AdProvider } from './ads';
 
 /**
  * The real ad provider (Google AdMob), only for development and store builds: Expo Go cannot load
  * the native module, so it is required lazily and Expo Go keeps the mock (D1). Consent (UMP, with
  * Google's IDFA explainer for App Tracking Transparency on iOS) is gathered before the SDK starts;
- * minors are tagged as under the age of consent and never asked. When an ad may show is decided in
- * shared (`AD_POLICY`); this file only loads and shows.
+ * minors are tagged as under the age of consent (children also as child-directed, `adAudience`)
+ * and never asked. When an ad may show is decided in shared (`AD_POLICY`); this file only loads
+ * and shows.
  */
 
 type Unit = 'rewarded' | 'interstitial' | 'appOpen';
@@ -119,7 +121,7 @@ function present(f: Format): Promise<boolean> {
   });
 }
 
-export async function createAdMobProvider(opts: { minor: boolean; personalized: boolean }): Promise<AdProvider | null> {
+export async function createAdMobProvider(opts: { audience: AdAudience; personalized: boolean }): Promise<AdProvider | null> {
   let m: typeof GMA;
   try {
     m = require('react-native-google-mobile-ads') as typeof GMA;
@@ -130,15 +132,16 @@ export async function createAdMobProvider(opts: { minor: boolean; personalized: 
 
   let privacyRequired = false;
   try {
-    const info = await AdsConsent.gatherConsent({ tagForUnderAgeOfConsent: opts.minor });
+    const info = await AdsConsent.gatherConsent({ tagForUnderAgeOfConsent: opts.audience.underAgeOfConsent });
     privacyRequired = info.privacyOptionsRequirementStatus === AdsConsentPrivacyOptionsRequirementStatus.REQUIRED;
   } catch {
     // offline or outside the consent regions: requests decide per region
   }
   try {
     await m.default().setRequestConfiguration({
-      maxAdContentRating: m.MaxAdContentRating.T,
-      tagForUnderAgeOfConsent: opts.minor,
+      maxAdContentRating: m.MaxAdContentRating[opts.audience.maxRating],
+      tagForChildDirectedTreatment: opts.audience.childDirected,
+      tagForUnderAgeOfConsent: opts.audience.underAgeOfConsent,
     });
     await m.default().initialize();
   } catch {
@@ -177,7 +180,7 @@ export async function createAdMobProvider(opts: { minor: boolean; personalized: 
   // warm the inventory, so breaks and returns rarely wait
   const npa = !opts.personalized;
   rewarded.preload(npa);
-  if (!opts.minor) {
+  if (!opts.audience.underAgeOfConsent) {
     interstitial.preload(npa);
     appOpen.preload(npa);
   }

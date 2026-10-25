@@ -6,6 +6,23 @@ export function birthYearToAgeGroup(birthYear: number, currentYear: number): Age
   return currentYear - birthYear >= 16 ? 'adult' : 'minor';
 }
 
+/**
+ * How ads treat a player's age (COPPA, GDPR art. 8): under 13 child-directed with general-audience
+ * ads only, under 16 at most parental guidance, adults teen. An unknown birth year counts as a child.
+ */
+export interface AdAudience {
+  childDirected: boolean;
+  underAgeOfConsent: boolean;
+  maxRating: 'G' | 'PG' | 'T';
+}
+
+export function adAudience(birthYear: number, currentYear: number): AdAudience {
+  const age = birthYear > 0 ? currentYear - birthYear : 0;
+  if (age < 13) return { childDirected: true, underAgeOfConsent: true, maxRating: 'G' };
+  if (age < 16) return { childDirected: false, underAgeOfConsent: true, maxRating: 'PG' };
+  return { childDirected: false, underAgeOfConsent: false, maxRating: 'T' };
+}
+
 /** Personalised ads only for adults who consented (UMP); minors never. */
 export function personalizedAds(ageGroup: AgeGroup, consent: boolean): boolean {
   return ageGroup === 'adult' && consent;
