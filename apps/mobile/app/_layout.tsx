@@ -1,16 +1,34 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdOverlay } from '../src/components/AdOverlay';
 import { Bolt } from '../src/components/Bolt';
+import { Button, H1, P } from '../src/components/ui';
 import { growWaitingNodes } from '@nexus/shared';
 import { pool, refillPool } from '../src/services/content';
 import { appOpened, startMonetization } from '../src/state/monetize';
 import { addRecentlySpawned } from '../src/state/session';
 import { getState, hydrate, update, useGame, useHydrated } from '../src/state/store';
+import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
+
+/**
+ * A render error anywhere (a Skia scene, an odd question) shows this instead of closing the app;
+ * the save is untouched, because it is written on every change and not on render.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const t = useStrings();
+  useEffect(() => console.error(error), [error]);
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: 24, gap: 12 }}>
+      <H1>{t.common.crashTitle}</H1>
+      <P>{t.common.crashText}</P>
+      <Button label={t.common.crashRetry} onPress={() => void retry()} />
+    </View>
+  );
+}
 
 export default function RootLayout() {
   const hydrated = useHydrated();

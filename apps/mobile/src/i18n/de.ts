@@ -34,6 +34,9 @@ export const de = {
     youHaveGems: (n: number) => `Du hast ${n} Gems`,
     rightWouldBe: (answer: string) => `Richtig wäre: ${answer}.`,
     newArea: (area: string) => `Neuer Bereich verbunden: ${area}`,
+    crashTitle: 'Kurzschluss',
+    crashText: 'Hier ist etwas abgestürzt. Dein Spielstand ist gesichert.',
+    crashRetry: 'Neu laden',
   },
 
   speakers: { bolt: 'Bolt', morph: 'morph.ai', core: 'Kern' },

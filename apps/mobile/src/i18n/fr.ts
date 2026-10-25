@@ -30,6 +30,9 @@ export const fr: Strings = {
     youHaveGems: (n) => `Tu as ${n} gemmes`,
     rightWouldBe: (answer) => `La bonne réponse : ${answer}.`,
     newArea: (area) => `Nouveau domaine connecté : ${area}`,
+    crashTitle: 'Court-circuit',
+    crashText: 'Quelque chose a planté ici. Ta progression est sauvegardée.',
+    crashRetry: 'Recharger',
   },
 
   speakers: { bolt: 'Bolt', morph: 'morph.ai', core: 'Noyau' },

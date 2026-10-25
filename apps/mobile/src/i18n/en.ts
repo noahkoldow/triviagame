@@ -30,6 +30,9 @@ export const en: Strings = {
     youHaveGems: (n) => `You have ${n} gems`,
     rightWouldBe: (answer) => `The right answer: ${answer}.`,
     newArea: (area) => `New area connected: ${area}`,
+    crashTitle: 'Short circuit',
+    crashText: 'Something crashed here. Your progress is saved.',
+    crashRetry: 'Reload',
   },
 
   speakers: { bolt: 'Bolt', morph: 'morph.ai', core: 'Core' },
