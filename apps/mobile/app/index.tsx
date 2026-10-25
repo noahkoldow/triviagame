@@ -77,6 +77,7 @@ import { pool } from '../src/services/content';
 import { watchRewarded } from '../src/state/monetize';
 import { getHint, takeDebrisReturn, takeRecentlySpawned } from '../src/state/session';
 import { syncRankingQuietly } from '../src/state/ranking';
+import { refill } from '../src/state/refill';
 import { getState, today, update, useGame } from '../src/state/store';
 import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
@@ -280,6 +281,14 @@ export default function Home() {
     .map((n) => ({ n, q: pool.get(n.questionId), dueNow: due.includes(n.id) }))
     .sort((a, b) => Number(b.dueNow) - Number(a.dueNow) || Number(a.n.state === 'damaged') - Number(b.n.state === 'damaged'));
 
+  // nothing left to play until new questions arrive (offline, or the server's budget is used up)
+  const stalled = listed.length === 0 && !sight.signs.some((x) => x.reached) && nodes.some((n) => n.waiting?.length);
+  useEffect(() => {
+    if (!stalled) return;
+    const timer = setInterval(() => void refill(true), 2 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [stalled]);
+
   const startMaintenance = () => {
     if (maintain.length === 0) return;
     const id = maintain[Math.floor(seededRng(`maintain:${today()}:${maintain.length}`)() * maintain.length)]!;
@@ -361,6 +370,14 @@ export default function Home() {
               <Text style={[styles.bannerText, { color: colors.bad, flex: 1 }]}>
                 {t.map.unstableBanner}
               </Text>
+            </View>
+          </Pressable>
+        ) : null}
+        {stalled ? (
+          <Pressable style={styles.banner} onPress={() => void refill(true)} accessibilityRole="button">
+            <View style={styles.bannerRow}>
+              <Icon name="warn" size={18} />
+              <Text style={[styles.bannerText, { flex: 1 }]}>{t.map.waitingBanner}</Text>
             </View>
           </Pressable>
         ) : null}

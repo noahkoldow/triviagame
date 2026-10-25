@@ -93,6 +93,7 @@ export const de = {
   map: {
     showDamaged: 'Beschädigte Knoten zeigen',
     unstableBanner: 'Netz instabil: neue Knoten warten. Tippe hier für eine Wartung.',
+    waitingBanner: 'Bolt sucht neue Fragen für deine Bereiche. Ohne Verbindung geht es weiter, sobald du wieder online bist. Tippe zum Neuversuch.',
     dueBanner: (n: number) => (n === 1 ? '1 beschädigter Knoten zur Reparatur fällig' : `${n} beschädigte Knoten zur Reparatur fällig`),
     closeTip: 'Tipp von Bolt schließen',
     tip: (name: string, files: number) =>

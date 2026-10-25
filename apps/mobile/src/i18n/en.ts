@@ -89,6 +89,7 @@ export const en: Strings = {
   map: {
     showDamaged: 'Show damaged nodes',
     unstableBanner: 'Network unstable: new nodes are waiting. Tap here for maintenance.',
+    waitingBanner: 'Bolt is looking for new questions for your areas. Offline, it goes on as soon as you are back online. Tap to try again.',
     dueBanner: (n) => (n === 1 ? '1 damaged node is due for repair' : `${n} damaged nodes are due for repair`),
     closeTip: 'Close Bolt’s tip',
     tip: (name, files) =>

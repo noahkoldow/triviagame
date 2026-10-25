@@ -89,6 +89,7 @@ export const fr: Strings = {
   map: {
     showDamaged: 'Voir les nœuds endommagés',
     unstableBanner: 'Réseau instable : les nouveaux nœuds attendent. Touche ici pour une maintenance.',
+    waitingBanner: 'Bolt cherche de nouvelles questions pour tes domaines. Hors ligne, ça reprend dès ton retour en ligne. Touche pour réessayer.',
     dueBanner: (n) => (n === 1 ? '1 nœud endommagé à réparer' : `${n} nœuds endommagés à réparer`),
     closeTip: 'Fermer le conseil de Bolt',
     tip: (name, files) =>

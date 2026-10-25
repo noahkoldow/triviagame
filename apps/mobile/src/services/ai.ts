@@ -9,7 +9,7 @@ import { acceptServed, type PoolRequest, type Question } from '@nexus/shared';
 
 export type Fetch = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body: string },
+  init: { method: string; headers: Record<string, string>; body: string; signal?: AbortSignal },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export interface QuestionApi {
@@ -18,15 +18,21 @@ export interface QuestionApi {
   fetch(req: PoolRequest): Promise<Question[]>;
 }
 
+/** Writing new questions can take the backend a while; after this the app stops waiting. */
+const TIMEOUT_MS = 45_000;
+
 export function httpQuestionApi(base: string, doFetch: Fetch = fetch as unknown as Fetch): QuestionApi {
   return {
     live: true,
     async fetch(req) {
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), TIMEOUT_MS);
       const res = await doFetch(`${base}/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ area: req.area, difficulty: req.difficulty, count: req.count, have: req.have, lang: req.lang }),
-      });
+        signal: abort.signal,
+      }).finally(() => clearTimeout(timer));
       if (!res.ok) throw new Error(`backend answered ${res.status}`);
       const data = (await res.json()) as { questions?: unknown };
       if (!Array.isArray(data.questions)) throw new Error('backend answer has no questions');

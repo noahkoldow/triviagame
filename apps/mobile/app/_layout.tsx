@@ -6,11 +6,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdOverlay } from '../src/components/AdOverlay';
 import { Bolt } from '../src/components/Bolt';
 import { Button, H1, P } from '../src/components/ui';
-import { growWaitingNodes } from '@nexus/shared';
-import { pool, refillPool } from '../src/services/content';
 import { appOpened, startMonetization } from '../src/state/monetize';
-import { addRecentlySpawned } from '../src/state/session';
-import { getState, hydrate, update, useGame, useHydrated } from '../src/state/store';
+import { refill } from '../src/state/refill';
+import { hydrate, useGame, useHydrated } from '../src/state/store';
 import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
 
@@ -45,18 +43,7 @@ export default function RootLayout() {
   // open end: whenever an area runs low, fetch more; branches that waited for questions grow
   useEffect(() => {
     if (!hydrated) return;
-    const p = getState();
-    void refillPool({ unlockedAreas: p.unlockedAreas, usedQuestions: p.network.usedQuestions, skill: p.skill }).then(
-      (added) => {
-        if (added === 0) return;
-        update((s) => {
-          const r = growWaitingNodes(s, pool, String(s.network.usedQuestions.length));
-          if (!r) return null;
-          addRecentlySpawned(r.spawned);
-          return r.player;
-        });
-      },
-    );
+    void refill();
   }, [hydrated, unlockedAreas, usedCount]);
 
   // after the age gate: Plus, real ads with consent (store builds), an app-open ad on a cold start
@@ -71,6 +58,8 @@ export default function RootLayout() {
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'background') leftAt = Date.now();
       if (s === 'active' && leftAt !== null) {
+        // back online maybe: questions first, they are what a stuck map waits for
+        void refill();
         void appOpened(Date.now() - leftAt);
         leftAt = null;
       }

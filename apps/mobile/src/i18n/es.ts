@@ -89,6 +89,7 @@ export const es: Strings = {
   map: {
     showDamaged: 'Ver nodos dañados',
     unstableBanner: 'Red inestable: los nodos nuevos esperan. Toca aquí para hacer un mantenimiento.',
+    waitingBanner: 'Bolt busca preguntas nuevas para tus áreas. Sin conexión, sigue en cuanto vuelvas a estar en línea. Toca para reintentar.',
     dueBanner: (n) => (n === 1 ? '1 nodo dañado pendiente de reparación' : `${n} nodos dañados pendientes de reparación`),
     closeTip: 'Cerrar el consejo de Bolt',
     tip: (name, files) =>

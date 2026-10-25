@@ -95,8 +95,10 @@ export interface RefillInput {
  * current language. Resolves to the number of new questions (0 offline or on errors; the game
  * never waits for this).
  */
-export function refillPool(input: RefillInput, api: QuestionApi = questionApi(API_BASE)): Promise<number> {
+/** `force` skips the backoff: the player is waiting for exactly these questions. */
+export function refillPool(input: RefillInput, api: QuestionApi = questionApi(API_BASE), force = false): Promise<number> {
   if (!api.live) return Promise.resolve(0);
+  if (force && !running) retryAt.clear();
   // a refill for another language is still running: run again for this one afterwards
   if (running) return running.lang === current ? running.done : running.done.then(() => refillPool(input, api));
   const lang = current;
