@@ -1,16 +1,29 @@
 import { createFirewalls, wallTarget, type Firewall } from './boss';
 import { pickArea, type InterestMap } from './interest';
 import { areaDistance } from './links';
-import { placeNode, rootPosition, polar, settle } from './layout';
+import {
+  LINK_REACH,
+  MAX_LINK,
+  MIN_GAP,
+  linksCross,
+  placeNode,
+  rootPosition,
+  polar,
+  sectorDistance,
+  settle,
+  type Link,
+} from './layout';
 import { type Rng } from './rng';
 import { targetDifficulty, BASE_SKILL, type SkillMap } from './skill';
 import { markDamaged, applyReview } from './srs';
 import { SECTORS, sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Question, Sector, Vec3 } from './types';
-import { clampToZone, zoneOf, zoneOfArea, zoneRoute, type Breach } from './walls';
+import { CORE_ZONE, clampToZone, traceVia, zoneOf, zoneOfArea, zoneRoute, type Breach } from './walls';
 
 /** How strongly a new node leans toward the wall its branch is growing to. */
 const WALL_PULL = { deepen: 0.7, bridge: 0.4 };
+/** Version of the placement rules; a map placed with older ones is repaired once (`relayout`). */
+export const LAYOUT_VERSION = 2;
 
 export class Pool {
   readonly byId = new Map<string, Question>();
@@ -46,6 +59,7 @@ export function createNetwork(pool: Pool, roots: Record<Sector, string>): Networ
     nodes,
     usedQuestions: used,
     firewalls: createFirewalls(),
+    layout: LAYOUT_VERSION,
   };
 }
 
@@ -57,6 +71,8 @@ export interface SpawnContext {
   rng: Rng;
   /** The area behind the wall this branch grows toward; questions drift toward it. */
   steerArea?: string;
+  /** Where the branch grows from: its topics come from what one link can reach from there. */
+  from?: { x: number; y: number };
 }
 
 export function exposureOf(state: NetworkState, pool: Pool): Record<string, number> {
@@ -84,6 +100,46 @@ function steer(cands: Question[], area?: string): Question[] {
   return cands.filter((q) => areaDistance(q.area, area) === best);
 }
 
+/**
+ * How far a trace from `from` has to run to reach the land of `area`: through the gaps on the way
+ * into its zone, and in the core zone on into the wedge of its sector. Infinity when no gap leads
+ * there; a way to a gap that would cross another trace counts as far.
+ */
+function reachOf(state: NetworkState, links: Link[], from: { x: number; y: number }, area: string): number {
+  const zone = zoneOfArea(area);
+  const route = zoneRoute(breachesOf(state.firewalls), zoneOf(from.x, from.y), zone);
+  if (!route) return Infinity;
+  let at = from;
+  let d = 0;
+  for (const gap of route) {
+    d += Math.hypot(gap.x - at.x, gap.y - at.y);
+    if (links.some((l) => linksCross({ a: at, b: gap }, l))) d += LINK_REACH;
+    at = gap;
+  }
+  return zone === CORE_ZONE ? d + sectorDistance(at, sectorOfArea(area)) : d;
+}
+
+/** Measures candidate topics from where a branch grows (`from` unset: every topic is near). */
+function reacher(state: NetworkState, from?: { x: number; y: number }) {
+  if (!from) return () => 0;
+  let links: Link[] | undefined;
+  const memo = new Map<string, number>();
+  return (area: string) => {
+    let d = memo.get(area);
+    if (d === undefined) {
+      links ??= linksOf(state);
+      d = reachOf(state, links, from, area);
+      memo.set(area, d);
+    }
+    return d;
+  };
+}
+
+/** The candidates one link can reach. */
+function inReach(cands: Question[], reach: (area: string) => number): Question[] {
+  return cands.filter((q) => reach(q.area) <= LINK_REACH);
+}
+
 /** The suggested follow-ups that are in the pool (a suggestion may point to a question this device lacks). */
 function known(ids: string[], pool: Pool): Question[] {
   return ids.flatMap((id) => {
@@ -95,7 +151,8 @@ function known(ids: string[], pool: Pool): Question[] {
 export function pickDeepen(parent: Question, state: NetworkState, ctx: SpawnContext) {
   const used = new Set(state.usedQuestions);
   const ok = (q: Question) => !used.has(q.id) && ctx.unlockedAreas.includes(q.area);
-  let cands = known(parent.deepen, ctx.pool).filter(ok);
+  // a suggestion of another topic only when it is in reach; the own topic is always right here
+  let cands = inReach(known(parent.deepen, ctx.pool).filter(ok), reacher(state, ctx.from));
   if (cands.length === 0) {
     cands = ctx.pool.list.filter(
       (q) => q.area === parent.area && ok(q) && q.difficulty >= parent.difficulty,
@@ -115,10 +172,13 @@ export function pickBridge(
 ) {
   const used = new Set([...state.usedQuestions, ...exclude]);
   const ok = (q: Question) => !used.has(q.id) && ctx.unlockedAreas.includes(q.area);
-  let cands = known(parent.bridge, ctx.pool).filter(ok);
-  if (cands.length === 0) {
-    cands = ctx.pool.list.filter((q) => q.area !== parent.area && ok(q));
-  }
+  // a bridge leads into a topic next to it (D60): a suggested one, else any in reach. With none in
+  // reach it stays in its own topic for now; without that it waits for new questions rather than
+  // run a long way across the map
+  const reach = reacher(state, ctx.from);
+  let cands = inReach(known(parent.bridge, ctx.pool).filter(ok), reach);
+  if (cands.length === 0) cands = inReach(ctx.pool.list.filter((q) => q.area !== parent.area && ok(q)), reach);
+  if (cands.length === 0) cands = ctx.pool.list.filter((q) => q.area === parent.area && ok(q));
   if (cands.length === 0) return undefined;
   const steered = steer(cands, ctx.steerArea);
   const areas = [...new Set(steered.map((q) => q.area))];
@@ -148,13 +208,27 @@ function growFrom(state: NetworkState, parent: Vec3, zone: string): Vec3 {
   return gap ? { ...clampToZone(gap, zone), z: parent.z } : parent;
 }
 
-function addNode(
+/** The traces the map draws, piece by piece: every node to its parent (through the gaps), roots to the core. */
+function linksOf(state: NetworkState): Link[] {
+  const gaps = breachesOf(state.firewalls);
+  const out: Link[] = [];
+  for (const n of Object.values(state.nodes)) {
+    const a = n.parentId ? state.nodes[n.parentId]?.pos : { x: 0, y: 0 };
+    if (!a) continue;
+    const pts = [a, ...traceVia(gaps, a, n.pos), n.pos];
+    for (let i = 1; i < pts.length; i++) out.push({ a: pts[i - 1]!, b: pts[i]! });
+  }
+  return out;
+}
+
+/** Where a new node of question `q` grows next to `parent`. */
+function positionFor(
   state: NetworkState,
   parent: NetNode,
   q: Question,
   kind: 'deepen' | 'bridge' | 'debris',
-  extra: Partial<NetNode> = {},
-): { state: NetworkState; node: NetNode } {
+  id: string,
+): Vec3 {
   const sector = sectorOfArea(q.area);
   const zone = zoneOfArea(q.area);
   const existing = Object.values(state.nodes);
@@ -162,17 +236,29 @@ function addNode(
   // branches reach for the walls: they lean toward a firewall the network has not reached yet
   const wall = kind === 'debris' ? undefined : wallTarget(state.firewalls, existing, from, sector);
   const target = wall ? { x: wall.x, y: wall.y, pull: WALL_PULL[kind as 'deepen' | 'bridge'] } : undefined;
-  const id = nextId(state);
-  const pos = placeNode({
+  return placeNode({
     parent: from,
-    kind,
+    // behind a gap the trace has come far enough: a short step on into the area
+    kind: from === parent.pos ? kind : 'deepen',
     mainSector: sector,
     side: q.side,
     existing: existing.map((n) => n.pos),
+    links: linksOf(state),
     seed: `${id}:${q.id}`,
     target,
     zone,
   });
+}
+
+function addNode(
+  state: NetworkState,
+  parent: NetNode,
+  q: Question,
+  kind: 'deepen' | 'bridge' | 'debris',
+  extra: Partial<NetNode> = {},
+): { state: NetworkState; node: NetNode } {
+  const id = nextId(state);
+  const pos = positionFor(state, parent, q, kind, id);
   const node: NetNode = {
     id,
     questionId: q.id,
@@ -287,6 +373,7 @@ function growChildren(
   let next = state;
   const spawned: NetNode[] = [];
   const waiting: ('deepen' | 'bridge')[] = [];
+  ctx = { ...ctx, from: parent.pos };
   for (const kind of kinds) {
     const q = kind === 'deepen' ? pickDeepen(parentQ, next, ctx) : pickBridge(parentQ, next, ctx);
     if (!q) {
@@ -345,6 +432,50 @@ export function growMissing(
   const cleared: NetNode = { ...node, missing: undefined };
   const next: NetworkState = { ...state, nodes: { ...state.nodes, [nodeId]: cleared } };
   return growChildren(next, cleared, parentQ, node.missing, ctx);
+}
+
+/**
+ * Repairs a map from before D60, once. In the order the nodes grew, a node whose topic its parent
+ * cannot reach hangs on the nearest node that can (links only decide what the map draws and
+ * which circles close); a node whose link is then short, free and crosses nothing keeps its
+ * place, every other one is placed anew. A wall only counts as open from the first node behind
+ * it on, as it was while the map grew.
+ */
+export function relayout(state: NetworkState, pool: Pool): NetworkState {
+  if ((state.layout ?? 1) >= LAYOUT_VERSION) return state;
+  const order = Object.values(state.nodes).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
+  const entered = new Set<string>();
+  const nodes: Record<string, NetNode> = {};
+  for (const n of order) {
+    const q = pool.byId.get(n.questionId);
+    if (!n.parentId || !nodes[n.parentId] || !q || n.kind === 'root') {
+      nodes[n.id] = n;
+      continue;
+    }
+    const view: NetworkState = {
+      ...state,
+      nodes,
+      firewalls: state.firewalls?.map((f) => (f.broken && !entered.has(f.area) ? { ...f, broken: false, breach: undefined } : f)),
+    };
+    const links = linksOf(view);
+    const reaches = (from: NetNode) => reachOf(view, links, from.pos, q.area) <= LINK_REACH;
+    const parent = reaches(nodes[n.parentId]!)
+      ? nodes[n.parentId]!
+      : (Object.values(nodes)
+          .sort((a, b) => Math.hypot(a.pos.x - n.pos.x, a.pos.y - n.pos.y) - Math.hypot(b.pos.x - n.pos.x, b.pos.y - n.pos.y))
+          .find(reaches) ?? nodes[n.parentId]!);
+    const zone = zoneOfArea(q.area);
+    const from = growFrom(view, parent.pos, zone);
+    const fits =
+      parent.id === n.parentId &&
+      zoneOf(n.pos.x, n.pos.y) === zone &&
+      Math.hypot(n.pos.x - from.x, n.pos.y - from.y) <= MAX_LINK &&
+      Object.values(nodes).every((e) => Math.hypot(e.pos.x - n.pos.x, e.pos.y - n.pos.y) >= MIN_GAP - 1) &&
+      !links.some((l) => linksCross({ a: from, b: n.pos }, l));
+    nodes[n.id] = { ...n, parentId: parent.id, pos: fits ? n.pos : positionFor(view, parent, q, n.kind, n.id) };
+    entered.add(zone);
+  }
+  return { ...state, nodes, layout: LAYOUT_VERSION };
 }
 
 export function unlockDebris(state: NetworkState, nodeId: string): NetworkState {

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   AD_POLICY,
   AREAS,
+  CORE_ZONE,
+  OUTER_ZONES,
+  WALL_RADIUS,
   MOCK_QUESTIONS,
   ROOT_QUESTIONS,
   Pool,
@@ -32,6 +35,7 @@ import {
   markDamaged,
   birthYearToAgeGroup,
   pickArea,
+  wallBetween,
   type NetNode,
   type NetworkState,
   type RewardedLog,
@@ -259,7 +263,17 @@ describe('network growth', () => {
   });
 
   it('never repeats a question and spaces nodes unevenly but without overlap', () => {
-    let state: NetworkState = createNetwork(pool, ROOT_QUESTIONS);
+    // every area is open, so every wall has a gap in the ring (in the middle of its slice)
+    const net = createNetwork(pool, ROOT_QUESTIONS);
+    const firewalls = net.firewalls!.map((f) => {
+      const z = OUTER_ZONES.find((o) => o.area === f.area)!;
+      const mid = { x: Math.cos((z.from + z.to) / 2) * WALL_RADIUS, y: Math.sin((z.from + z.to) / 2) * WALL_RADIUS };
+      const cell = wallBetween(f.area, CORE_ZONE).sort(
+        (a, b) => Math.hypot(a.x - mid.x, a.y - mid.y) - Math.hypot(b.x - mid.x, b.y - mid.y),
+      )[0]!;
+      return { ...f, broken: true, breach: { x: cell.x, y: cell.y, from: CORE_ZONE } };
+    });
+    let state: NetworkState = { ...net, firewalls };
     const ctx = ctxFor(
       AREAS.map((a) => a.id),
       'play',

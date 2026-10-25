@@ -161,4 +161,6 @@ export interface NetworkState {
   firewalls?: import('./boss').Firewall[];
   /** Question ids already used by a node (solved or open). */
   usedQuestions: string[];
+  /** Version of the placement rules the nodes were placed with (`LAYOUT_VERSION`); none before D60. */
+  layout?: number;
 }

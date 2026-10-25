@@ -2,7 +2,7 @@ import { createFirewalls, type Firewall } from './boss';
 import type { PlayerState } from './game';
 import { settle } from './layout';
 import { initialUnlockedAreas } from './monetization';
-import type { Pool } from './network';
+import { relayout, type Pool } from './network';
 import { isArea } from './taxonomy';
 import type { NetNode, NetworkState } from './types';
 import { CORE_ZONE, OUTER_ZONES, WALL_RADIUS, wallBetween, zoneOfArea } from './walls';
@@ -84,7 +84,9 @@ export function migrateSave(p: PlayerState, pool?: Pool): PlayerState {
   ];
 
   const walled = (p.network.firewalls ?? []).length > 0 && p.network.firewalls!.every((f) => typeof f.area === 'string');
-  const network = walled ? p.network : toWalls(p.network, unlocked, pool);
+  const walls = walled ? p.network : toWalls(p.network, unlocked, pool);
+  // maps from before D60 are repaired once, so no link runs across the map any more
+  const network = pool ? relayout(walls, pool) : walls;
 
   // before D49 the cache held whole folders: they move into the folder structure
   const oldFolders = (p.cache as unknown as { questionId: string; fragmentId: string; file?: unknown }[]).filter(
