@@ -26,6 +26,7 @@ Basis-URL der App: `https://europe-west3-nexus-trivia-prod-20261024.cloudfunctio
 
 - **Tagesbudget** über alle Modellaufrufe (Generieren und Prüfen): `AI_DAILY_CALL_LIMIT`, derzeit 100 pro UTC-Tag. Eine Erzeugung kostet bis zu 4 Aufrufe. Für viele Spieler das Limit anheben; der gemeinsame Pool senkt die Kosten pro Spieler mit der Zeit.
 - **Kill-Switch:** `AI_ENABLED=false` stoppt neue Erzeugung, der Pool wird weiter ausgeliefert.
+- **Websuche beim Prüfer:** `AI_CHECK_GROUNDING=true` lässt den Prüfer mit Google Search verifizieren und speichert die Belege (D66). Standard aus; Suchanfragen kosten über das Freikontingent hinaus.
 - **Pro Client und Stunde** (gehashte IP, `limits/`): 60 Fragen-Anfragen, davon höchstens 6 mit Erzeugung; 5 Anmeldungen zur Rangliste; 120 Abgleiche je Spieler.
 - **TTL:** `limits` trägt `expiresAt`. Die TTL-Regeln stehen in `firestore.indexes.json` und gehen mit `firestore:indexes` raus. Rate-Limit-Einträge verschwinden so nach etwa zwei Stunden.
 - **Restrisiko:** Die Endpunkte sind öffentlich. Wer viele IP-Adressen hat, kann das Tagesbudget für neue Fragen aufbrauchen; der vorhandene Pool bleibt dann trotzdem nutzbar. Vor dem Launch kommt Firebase App Check dazu (`docs/CODEX_HANDOFF.md`).

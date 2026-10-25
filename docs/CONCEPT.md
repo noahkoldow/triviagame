@@ -89,8 +89,10 @@ Ein Fragment ist ein Ordner mit Dateien. Damit Suchen und Auswählen echte Arbei
 | Eigenschaften eines Dings, Orts, Wesens | **Steckbrief** `.inf` (Eigenschaften-Fenster) | Wal: Klasse, Atmung, Nachwuchs |
 | was eine Quelle wörtlich sagt | **Zitat** mit Herkunft | Präambel der UN-Charta |
 | Kontext, den jemand weitergibt | **Nachricht** `.eml` (Von, Betreff) | Bolt: „Pinguine sind keine Fische!“ |
+| wo etwas liegt | **Karte** (Umrisse von Natural Earth, Gradnetz, Orte) | Alexandria, Assuan, Khartum am Nil |
+| Lückenhaftes, das man ergänzt | **beschädigte Datei** (morph.ai hat 1–3 Wörter geschwärzt, die Suche findet sie nicht) | „… mündet bei █████ ins Mittelmeer“ |
 
-**Ausblick** (noch nicht gebaut, gleiche Regeln): schematische **Karte** aus gemeinfreien Umrissen (Natural Earth) mit markierten Orten; **Lexikoneintrag** mit Begriff, Lautschrift und Herkunft; **Formel** mit erklärten Größen; **Chatverlauf** aus dem alten Nexus-Forum; **Faksimile** (Brief, Urkunde) als gesetzter Text mit Datum und Siegel; **beschädigte Datei**, in der morph.ai Wörter geschwärzt hat, die man aus anderen Dateien rekonstruiert; **zwei Quellen, die sich widersprechen** (eine davon ist ein Köder), was Quellenkritik übt und zur Geschichte passt: morph.ai hat das Prüfen von Quellen überflüssig gemacht.
+**Ausblick** (noch nicht gebaut, gleiche Regeln): **Lexikoneintrag** mit Begriff, Lautschrift und Herkunft; **Formel** mit erklärten Größen; **Chatverlauf** aus dem alten Nexus-Forum; **Faksimile** (Brief, Urkunde) als gesetzter Text mit Datum und Siegel.
 
 ### 4.2 Fragetypen (D31, D65)
 
@@ -105,8 +107,11 @@ Ein Fragment ist ein Ordner mit Dateien. Damit Suchen und Auswählen echte Arbei
 | Lückentext | Wörter aus einer Wortbank einsetzen | Begriffe im Zusammenhang |
 | **In Ordner sortieren** | 4–8 Einträge in 2–3 Ordner legen | Kategorien bilden, passt zum Ordner-Thema |
 | **Fehler finden** | in 3–5 Sätzen den falschen antippen | kritisch lesen, morph.ai-Fehler entlarven |
+| **Ort antippen** | auf einer Karte markieren, Toleranz in km | räumliches Wissen |
+| **Wer bin ich?** | 3–5 Hinweise nacheinander aufdecken, dann wählen; je Hinweis, der zu bleibt, +3 Bits | Wissen verknüpfen, Mut zur frühen Antwort |
+| **Quelle prüfen** | von 2–3 widersprüchlichen Dateien die verlässliche wählen | Quellenkritik: genau das, was morph.ai überflüssig gemacht hat |
 
-**Ausblick:** **Wer bin ich?** (Hinweise nacheinander aufdecken, wer früher löst, bekommt mehr), **Kausalkette** (Ursache → Wirkung ordnen), **Ort auf der Karte antippen** (mit dem Kartenformat), **Lücke im Diagramm** (fehlenden Wert schätzen), **Quelle prüfen** (welche von zwei Dateien ist verlässlich und warum), **Schieberegler-Schätzung** auf einem Zahlenstrahl, **Was passt nicht?**.
+**Ausblick:** **Kausalkette** (Ursache → Wirkung ordnen), **Lücke im Diagramm** (fehlenden Wert schätzen), **Schieberegler-Schätzung** auf einem Zahlenstrahl, **Was passt nicht?**.
 
 ### 4.3 Formate aus Gemini (Sourcing)
 
@@ -115,7 +120,8 @@ Ein Fragment ist ein Ordner mit Dateien. Damit Suchen und Auswählen echte Arbei
 - **Harte Regeln im Validator:** Kreisanteile summieren sich auf 100, Jahre einer Linie steigen, Zitate brauchen eine Herkunft, Steckbrief-Merkmale sind eindeutig, Mehrfachauswahl hat mindestens eine falsche Option, jeder Ordner bekommt mindestens einen Eintrag.
 - **Prüfer-Durchlauf** kontrolliert zusätzlich: Zahlen in Diagrammen und Tabellen, wörtliche Zitate und ihre Quelle, dass der Fakt nicht in jeder Datei steht, und die Eindeutigkeit je Typ.
 - **Zitate** nur aus gut belegten Primärquellen (Gesetze, Chartas, bekannte Reden und Werke); im Zweifel schreibt das Modell einen Artikel statt eines Zitats. Falsch zugeschriebene Zitate sind die häufigste KI-Fehlerquelle.
-- **Nächster Schritt:** Such-Grounding beim Prüfer, die gefundenen Belege als `source` speichern; Zahlenreihen gegen offene Daten (z. B. NOAA, Weltbank) abgleichen; gemeldete Fragen sperren (`PoolEntry.blocked`).
+- **Websuche beim Prüfer** (D66, Schalter `AI_CHECK_GROUNDING`): Der Prüfer verifiziert Fakten, Zahlen, Koordinaten und Zitate mit Google Search; was er nicht bestätigen kann, ist ein Mangel, und ohne einen einzigen Beleg fällt die Frage durch. Die gefundenen Seiten werden mit der Frage gespeichert (`evidence`).
+- **Nächster Schritt:** Belege im Codex zeigen; Zahlenreihen gegen offene Daten (z. B. NOAA, Weltbank) abgleichen; gemeldete Fragen sperren (`PoolEntry.blocked`).
 
 ## 5. Visuelle Idee: die Auflösung des Netzwerks
 

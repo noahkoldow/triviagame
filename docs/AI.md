@@ -4,7 +4,7 @@ Stand: Schema, Prüfung, serverseitige Erzeugung mit gemeinsamem Fragenpool und 
 
 ## Fragetypen
 
-Neun Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`):
+Zwölf Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`):
 
 | Typ         | Spiel                 | Felder der KI                                                        |
 | ----------- | --------------------- | -------------------------------------------------------------------- |
@@ -17,6 +17,9 @@ Neun Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`):
 | `multi`     | Mehrfachauswahl       | `options` (4 bis 6), `answers` (Indizes, 2 bis 4, mindestens eine Option falsch) |
 | `sort`      | In Ordner sortieren   | `groups` (2 oder 3), `items` (4 bis 8, je `[Eintrag, Ordner]`, jeder Ordner belegt) |
 | `spot`      | Fehler finden         | `lines` (3 bis 5 Aussagen), `wrong` (Index der einzigen falschen) |
+| `locate`    | Ort antippen          | `place`, `lat`, `lon`, `tolerance` (50 bis 1500 km), `region` (Ausschnitt, Ort darin) |
+| `riddle`    | Wer bin ich?          | `clues` (3 bis 5, vage zuerst, ohne die Antwort), `options` (3 bis 5), `answer` |
+| `source`    | Quelle prüfen         | `sources` (2 oder 3, je `name`, `origin`, `text`), `reliable` (Index) |
 
 Alle Typen haben dazu: `area`, `difficulty`, `topic`, `intro`, `stem`, `explanation`, `fragments`.
 
@@ -57,7 +60,7 @@ Die Pipeline läuft **nur auf dem Server** (Function `questions`, `functions/src
 - Firebase App Check vor dem Launch.
 - Verzweigungen (`deepen`/`bridge`) und Bereichs-Nachbarschaft für KI-Fragen vorschlagen lassen; bisher wählt das Spiel selbst per Bereichs-Links.
 - Weitere Fragetypen und Formate aus `CONCEPT.md` 4.1/4.2 (Ausblick), etwa „Wer bin ich?“, Karte, „Quelle prüfen“.
-- Such-Grounding beim Prüfer, Belege als Quelle speichern; Zahlenreihen gegen offene Daten abgleichen.
+- Belege (`evidence`) im Codex zeigen; Zahlenreihen gegen offene Daten abgleichen.
 
 ## Dateien in Cache-Ordnern
 
@@ -70,9 +73,15 @@ Fragmente können `files` tragen (siehe `validateFiles` in `packages/shared/src/
   - `line`: 3 bis 8 Punkte (`year`, `value`), Jahre steigend, optional Einheit.
   - `pie`: 2 bis 6 Anteile über 0, zusammen 100 (± 1 für Rundung).
   - `flow`: 2 bis 6 Schritte, `cycle` führt vom letzten zum ersten.
+  - `map`: 1 bis 6 Orte (`label`, `lat`, `lon`), optional `region` (mindestens 5° je Richtung, alle Orte darin).
+- **Beschädigte Datei** (`redacted`): Notiz mit 1 bis 3 Wörtern `[[so]]`, die morph.ai geschwärzt hat.
 - **Steckbrief** (`profile`): 2 bis 8 Zeilen `[Merkmal, Wert]`, Merkmale eindeutig. **Zitat** (`quote`): wörtlich, bis 300 Zeichen, `source` (wer, wo, wann) ist Pflicht. **Nachricht** (`mail`): `from`, `subject`, Text bis 400 Zeichen.
 - Der Prompt ordnet Wissensarten Formaten zu (siehe `CONCEPT.md` 4.1) und verlangt gemischte Ordner.
 - 1 bis 5 Dateien pro Ordner, Dateinamen eindeutig und ohne die Antwort zu verraten.
 - Der Fakt des Fragments muss in mindestens einer Datei stehen; die anderen geben Kontext oder sind plausible, aber unwichtige Köder.
 
 Der Prüfer kontrolliert auch, dass Zahlen in Diagrammen stimmen, Zitate wörtlich und richtig zugeschrieben sind und der Fakt nicht in jeder Datei steht (dann gäbe es nichts zu suchen).
+
+## Websuche beim Prüfer (D66)
+
+Mit dem Parameter `AI_CHECK_GROUNDING=true` ruft der Server den Prüfer mit Google Search auf (`buildCheckPrompt(q, true)`, `tools: [{ googleSearch: {} }]`). Der Prüfer muss jeden Fakt, jede Zahl, jede Koordinate und jedes Zitat bestätigen; ohne einen einzigen Beleg gilt die Frage als nicht geprüft. Die Seiten aus `groundingMetadata` (`groundingEvidence`) werden am Fragen-Dokument als `evidence` gespeichert. Standard: aus (Kosten pro Suche über dem Freikontingent).

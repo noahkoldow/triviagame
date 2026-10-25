@@ -90,10 +90,11 @@ Spielbar in Expo Go (Mock-Daten):
 - **Firewalls als Bosskampf** (D64): vier Schichten, acht Fragen; richtig reißt eine Schicht ein (Strahl, fallende Steine), falsch lässt morph.ai sie reparieren (Rauschen fließt herab). Lebensbalken, verbleibende Fragen, Sprüche von Bolt und morph.ai.
 - **Neue Formate und Fragetypen** (D65, Konzept 4.1–4.3): Steckbrief, Zitat, Nachricht, Linien-, Kreis- und Ablaufdiagramm; Mehrfachauswahl, In Ordner sortieren, Fehler finden. Alles im Gemini-Prompt, Validator und Prüfer, je eine eingebaute Frage pro Typ in vier Sprachen.
 - **Ungeprüft auf Gerät:** Bosskampf-Animation (viele kleine Skia-Gruppen, Performance auf älteren Geräten), Textlängen der neuen Ansichten, Kreisdiagramm per react-native-svg.
+- **Karten und weitere Typen** (D66): Karte (Natural Earth), Ort antippen, Wer bin ich? (Bonus für früh gelöst), Quelle prüfen, beschädigte Dateien; Websuche beim Prüfer (`AI_CHECK_GROUNDING`, aus). **Ungeprüft:** Antippen der Karte auf dem Gerät (Koordinaten aus `locationX/Y`), Websuche gegen echtes Gemini.
 
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (215 + 49 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (227 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
