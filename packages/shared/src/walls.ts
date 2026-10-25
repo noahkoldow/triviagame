@@ -1,7 +1,7 @@
 import { HEX_R, hexDistance, hexKey, hexNeighbors, hexToWorld, worldToHex, type Hex } from './hex';
 
 /**
- * Zones and walls (D53). The four starting areas share the core zone, a disc around the chip.
+ * Zones and walls (D58). The four starting areas share the core zone, a disc around the chip.
  * Around it morph.ai pulled up a firewall: a ring of raised hexagon cells. Behind it lie the
  * other eight areas, each in its own slice of the ring around the core, and walls run between
  * these slices too. A wall stays hidden in the fog until the network comes close; once a node

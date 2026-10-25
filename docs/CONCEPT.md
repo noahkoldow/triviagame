@@ -33,12 +33,12 @@ Vier Himmelsrichtungen um den Kern, jede mit eigener Farbe und eigenem Weltchara
 
 | Sektor | Bereiche (je drei, der erste ist frei) | Farbe | Endzustand der Optik |
 | --- | --- | --- | --- |
-| **Naturwissenschaften, Technik & Medizin** | Physik & Chemie · Biologie & Medizin · Technologie & IT | Blau | Blaupausen → Labor → Moleküle und Maschinen |
+| **Naturwissenschaften, Technik & Medizin** | Naturwissenschaften · Biologie & Medizin · Technologie & IT | Blau | Blaupausen → Labor → Moleküle und Maschinen |
 | **Geographie & Erde** | Topographie · Klima & Umwelt · Astronomie | Grün | Leiterbahnen → Wurzeln → Gebirge, Küsten, Sternenkarten |
 | **Geisteswissenschaften & Kultur** | Geschichte · Kunst, Literatur & Musik · Philosophie & Religion | Violett | Neonstreifen → Farbe, Tinte, Stein → Noten, Ruinen, Skulpturen |
 | **Gesellschaft, Politik & Wirtschaft** | Politik & Staatskunde · Wirtschaft & Finanzen · Recht & Gesellschaft | Gelb | Bahnen → Pergament → Parlamente, Märkte, Gesetzbücher |
 
-Was in jeden Bereich gehört, steht als Themenbeschreibung in `packages/shared/src/taxonomy.ts` (siehe D44). Die Sektoren liegen im Ring (Naturwissenschaften – Erde – Geisteswissenschaften – Gesellschaft). **Es gibt keine harten Mittelzonen.** Eine Frage gehört zu einem **Hauptsektor** (dort liegt sie) und kann **Nebengewichte** zu anderen Sektoren haben (Medizin: Hauptsektor Wissenschaft, Nebengewicht Natur). Das Nebengewicht wirkt nur als **leichte Richtungsabweichung**: Der Knoten bleibt im Gebiet seines Hauptsektors, sitzt aber etwas näher an der Grenze zum Nachbarn und bekommt einen Hauch von dessen Optik (Farbstich, Material). Die Frage zählt für beide Sektoren, im Verhältnis der Gewichte (z. B. 80/20).
+Was in jeden Bereich gehört, steht als Themenbeschreibung in `packages/shared/src/taxonomy.ts` (siehe D44). Die vier freien Bereiche liegen gemeinsam in der Kernzone um den Chip; die acht übrigen liegen dahinter, je in einem eigenen Stück ihres Sektors, getrennt durch Wände (siehe 6.3 und D58). Die Sektoren liegen im Ring (Naturwissenschaften – Erde – Geisteswissenschaften – Gesellschaft). **Es gibt keine harten Mittelzonen.** Eine Frage gehört zu einem **Hauptsektor** (dort liegt sie) und kann **Nebengewichte** zu anderen Sektoren haben (Medizin: Hauptsektor Wissenschaft, Nebengewicht Natur). Das Nebengewicht wirkt nur als **leichte Richtungsabweichung**: Der Knoten bleibt im Gebiet seines Hauptsektors, sitzt aber etwas näher an der Grenze zum Nachbarn und bekommt einen Hauch von dessen Optik (Farbstich, Material). Die Frage zählt für beide Sektoren, im Verhältnis der Gewichte (z. B. 80/20).
 
 **Platzierung (organisch statt Raster):**
 
@@ -117,7 +117,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 
 - **Tages-Puls:** ein täglicher, kurzer Spezialknoten (5 Fragen) mit Streak. Streak-Schutz (zwei „Freeze“-Tage pro Monat), keine Strafen-Spirale.
 - **Wochen-Event:** thematische „Störungen“ des Rauschens, z. B. „Antike-Woche“; Knoten erscheinen themenübergreifend.
-- **Bosse („Firewalls“):** an den Sektorgrenzen. Mehrteilige Frage über zwei Sektoren, braucht Wissen aus beiden. Belohnung: Kern, neue Zone.
+- **Bosse („Firewalls“):** Wände aus hochgestellten Hexagons um die Kernzone und zwischen den äußeren Bereichen, im Nebel unsichtbar, bis das Netz auf 5 Felder herankommt. Steht ein Knoten direkt an der Wand, lässt sie sich angreifen: Fragen aus dem eigenen Bereich und dem dahinter. Belohnung: Die Wand bricht an dieser Stelle auf, der Bereich dahinter öffnet sich.
 
 ### 6.4 Sozial
 

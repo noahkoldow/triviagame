@@ -62,9 +62,14 @@ Spielbar in Expo Go (Mock-Daten):
 - **Messen:** Analytics-Provider (Mock) mit den Ereignissen des Umsatz-Trichters. Modell, Annahmen und Kennzahlen in `docs/MONETIZATION.md`.
 - **Ungeprüft auf Gerät:** AdMob, Einwilligung und ATT laufen nur im Development Build und sind dort noch nie gelaufen. Käufe sind weiter nur der Mock (RevenueCat fehlt, P2.1).
 
+## Prototyp 0.9 (Wände)
+
+- **Firewalls als Wände** (D58): Ring aus hochgestellten Hexagons um die vier Startbereiche, Trennwände zwischen den acht äußeren Bereichen. Sichtbar erst ab 5 Feldern Nähe, angreifbar erst direkt an der Wand; der Sieg reißt dort eine Lücke, durch die das Netz in den Bereich wächst. Außenposten entfallen, „Physik & Chemie“ heißt „Naturwissenschaften“.
+- **Ungeprüft auf Gerät:** Wand-Kacheln (Höhe, Mauerfugen), pulsierende Kante, Schilder und Antippen der Wand. Eine CanvasKit-Vorschau der Szene sah stimmig aus.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (169 + 39 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (177 + 41 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 

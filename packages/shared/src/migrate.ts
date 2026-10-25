@@ -45,7 +45,7 @@ function mapKeys<T>(m: Record<string, T>): Record<string, T> {
 }
 
 /**
- * Saves from before the walls (D53) had four firewalls on the sector borders, outposts, and
+ * Saves from before the walls (D58) had four firewalls on the sector borders, outposts, and
  * nodes anywhere in their sector. Nodes move into the zone of their area (with a pool), and
  * every outer area that was already open gets a broken wall with a gap in the ring.
  */
