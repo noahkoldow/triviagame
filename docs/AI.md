@@ -19,7 +19,7 @@ Alle Typen haben dazu: `area`, `difficulty`, `topic`, `intro`, `stem`, `explanat
 
 ## Ablauf (`packages/shared/src/ai.ts`)
 
-1. `buildGenerationPrompt(request)` baut den Auftrag aus Bereich (feste Taxonomie), Schwierigkeit, Typ und Themen, die vermieden werden sollen. Der Prompt nennt **keinen Modellnamen**.
+1. `buildGenerationPrompt(request)` baut den Auftrag aus Bereich (feste Taxonomie), Schwierigkeit, Typ, Sprache und Themen, die vermieden werden sollen. Der Prompt ist englisch und verlangt jeden Text, den Spieler lesen (auch Dateinamen, Diagramme, Quellen), in der Zielsprache. Er nennt **keinen Modellnamen**.
 2. Der **Generator** liefert nur Text (`QuestionGenerator`).
 3. `parseDrafts` findet das JSON (auch in Code-Zäunen oder zwischen Text).
 4. `validateDraft` prüft **jede** Frage gegen das Schema des Typs und die Inhaltsregeln (Liste unten) und meldet alle Fehler.
@@ -40,7 +40,7 @@ Ein Test prüft, dass alle vorhandenen Fragen diese Regeln bestehen, damit die R
 
 ## Wo die Pipeline läuft (D45)
 
-Die Pipeline läuft **nur auf dem Server** (Function `questions`, `functions/src/index.ts`). Die App sendet keinen Prompt, sondern `{ area, difficulty, count, have }` (`parsePoolRequest`). Der Server bedient zuerst aus dem gemeinsamen, geprüften Pool in Firestore. Nur wenn dort nichts Neues liegt, baut er den Prompt selbst (`buildGenerationPrompt` mit der Themenbeschreibung des Bereichs), ruft Gemini, validiert, lässt prüfen und legt das Ergebnis im Pool ab. Details: [FIREBASE.md](FIREBASE.md).
+Die Pipeline läuft **nur auf dem Server** (Function `questions`, `functions/src/index.ts`). Die App sendet keinen Prompt, sondern `{ area, difficulty, count, have, lang }` (`parsePoolRequest`). Jede Sprache hat einen eigenen Pool; jede gelieferte Frage trägt `lang`, der Prüfer kontrolliert auch die Sprache. Der Server bedient zuerst aus dem gemeinsamen, geprüften Pool in Firestore. Nur wenn dort nichts Neues liegt, baut er den Prompt selbst (`buildGenerationPrompt` mit der Themenbeschreibung des Bereichs), ruft Gemini, validiert, lässt prüfen und legt das Ergebnis im Pool ab. Details: [FIREBASE.md](FIREBASE.md).
 
 ## In der App (`apps/mobile/src/services/ai.ts`, `content.ts`)
 

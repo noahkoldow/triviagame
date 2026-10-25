@@ -2,7 +2,7 @@
 
 > Ein Wissens-Quiz im zerstörten Netzwerk: Du baust von einem zentralen Chip aus Bahnen wieder auf, sammelst verstreute Datenfragmente, merkst sie dir und beantwortest damit Fragen. Jede richtige Antwort öffnet zwei neue Knoten – tiefer oder breiter. Je weiter du nach außen kommst, desto weniger sieht die Welt nach Computer aus.
 
-Status: Entwurf v0.2 · Sprache: Deutsch zuerst, Englisch danach · Plattform: iOS/Android (Expo, erste Tests in Expo Go) · Ton: leicht verspielt
+Status: Entwurf v0.2 · Sprachen: Deutsch, Englisch, Französisch, Spanisch (D59) · Plattform: iOS/Android (Expo, erste Tests in Expo Go) · Ton: leicht verspielt
 
 ---
 

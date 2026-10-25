@@ -4,7 +4,7 @@ Das Backend liegt in `functions/` und hat zwei HTTP-Functions in `europe-west3`.
 
 | Function | Vertrag | Zweck |
 |---|---|---|
-| `questions` | `POST { area, difficulty, count, have }` → `{ questions }` | Fragen aus dem gemeinsamen, geprüften Pool; bei Bedarf schreibt der Server neue |
+| `questions` | `POST { area, difficulty, count, have, lang }` → `{ questions }` | Fragen aus dem gemeinsamen, geprüften Pool; bei Bedarf schreibt der Server neue |
 | `league` | `POST { action: "join" \| "sync" \| "leave", … }` | Rangliste aller Spieler (siehe unten) |
 
 Die frühere Function `gemini` nahm freie Prompts an und war damit ein offener Gemini-Proxy. Sie ist aus dem Code entfernt und wird beim nächsten Deploy gelöscht (D45).
@@ -17,9 +17,9 @@ Basis-URL der App: `https://europe-west3-nexus-trivia-prod-20261024.cloudfunctio
 
 ## Fragen: wie `questions` arbeitet
 
-1. Die Anfrage wird streng geprüft (`parsePoolRequest` in `packages/shared/src/serve.ts`). Erlaubt sind nur die Felder Bereich (aus der Taxonomie), Schwierigkeit 1–5, Anzahl 1–3 und bis zu 400 Kennungen bekannter Fragen. Alles andere, etwa ein `prompt`-Feld, gibt 400.
-2. Der Server sucht im Index `poolIndex/{bereich}` ungesehene, nicht gesperrte Fragen nahe der Schwierigkeit und liefert sie aus `questions/{id}`.
-3. Nur wenn dort nichts Neues liegt, schreibt das Modell drei neue Fragen. Den Prompt baut der Server selbst aus Taxonomie und Themenbeschreibung, mit dem seltensten Fragetyp des Bereichs und ohne dessen letzte Themen. Jede Frage geht durch Validator und Prüfer und landet im **gemeinsamen** Pool, profitiert also allen.
+1. Die Anfrage wird streng geprüft (`parsePoolRequest` in `packages/shared/src/serve.ts`). Erlaubt sind nur die Felder Bereich (aus der Taxonomie), Schwierigkeit 1–5, Anzahl 1–3, bis zu 400 Kennungen bekannter Fragen und die Sprache (`de`, `en`, `fr`, `es`; fehlt sie, gilt `de` für ältere App-Versionen). Alles andere, etwa ein `prompt`-Feld, gibt 400.
+2. Jede Sprache hat ihren eigenen Pool. Der Server sucht im Index `poolIndex/{sprache}_{bereich}` (etwa `fr_physics`) ungesehene, nicht gesperrte Fragen nahe der Schwierigkeit und liefert sie aus `questions/{id}`.
+3. Nur wenn dort nichts Neues liegt, schreibt das Modell drei neue Fragen. Den Prompt baut der Server selbst aus Taxonomie, Themenbeschreibung und Sprache (alle Spielertexte in der Zielsprache), mit dem seltensten Fragetyp des Bereichs und ohne dessen letzte Themen. Jede Frage geht durch Validator und Prüfer und landet im **gemeinsamen** Pool, profitiert also allen.
 4. Die App prüft jede gelieferte Frage noch einmal (`acceptServed`).
 
 ## Limits und Schutz

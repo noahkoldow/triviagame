@@ -11,7 +11,7 @@ Geprüft mit `pnpm typecheck`, `npx expo-doctor`, HTTP-Proben gegen das Live-Bac
 | # | Bereich | Ist-Stand | Beleg | Schwere |
 |---|---|---|---|---|
 | B1 | Backend | Die alte Function `gemini` (offener Proxy, nimmt freie Prompts an) ist **noch live**. `questions` und `league` sind **nicht deployed**. Die App ruft beide auf und bekommt 404: kein Fragen-Nachschub, keine Rangliste. | GET am 24.10.: `/gemini` → 405 (existiert), `/questions` → 404, `/league` → 404 | Blocker, Kostenrisiko |
-| B2 | Repo | `pnpm typecheck` ist rot, weil die Sprach-Umstellung (de/en/fr/es) im Arbeitsbaum unfertig ist: `localize.ts` importiert `./i18n/content.{en,fr,es}`, die es nicht gibt; `lang` fehlt in `ai.test.ts`, `serve.test.ts`, `questiontypes.test.ts:80` und `functions/src/index.ts:178`. | `pnpm typecheck` | Blocker |
+| B2 | Repo | *Erledigt 25.10.:* Die Sprach-Umstellung (de/en/fr/es) ist fertig (D59): UI, Story, eingebaute Fragen, Server-Pool je Sprache. `pnpm typecheck` und `pnpm test` sind grün. | `pnpm typecheck`, `pnpm test` | – |
 | B3 | Expo-Konfiguration | `expo-doctor`: `newArchEnabled` ist in SDK 58 kein gültiges Feld mehr in `app.json`. | expo-doctor 19/20 | Blocker (klein) |
 | B4 | Build | `eas.json` hat kein `production`-Profil und keinen `submit`-Block. `version` steht auf 0.1.0, die Bundle-ID `app.nexus.game` ist nicht entschieden. | `apps/mobile/eas.json`, `apps/mobile/app.json` | Blocker |
 | B5 | Käufe | *Stand 25.10.:* Interface mit Belegen und Store-Preisen, Gutschrift genau einmal je Transaktion (`applyPurchase`, getestet), Paywall für Plus. **Es fehlt der RevenueCat-Anbieter**; aktiv ist nur der Mock. | `src/services/purchases.ts`, `packages/shared/src/shop.ts` | Blocker |
@@ -65,13 +65,7 @@ Frag den Auftraggeber. Bis zur Antwort gilt die Empfehlung, aber blockierte Aufg
 
 ### Phase 1: Repo grün (sofort, nur Codex)
 
-**1.1 Sprach-Umstellung abschließen oder auslagern.**
-- Was zum Abschluss fehlt:
-  - `packages/shared/src/i18n/content.{en,fr,es}.ts`
-  - `lang` in den Tests und in `functions/src/index.ts:178`
-  - der Systemprompt in `functions/src/index.ts:63`: Er sagt fest „German-language“ und muss der angefragten Sprache folgen.
-  - ein Fragen-Pool je Sprache auf dem Server
-- Wenn das nicht bis zum Launch fertig wird: die Arbeit auf einen Branch `feat/i18n` committen und `main` sauber halten (E6).
+**1.1 Sprach-Umstellung:** erledigt (D59). Für den Store fehlen noch die Store-Texte in Englisch, Französisch und Spanisch (8.1) und je Sprache genug geprüfte Server-Fragen.
 
 **1.2** In `apps/mobile/app.json` die Zeile `"newArchEnabled": true` entfernen. Die neue Architektur ist in SDK 58 Standard.
 

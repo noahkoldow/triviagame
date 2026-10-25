@@ -67,9 +67,15 @@ Spielbar in Expo Go (Mock-Daten):
 - **Firewalls als Wände** (D58): Ring aus hochgestellten Hexagons um die vier Startbereiche, Trennwände zwischen den acht äußeren Bereichen. Sichtbar erst ab 5 Feldern Nähe, angreifbar erst direkt an der Wand; der Sieg reißt dort eine Lücke, durch die das Netz in den Bereich wächst. Außenposten entfallen, „Physik & Chemie“ heißt „Naturwissenschaften“.
 - **Ungeprüft auf Gerät:** Wand-Kacheln (Höhe, Mauerfugen), pulsierende Kante, Schilder und Antippen der Wand. Eine CanvasKit-Vorschau der Szene sah stimmig aus.
 
+## Prototyp 0.10 (Sprachen)
+
+- **Deutsch, Englisch, Französisch, Spanisch** (D59): Sprachwahl als erster Schritt des Onboardings und in den Einstellungen. Oberfläche, Geschichte, Logbuch, Enthüllung, Datenschutzhinweise, Shop und Plus sind übersetzt, ebenso alle 61 eingebauten Fragen samt Ordnerdateien, Artikeln und Diagrammen.
+- **Gemini je Sprache:** Anfrage mit `lang`, ein Pool je Sprache und Bereich, Prompt und Prüfer in der Zielsprache.
+- **Ungeprüft auf Gerät:** Textlängen auf kleinen Bildschirmen (Französisch und Spanisch sind länger), Erkennung der Gerätesprache. Die Übersetzungen sollten Muttersprachler gegenlesen.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (177 + 41 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (190 + 43 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
@@ -78,4 +84,4 @@ Spielbar in Expo Go (Mock-Daten):
 3. Store-Launch nach `docs/CODEX_SUBMISSION.md` (geprüfter Befund, Entscheidungen E1–E8, Reihenfolge); Details in `docs/CODEX_HANDOFF.md`.
 4. **Geld:** AdMob-Konto, Anzeigenblöcke, EAS-Variablen, UMP-Mitteilungen, `app-ads.txt` (`docs/MONETIZATION.md` §6); RevenueCat-Anbieter für Käufe; Development Build mit Test-Anzeigen auf einem Gerät.
 5. Tages-Puls mit morph.ai als Gastgeber, Duelle/Koop, Events.
-6. Englisch, Sounds, Design-Review abarbeiten.
+6. Sounds, Design-Review abarbeiten; Übersetzungen von Muttersprachlern gegenlesen lassen.
