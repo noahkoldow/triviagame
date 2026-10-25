@@ -99,13 +99,13 @@ Spielbar in Expo Go (Mock-Daten):
 
 ## Prototyp 0.15 (größere Bereiche, Server live)
 
-- **Größere Bereiche** (D69): Ring um die Kernzone bei 800 statt 470, äußere Bereiche bis 3500; die erste Wand kommt nach rund 30 statt 5 gelösten Knoten. Alte Spielstände: Lücken wandern auf die neue Wand, Knoten in der falschen Zone werden neu gesetzt.
+- **Größere Bereiche** (D69, D70): Ring um die Kernzone bei 650 statt 470, äußere Bereiche bis 3500; die erste Wand kommt nach rund 15 statt 5 gelösten Knoten (D69 hatte 800 und rund 30). Alte Spielstände: Lücken wandern auf die neue Wand, Knoten in der falschen Zone werden neu gesetzt.
 - **Functions deployed** (25.10.2026): `questions` und `league` sind live, `gemini` ist gelöscht. Geprüft mit `curl`: freier Prompt → 400, `gemini` → 404, gültige Anfrage → neu erzeugte Fragen, `league` ohne Kennung → 400.
 - **Ungeprüft auf Gerät:** wie sich der Weg bis zur Wand anfühlt; ob das Tagesbudget (100 Modellaufrufe, also etwa 75 neue Fragen am Tag) für die größere Kernzone reicht, solange der Pool noch klein ist.
 
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (234 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (235 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
 
 ## Offen / nächste Schritte
 
