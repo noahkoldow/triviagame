@@ -107,12 +107,13 @@ Spielbar in Expo Go (Mock-Daten):
 
 - **Hüter im Kampf** (D71): Der wache Hüter steht in der Firewall-Szene neben Bolt, schießt mit, zuckt bei morph.ais Gegenschlag und kommentiert jede Antwort. Keine Boni.
 - **Erwachen:** Jeder Hüter bittet um Hilfe für seine zwei Säle; die Karte zoomt heraus und umrandet sie, der Dialog dockt unten an.
+- **Gegenschlag** (D72): Nach einem verlorenen Wandkampf beschädigt morph.ai 1–2 gelöste Knoten an der Wand; erst nach ihrer Reparatur lässt sich die Wand wieder angreifen.
 - **Zeitlimit:** eine Uhr pro Firewall-Kampf und Finale (je nach Fragetypen, etwa 2:30 bei acht Auswahlfragen), läuft nur bei offener Frage; abgelaufen heißt verloren. Mit Screenreader doppelt so lang.
 - **Ungeprüft auf Gerät:** Kamerafahrt und Umrisse der Säle (Zoom unter `MIN_ZOOM`), Höhe des angedockten Dialogs auf kleinen Bildschirmen, ob die Uhr zu knapp oder zu großzügig ist.
 
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (240 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (241 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
 
 ## Offen / nächste Schritte
 
