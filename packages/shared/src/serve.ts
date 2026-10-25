@@ -1,6 +1,6 @@
 import { QUESTION_TYPES, validateDraft } from './ai';
 import { DEFAULT_LANG, LANGS, isLang, type Lang } from './lang';
-import { isArea } from './taxonomy';
+import { AREAS, isArea } from './taxonomy';
 import type { Question, QuestionType } from './types';
 
 /**
@@ -97,6 +97,33 @@ export interface PoolEntry {
 
 export function poolEntryOf(q: Question): PoolEntry {
   return { id: q.id, difficulty: q.difficulty, type: q.type, topic: q.topic };
+}
+
+/** Servable questions a pool should hold before launch traffic draws on it (DIRECTION §6.4). */
+export const POOL_TARGET = 25;
+
+/**
+ * Which pool the server tops up next on its own: the one with the fewest servable questions
+ * below `target`, at the level it has least of. Null once every pool is full. `pools` maps
+ * `poolKey(area, lang)` to its entries; a missing pool counts as empty.
+ */
+export function nextPoolToFill(
+  pools: Record<string, PoolEntry[]>,
+  target = POOL_TARGET,
+): { area: string; lang: Lang; difficulty: PoolRequest['difficulty'] } | null {
+  let best: { area: string; lang: Lang; entries: PoolEntry[] } | null = null;
+  for (const lang of LANGS) {
+    for (const a of AREAS) {
+      const entries = (pools[poolKey(a.id, lang)] ?? []).filter((e) => !e.blocked);
+      if (entries.length >= target) continue;
+      if (!best || entries.length < best.entries.length) best = { area: a.id, lang, entries };
+    }
+  }
+  if (!best) return null;
+  const levels = [2, 3, 1, 4, 5] as const;
+  const count = (d: number) => best!.entries.filter((e) => e.difficulty === d).length;
+  const difficulty = levels.reduce((low, d) => (count(d) < count(low) ? d : low), levels[0]);
+  return { area: best.area, lang: best.lang, difficulty };
 }
 
 /** The entries to serve: unseen, not blocked, closest to the asked level, older ones first. */

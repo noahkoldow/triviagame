@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  nextPoolToFill,
+  poolKey,
   blockEntry,
   parseReport,
   AREAS,
@@ -27,6 +29,7 @@ import {
   scoresOf,
   validateDraft,
   zeroScores,
+  type PoolEntry,
 } from './index';
 
 describe('content API: requests', () => {
@@ -185,5 +188,24 @@ describe('content API: reports', () => {
     expect(blocked[1]).toBe(entries[1]);
     expect(blockEntry(blocked, 'a')).toBe(blocked);
     expect(blockEntry(entries, 'zz')).toBe(entries);
+  });
+});
+
+describe('content API: topping up the pools', () => {
+  const entry = (id: string, difficulty: number) => ({ id, difficulty, type: 'choice' as const, topic: id });
+  it('fills the emptiest pool first, at the level it lacks', () => {
+    const full = Array.from({ length: 3 }, (_, i) => entry(`x${i}`, 2));
+    const pools: Record<string, PoolEntry[]> = {};
+    for (const lang of ['de', 'en', 'fr', 'es']) for (const a of AREAS) pools[poolKey(a.id, lang as 'de')] = full;
+    pools[poolKey(AREAS[5]!.id, 'fr')] = [entry('a', 2)];
+    expect(nextPoolToFill(pools, 3)).toEqual({ area: AREAS[5]!.id, lang: 'fr', difficulty: 3 });
+  });
+  it('counts blocked questions as missing and stops when every pool is full', () => {
+    const pools: Record<string, PoolEntry[]> = {};
+    for (const lang of ['de', 'en', 'fr', 'es']) for (const a of AREAS) pools[poolKey(a.id, lang as 'de')] = [entry('a', 2)];
+    expect(nextPoolToFill(pools, 1)).toBeNull();
+    pools[poolKey(AREAS[0]!.id, 'es')] = [{ ...entry('a', 2), blocked: true }];
+    expect(nextPoolToFill(pools, 1)).toMatchObject({ area: AREAS[0]!.id, lang: 'es', difficulty: 2 });
+    expect(nextPoolToFill({}, 1)).toMatchObject({ area: AREAS[0]!.id, lang: 'de' });
   });
 });

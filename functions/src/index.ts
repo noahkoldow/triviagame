@@ -4,8 +4,11 @@ import { getApps, initializeApp } from 'firebase-admin/app';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { defineBoolean, defineInt, defineSecret, defineString } from 'firebase-functions/params';
 import { onRequest, type Request } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import type { Response } from 'express';
 import {
+  LANGS,
+  AREAS,
   OVERALL,
   POOL_MAX_COUNT,
   RANKING_TOP,
@@ -19,12 +22,15 @@ import {
   groundingEvidence,
   isAlias,
   isBoard,
+  nextPoolToFill,
   nextQuestionType,
   parseCheck,
   parsePoolRequest,
   parseReport,
   poolEntryOf,
   poolKey,
+  type Lang,
+  type PoolRequest,
   rankEntries,
   scoreOn,
   zeroScores,
@@ -57,6 +63,10 @@ const aiEnabled = defineBoolean('AI_ENABLED', { default: false, description: 'Em
 const checkGrounding = defineBoolean('AI_CHECK_GROUNDING', {
   default: false,
   description: 'Let the checker pass verify facts with Google Search (billed per search beyond the free tier)',
+});
+const poolTarget = defineInt('AI_POOL_TARGET', {
+  default: 25,
+  description: 'Servable questions per area and language the scheduled top-up fills each pool to (0 = off)',
 });
 const dailyCallLimit = defineInt('AI_DAILY_CALL_LIMIT', {
   default: 100,
@@ -177,6 +187,72 @@ function fail(response: Response, error: unknown, where: string): void {
 
 // --- questions ---------------------------------------------------------
 
+/**
+ * Lets the model write a few questions for one pool, checks them and stores the accepted ones
+ * (shared with everyone). Each call spends the daily budget.
+ */
+async function writeQuestions(area: string, lang: Lang, difficulty: PoolRequest['difficulty'], entries: PoolEntry[]): Promise<Question[]> {
+  const result = await generateQuestions(
+    generator,
+    checker,
+    { area, difficulty, type: nextQuestionType(entries), count: POOL_MAX_COUNT, avoidTopics: avoidTopicsOf(entries), lang },
+    new Set(entries.map((e) => e.id)),
+  );
+  if (result.rejected.length) console.info('drafts rejected', { area, lang, count: result.rejected.length });
+  if (!result.accepted.length) return [];
+  const batch = db.batch();
+  for (const q of result.accepted) {
+    batch.set(db.collection('questions').doc(q.id), {
+      question: q,
+      area: q.area,
+      lang,
+      status: 'checked',
+      reports: 0,
+      // the pages the checker confirmed it with (only with AI_CHECK_GROUNDING)
+      evidence: result.evidence[q.id] ?? [],
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+  batch.set(
+    db.collection('poolIndex').doc(poolKey(area, lang)),
+    { entries: FieldValue.arrayUnion(...result.accepted.map(poolEntryOf)), updatedAt: FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+  await batch.commit();
+  return result.accepted;
+}
+
+/** Writes per scheduled run; the daily budget (`AI_DAILY_CALL_LIMIT`) caps the total. */
+const TOP_UPS_PER_RUN = 2;
+
+/**
+ * Before and after launch the pools fill themselves, emptiest first, so the first players do not
+ * wait for the model and a stuck map gets its questions (D69): up to `AI_POOL_TARGET` servable
+ * questions per area and language, within the same budget and kill switch as `questions`.
+ */
+export const topUpPools = onSchedule(
+  { region: REGION, schedule: 'every 30 minutes', timeoutSeconds: 540, memory: '512MiB', secrets: [geminiApiKey], retryCount: 0 },
+  async () => {
+    const target = poolTarget.value();
+    if (target <= 0 || !aiEnabled.value() || !geminiApiKey.value()) return;
+    for (let i = 0; i < TOP_UPS_PER_RUN; i++) {
+      const keys = LANGS.flatMap((lang) => AREAS.map((a) => poolKey(a.id, lang)));
+      const docs = await db.getAll(...keys.map((k) => db.collection('poolIndex').doc(k)));
+      const pools = Object.fromEntries(docs.map((d) => [d.id, (d.get('entries') ?? []) as PoolEntry[]]));
+      const next = nextPoolToFill(pools, target);
+      if (!next) return;
+      try {
+        const added = await writeQuestions(next.area, next.lang, next.difficulty, pools[poolKey(next.area, next.lang)] ?? []);
+        console.info('pool topped up', { ...next, added: added.length });
+      } catch (error) {
+        // the budget is used up for today, or the model failed: the next run tries again
+        console.warn('pool top-up stopped', { ...next, error: String(error) });
+        return;
+      }
+    }
+  },
+);
+
 export const questions = onRequest(
   { region: REGION, timeoutSeconds: 120, memory: '512MiB', maxInstances: 3, concurrency: 10, secrets: [geminiApiKey] },
   async (request, response) => {
@@ -200,42 +276,7 @@ export const questions = onRequest(
       let fresh: Question[] = [];
       const canGenerate = aiEnabled.value() && !!geminiApiKey.value();
       if (chosen.length < req.count && canGenerate && (await allow('gen', key, GENERATIONS_PER_HOUR))) {
-        const result = await generateQuestions(
-          generator,
-          checker,
-          {
-            area: req.area,
-            difficulty: req.difficulty,
-            type: nextQuestionType(entries),
-            count: POOL_MAX_COUNT,
-            avoidTopics: avoidTopicsOf(entries),
-            lang: req.lang,
-          },
-          new Set(entries.map((e) => e.id)),
-        );
-        if (result.accepted.length) {
-          const batch = db.batch();
-          for (const q of result.accepted) {
-            batch.set(db.collection('questions').doc(q.id), {
-              question: q,
-              area: q.area,
-              lang: req.lang,
-              status: 'checked',
-              reports: 0,
-              // the pages the checker confirmed it with (only with AI_CHECK_GROUNDING)
-              evidence: result.evidence[q.id] ?? [],
-              createdAt: FieldValue.serverTimestamp(),
-            });
-          }
-          batch.set(
-            indexRef,
-            { entries: FieldValue.arrayUnion(...result.accepted.map(poolEntryOf)), updatedAt: FieldValue.serverTimestamp() },
-            { merge: true },
-          );
-          await batch.commit();
-          fresh = result.accepted;
-        }
-        if (result.rejected.length) console.info('drafts rejected', { area: req.area, lang: req.lang, count: result.rejected.length });
+        fresh = await writeQuestions(req.area, req.lang, req.difficulty, entries);
       }
 
       const ids = chosen.map((e) => e.id);
