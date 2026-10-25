@@ -85,9 +85,15 @@ Spielbar in Expo Go (Mock-Daten):
 - **Sammelalben:** 8 Themen quer durch alle 12 Bereiche im Codex, ein volles Album bringt 3 Gems und 50 Bits.
 - **Ungeprüft auf Gerät:** Bögen und Funken-Schilder auf der Karte, Antippen der Funken, Länge der Texte in FR/ES.
 
+## Prototyp 0.13 (Bosskampf und neue Formate)
+
+- **Firewalls als Bosskampf** (D64): vier Schichten, acht Fragen; richtig reißt eine Schicht ein (Strahl, fallende Steine), falsch lässt morph.ai sie reparieren (Rauschen fließt herab). Lebensbalken, verbleibende Fragen, Sprüche von Bolt und morph.ai.
+- **Neue Formate und Fragetypen** (D65, Konzept 4.1–4.3): Steckbrief, Zitat, Nachricht, Linien-, Kreis- und Ablaufdiagramm; Mehrfachauswahl, In Ordner sortieren, Fehler finden. Alles im Gemini-Prompt, Validator und Prüfer, je eine eingebaute Frage pro Typ in vier Sprachen.
+- **Ungeprüft auf Gerät:** Bosskampf-Animation (viele kleine Skia-Gruppen, Performance auf älteren Geräten), Textlängen der neuen Ansichten, Kreisdiagramm per react-native-svg.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (204 + 43 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (215 + 49 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 

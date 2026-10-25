@@ -70,9 +70,52 @@ Jedes Unterthema hat eine eigene Schwierigkeitsstufe pro Spieler (Elo-artig). Si
 5. **Auflösen:** Richtig → Bahn leuchtet, zwei neue Knoten entstehen, kurze Erklärung („Warum?“) mit Mehrwert. Falsch → Glitch und Erklärung.
 6. **Hilfe:** Gegen Energie darf man ein Fragment noch einmal ansehen („Rückspulen“). So bleibt es fair, ohne dass Merken wertlos wird.
 
-**Fragetypen** (jeweils mit Fragmenten kombinierbar): Multiple Choice, Reihenfolge, Zuordnen, Schätzfrage (Zahl mit Toleranz), „Rekonstruiere“ (zwei Fragmente zu einer Aussage verbinden), Karte antippen.
-
 **Fairnessregel:** Jede Frage muss mit den Fragmenten allein oder mit Fragmenten plus gängigem Schulwissen lösbar sein. Wird das nicht erfüllt, wird sie im Validierungsschritt (siehe 7.2) verworfen.
+
+### 4.1 Informationsformate in den Ordnern (D33, D65)
+
+Ein Fragment ist ein Ordner mit Dateien. Damit Suchen und Auswählen echte Arbeit sind, ist nicht alles eine Notiz: Jede Wissensart hat ihr eigenes Format, und ein Ordner mischt Formate. Alle Formate sind **strukturierte Daten, die das Spiel selbst zeichnet** (keine Fotos, kein Bildmodell): prüfbar, ohne Urheberrechtsfragen, durchsuchbar und mit Alt-Text vorlesbar.
+
+| Wissensart | Format | Beispiel |
+| --- | --- | --- |
+| einzelner Fakt | Notiz `.txt` | „Licht braucht 8 Minuten zur Erde.“ |
+| Zusammenhang, Erklärung | Artikel mit Absätzen und Quelle | Wie Licht aus Strecke und Zeit berechnet wird |
+| Mengen nebeneinander | Balkendiagramm | Entfernung der Planeten zur Sonne |
+| Werte über die Jahre | **Liniendiagramm** | CO₂ am Mauna Loa 1960–2020 |
+| Anteile am Ganzen | **Kreisdiagramm** (Summe 100 %) | Zusammensetzung der Luft |
+| Abläufe, Kreisläufe | **Ablauf** (Schritte, optional Kreis) | Treibhauseffekt in vier Schritten |
+| Daten mit Jahreszahl | Zeitleiste | Mauerbau → Mauerfall → Einheit |
+| Vergleich mehrerer Merkmale | Tabelle | Schall in Luft, Wasser, Stahl |
+| Eigenschaften eines Dings, Orts, Wesens | **Steckbrief** `.inf` (Eigenschaften-Fenster) | Wal: Klasse, Atmung, Nachwuchs |
+| was eine Quelle wörtlich sagt | **Zitat** mit Herkunft | Präambel der UN-Charta |
+| Kontext, den jemand weitergibt | **Nachricht** `.eml` (Von, Betreff) | Bolt: „Pinguine sind keine Fische!“ |
+
+**Ausblick** (noch nicht gebaut, gleiche Regeln): schematische **Karte** aus gemeinfreien Umrissen (Natural Earth) mit markierten Orten; **Lexikoneintrag** mit Begriff, Lautschrift und Herkunft; **Formel** mit erklärten Größen; **Chatverlauf** aus dem alten Nexus-Forum; **Faksimile** (Brief, Urkunde) als gesetzter Text mit Datum und Siegel; **beschädigte Datei**, in der morph.ai Wörter geschwärzt hat, die man aus anderen Dateien rekonstruiert; **zwei Quellen, die sich widersprechen** (eine davon ist ein Köder), was Quellenkritik übt und zur Geschichte passt: morph.ai hat das Prüfen von Quellen überflüssig gemacht.
+
+### 4.2 Fragetypen (D31, D65)
+
+| Typ | Spiel | trainiert |
+| --- | --- | --- |
+| Auswahl | eine von 3–5 Antworten | Abrufen |
+| **Mehrfachauswahl** | alle richtigen von 4–6 (2–4 stimmen) | genaues Wissen, kein Raten per Ausschluss |
+| Stimmt / Stimmt nicht | Aussage beurteilen | Fehlvorstellungen erkennen |
+| Schätzen | Zahl mit Toleranz | Größenordnungen |
+| Reihenfolge | 3–6 Einträge ordnen | Zeit und Abläufe |
+| Zuordnen | 3–6 Paare verbinden | Beziehungen |
+| Lückentext | Wörter aus einer Wortbank einsetzen | Begriffe im Zusammenhang |
+| **In Ordner sortieren** | 4–8 Einträge in 2–3 Ordner legen | Kategorien bilden, passt zum Ordner-Thema |
+| **Fehler finden** | in 3–5 Sätzen den falschen antippen | kritisch lesen, morph.ai-Fehler entlarven |
+
+**Ausblick:** **Wer bin ich?** (Hinweise nacheinander aufdecken, wer früher löst, bekommt mehr), **Kausalkette** (Ursache → Wirkung ordnen), **Ort auf der Karte antippen** (mit dem Kartenformat), **Lücke im Diagramm** (fehlenden Wert schätzen), **Quelle prüfen** (welche von zwei Dateien ist verlässlich und warum), **Schieberegler-Schätzung** auf einem Zahlenstrahl, **Was passt nicht?**.
+
+### 4.3 Formate aus Gemini (Sourcing)
+
+- **Form statt freiem Text:** Jedes Format hat ein festes JSON-Schema (Prompt und Validator, `ai.ts`, `files.ts`). Das Modell liefert Daten, das Spiel zeichnet. Was nicht ins Schema passt, wird verworfen, nie „repariert“.
+- **Format nach Wissensart:** Der Prompt nennt die Zuordnung aus 4.1 und verlangt gemischte Ordner. Der Server wählt den Fragetyp, von dem ein Bereich am wenigsten hat (`nextQuestionType`), damit der Pool abwechslungsreich bleibt.
+- **Harte Regeln im Validator:** Kreisanteile summieren sich auf 100, Jahre einer Linie steigen, Zitate brauchen eine Herkunft, Steckbrief-Merkmale sind eindeutig, Mehrfachauswahl hat mindestens eine falsche Option, jeder Ordner bekommt mindestens einen Eintrag.
+- **Prüfer-Durchlauf** kontrolliert zusätzlich: Zahlen in Diagrammen und Tabellen, wörtliche Zitate und ihre Quelle, dass der Fakt nicht in jeder Datei steht, und die Eindeutigkeit je Typ.
+- **Zitate** nur aus gut belegten Primärquellen (Gesetze, Chartas, bekannte Reden und Werke); im Zweifel schreibt das Modell einen Artikel statt eines Zitats. Falsch zugeschriebene Zitate sind die häufigste KI-Fehlerquelle.
+- **Nächster Schritt:** Such-Grounding beim Prüfer, die gefundenen Belege als `source` speichern; Zahlenreihen gegen offene Daten (z. B. NOAA, Weltbank) abgleichen; gemeldete Fragen sperren (`PoolEntry.blocked`).
 
 ## 5. Visuelle Idee: die Auflösung des Netzwerks
 
@@ -118,7 +161,7 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 
 - **Tages-Puls:** ein täglicher, kurzer Spezialknoten (5 Fragen) mit Streak. Streak-Schutz (zwei „Freeze“-Tage pro Monat), keine Strafen-Spirale.
 - **Wochen-Event:** thematische „Störungen“ des Rauschens, z. B. „Antike-Woche“; Knoten erscheinen themenübergreifend.
-- **Bosse („Firewalls“):** Wände aus hochgestellten Hexagons um die Kernzone und zwischen den äußeren Bereichen, im Nebel unsichtbar, bis das Netz auf 5 Felder herankommt. Steht ein Knoten direkt an der Wand, lässt sie sich angreifen: Fragen aus dem eigenen Bereich und dem dahinter. Belohnung: Die Wand bricht an dieser Stelle auf, der Bereich dahinter öffnet sich.
+- **Bosse („Firewalls“):** Wände aus hochgestellten Hexagons um die Kernzone und zwischen den äußeren Bereichen, im Nebel unsichtbar, bis das Netz auf 5 Felder herankommt. Steht ein Knoten direkt an der Wand, lässt sie sich angreifen, als **Bosskampf** (D64): Die Firewall hat vier Schichten (Lebensbalken), morph.ai steht oben auf der Wand, Bolt unten. Jede richtige Antwort ist ein Treffer: Bolts Strahl schlägt ein, die oberste Schicht zerspringt in fallende Steine. Jede falsche Antwort lässt morph.ai die Wand reparieren: Sein Rauschen fließt herab und baut eine Schicht wieder auf, dazu ein spöttischer Spruch. Acht Fragen, abwechselnd aus dem eigenen Bereich und dem dahinter; reichen die übrigen Fragen nicht mehr für die stehenden Schichten, hält die Wand. Belohnung: Die Wand bricht an dieser Stelle auf, der Bereich dahinter öffnet sich.
 
 ### 6.4 Sozial
 

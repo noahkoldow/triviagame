@@ -4,7 +4,7 @@ Stand: Schema, Prüfung, serverseitige Erzeugung mit gemeinsamem Fragenpool und 
 
 ## Fragetypen
 
-Sechs Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`):
+Neun Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`):
 
 | Typ         | Spiel                 | Felder der KI                                                        |
 | ----------- | --------------------- | -------------------------------------------------------------------- |
@@ -14,6 +14,9 @@ Sechs Typen, alle für die KI vorgesehen und im Spiel bedienbar (`QuestionView`)
 | `truefalse` | Stimmt / Stimmt nicht | `answer` (boolean); die Aussage ist `stem`                           |
 | `match`     | Zuordnen              | `pairs` (3 bis 6, links und rechts je eindeutig)                     |
 | `cloze`     | Lückentext            | `text` mit `{0}`, `{1}` …, `answers`, `bank` (inkl. falscher Wörter) |
+| `multi`     | Mehrfachauswahl       | `options` (4 bis 6), `answers` (Indizes, 2 bis 4, mindestens eine Option falsch) |
+| `sort`      | In Ordner sortieren   | `groups` (2 oder 3), `items` (4 bis 8, je `[Eintrag, Ordner]`, jeder Ordner belegt) |
+| `spot`      | Fehler finden         | `lines` (3 bis 5 Aussagen), `wrong` (Index der einzigen falschen) |
 
 Alle Typen haben dazu: `area`, `difficulty`, `topic`, `intro`, `stem`, `explanation`, `fragments`.
 
@@ -53,7 +56,8 @@ Die Pipeline läuft **nur auf dem Server** (Function `questions`, `functions/src
 - Meldefunktion in der App und serverseitiges Sperren gemeldeter Fragen (`PoolEntry.blocked` ist vorbereitet).
 - Firebase App Check vor dem Launch.
 - Verzweigungen (`deepen`/`bridge`) und Bereichs-Nachbarschaft für KI-Fragen vorschlagen lassen; bisher wählt das Spiel selbst per Bereichs-Links.
-- Weitere Fragetypen, die zum Windows-95-Stil passen, etwa „In Ordner sortieren“ oder „Fehler im Text finden“.
+- Weitere Fragetypen und Formate aus `CONCEPT.md` 4.1/4.2 (Ausblick), etwa „Wer bin ich?“, Karte, „Quelle prüfen“.
+- Such-Grounding beim Prüfer, Belege als Quelle speichern; Zahlenreihen gegen offene Daten abgleichen.
 
 ## Dateien in Cache-Ordnern
 
@@ -63,7 +67,12 @@ Fragmente können `files` tragen (siehe `validateFiles` in `packages/shared/src/
   - `bars`: 2 bis 6 Balken mit Beschriftung und Zahl, optional Einheit.
   - `timeline`: 2 bis 6 Ereignisse mit ganzer Jahreszahl.
   - `table`: 2 bis 5 Spalten, 1 bis 6 Zeilen, jede Zeile so lang wie die Kopfzeile.
+  - `line`: 3 bis 8 Punkte (`year`, `value`), Jahre steigend, optional Einheit.
+  - `pie`: 2 bis 6 Anteile über 0, zusammen 100 (± 1 für Rundung).
+  - `flow`: 2 bis 6 Schritte, `cycle` führt vom letzten zum ersten.
+- **Steckbrief** (`profile`): 2 bis 8 Zeilen `[Merkmal, Wert]`, Merkmale eindeutig. **Zitat** (`quote`): wörtlich, bis 300 Zeichen, `source` (wer, wo, wann) ist Pflicht. **Nachricht** (`mail`): `from`, `subject`, Text bis 400 Zeichen.
+- Der Prompt ordnet Wissensarten Formaten zu (siehe `CONCEPT.md` 4.1) und verlangt gemischte Ordner.
 - 1 bis 5 Dateien pro Ordner, Dateinamen eindeutig und ohne die Antwort zu verraten.
 - Der Fakt des Fragments muss in mindestens einer Datei stehen; die anderen geben Kontext oder sind plausible, aber unwichtige Köder.
 
-Offen: Der Prüfer sollte auch kontrollieren, dass Zahlen im Diagramm stimmen und der Fakt nicht in jeder Datei steht (dann gäbe es nichts zu suchen).
+Der Prüfer kontrolliert auch, dass Zahlen in Diagrammen stimmen, Zitate wörtlich und richtig zugeschrieben sind und der Fakt nicht in jeder Datei steht (dann gäbe es nichts zu suchen).
