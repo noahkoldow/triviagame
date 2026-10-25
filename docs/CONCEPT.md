@@ -111,7 +111,8 @@ Navigation: Pinch-Zoom-Karte des Netzes. Weit herausgezoomt sieht man die vier F
 - **Integrität** (Lebensanzeige pro Lauf): sinkt bei Fehlern, regeneriert über Wiederholungen. Fällt sie auf null, gibt es einen kurzen Reparatur-Mini-Run statt Abbruch.
 - **Sektor-Mastery:** pro Sektor Stufen (1–5 Sterne) nach abgedeckten Unterthemen _und_ Tiefe. Der Wissens-Fußabdruck zeigt Breite und Tiefe getrennt.
 - **Kern-Level:** globales Level; schaltet neue Zonen, Fragetypen und Lore frei.
-- **Codex:** Sammelalbum aller gesammelten Fragmente (mit Quelle und Bild). Wird zum persönlichen Lexikon und Wiederholungsstoff.
+- **Codex:** Sammelalbum aller gesammelten Fragmente (mit Quelle und Bild). Wird zum persönlichen Lexikon und Wiederholungsstoff. Dazu Sammelalben mit Themen quer durch die Bereiche (D61).
+- **Vernetzung (Breite lohnt sich, D61):** Verwandte Bereiche, die man gut kennt, lassen sich durch eine Synapse verbinden (Probe aus dem Gedächtnis). Jede Synapse erhöht dauerhaft XP und Bits jeder Antwort. Abwechslungsreiches Spielen gibt zusätzlich einen Vielfalt-Bonus auf Bits.
 
 ### 6.3 Rhythmus
 

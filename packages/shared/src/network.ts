@@ -108,7 +108,7 @@ function steer(cands: Question[], area?: string): Question[] {
  */
 function reachOf(state: NetworkState, links: Link[], from: { x: number; y: number }, area: string): number {
   const zone = zoneOfArea(area);
-  const route = zoneRoute(breachesOf(state.firewalls), zoneOf(from.x, from.y), zone);
+  const route = zoneRoute(breachesOf(state.firewalls, state.synapses), zoneOf(from.x, from.y), zone);
   if (!route) return Infinity;
   let at = from;
   let d = 0;
@@ -214,7 +214,7 @@ function growFrom(state: NetworkState, parent: Vec3, zone: string): Vec3 {
 
 /** The traces the map draws, piece by piece: every node to its parent (through the gaps), roots to the core. */
 function linksOf(state: NetworkState): Link[] {
-  const gaps = breachesOf(state.firewalls);
+  const gaps = breachesOf(state.firewalls, state.synapses);
   const out: Link[] = [];
   for (const n of Object.values(state.nodes)) {
     const a = n.parentId ? state.nodes[n.parentId]?.pos : { x: 0, y: 0 };

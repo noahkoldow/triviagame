@@ -78,9 +78,16 @@ Spielbar in Expo Go (Mock-Daten):
 - **Keine Bahnen mehr quer über die Karte** (D60): Brücken führen nur in ein Thema, das man vom gelösten Knoten aus erreicht (Nachbarsektor oder nahe Lücke), sonst bleiben sie im Thema oder warten auf neue Fragen. Neue Knoten stehen höchstens 230 Einheiten vom Elternknoten (oder der Lücke) entfernt und meiden Kreuzungen. Alte Karten werden beim Laden einmal repariert.
 - **Ungeprüft auf Gerät:** wie eine reparierte alte Karte aussieht. Die Reparatur dauert am Rechner 10–60 ms, bei 240 Knoten 0,2 s.
 
+## Prototyp 0.12 (Breite lohnt sich)
+
+- **Synapsen** (D61): Verwandte Bereiche mit je 4 gelösten Knoten lassen sich per Probe aus dem Gedächtnis verbinden. Jede Synapse gibt dauerhaft +5 % XP und Bits, reißt an gemeinsamen Wänden eine Abkürzung und schwebt als leuchtender Bogen über der Karte. Liste im Dock, Vernetzung im Profil.
+- **Vielfalt-Bonus:** +20 % Bits bei 5 verschiedenen Bereichen unter den letzten 10 Antworten.
+- **Sammelalben:** 8 Themen quer durch alle 12 Bereiche im Codex, ein volles Album bringt 3 Gems und 50 Bits.
+- **Ungeprüft auf Gerät:** Bögen und Funken-Schilder auf der Karte, Antippen der Funken, Länge der Texte in FR/ES.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (194 + 43 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (204 + 43 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 

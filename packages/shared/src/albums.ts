@@ -1,7 +1,7 @@
 import type { NetworkState } from './types';
 
 /**
- * Collection albums (D60): themes that cut across the areas, made of built-in questions. An album
+ * Collection albums (D61): themes that cut across the areas, made of built-in questions. An album
  * is full once every one of its questions is a solved node, which pays once. So a player who
  * explores many areas fills albums that a player staying in one area never completes. The names
  * are UI texts (`codex.albums` in the app).

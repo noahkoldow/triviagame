@@ -6,7 +6,7 @@ import type { NetNode, NetworkState, Question } from './types';
 import { wallBetween, zoneOf, type Breach } from './walls';
 
 /**
- * Synapses (D60). Knowledge is worth more when it is connected. Two related areas (`AREA_LINKS`)
+ * Synapses (D61). Knowledge is worth more when it is connected. Two related areas (`AREA_LINKS`)
  * in which the player has solved enough can be joined by a probe: questions the player already
  * solved in both, answered from memory. A synapse shows as a glowing arc between the two areas,
  * tears a gap where they share a wall (a shortcut for the network), and raises the network's
