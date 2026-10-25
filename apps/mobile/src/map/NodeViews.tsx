@@ -27,6 +27,25 @@ export interface NodeInfo {
 export const NODE_R = 31;
 export const NODE_DEPTH = 13;
 
+/** Labels wider than this break onto a second line, so neighbouring labels do not run together. */
+const LABEL_W = 120;
+
+/** One or two lines, split at the space that balances them best. */
+function labelLines(label: string, font: SkFont): string[] {
+  if (font.getTextWidth(label) <= LABEL_W) return [label];
+  let best: string[] = [label];
+  let worst = Infinity;
+  for (let i = label.indexOf(' '); i > 0; i = label.indexOf(' ', i + 1)) {
+    const lines = [label.slice(0, i), label.slice(i + 1)];
+    const w = Math.max(...lines.map((l) => font.getTextWidth(l)));
+    if (w < worst) {
+      worst = w;
+      best = lines;
+    }
+  }
+  return best;
+}
+
 type Builder = ReturnType<typeof Skia.PathBuilder.Make>;
 
 /** Pointy-top hexagon in view space, centred on the origin. */
@@ -223,7 +242,7 @@ function NodeTileBase({
   const face = faceOf(info);
   const edge = shade(face, 0.4);
   const icon = ICONS[info.sector];
-  const lw = font.getTextWidth(info.label);
+  const lines = labelLines(info.label, font);
 
   return (
     <Group transform={[{ translateX: node.pos.x }, { translateY: node.pos.y * SQUASH }]}>
@@ -254,8 +273,16 @@ function NodeTileBase({
       </Group>
       {node.state !== 'solved' ? (
         <>
-          <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={info.label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
-          <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={info.label} font={font} color="#FFFFFF" />
+          {lines.map((line, i) => {
+            const x = -font.getTextWidth(line) / 2;
+            const y = NODE_R * SQUASH + 17 + i * 15;
+            return (
+              <Group key={i}>
+                <SkText x={x} y={y} text={line} font={font} color="#04080F" style="stroke" strokeWidth={4} />
+                <SkText x={x} y={y} text={line} font={font} color="#FFFFFF" />
+              </Group>
+            );
+          })}
         </>
       ) : null}
     </Group>

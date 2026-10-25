@@ -121,7 +121,7 @@ function NetMapBase({
   onDismiss,
   onSelect,
 }: Props) {
-  // area names on the map follow the player's language
+  // node labels and wall signs follow the player's language
   const t = useStrings();
   const cx = useSharedValue(0);
   const cy = useSharedValue(0);
@@ -172,9 +172,11 @@ function NetMapBase({
       for (const [s, w] of Object.entries(q.side ?? {}) as [Sector, number][]) {
         if (w) ring = mix(ring, SECTOR_COLOR[s], Math.min(0.6, w * 1.6));
       }
-      out[n.id] = { node: n, color, ring, label: areaName(q.area, t.lang), sector };
+      // the question's keyword names the node; the colour already tells the area
+      out[n.id] = { node: n, color, ring, label: q.topic, sector };
     }
     return out;
+    // the pool keeps its identity when the language changes, so the labels follow t.lang
   }, [placed, pool, t.lang]);
 
   const sites = useMemo<Site[]>(() => {
