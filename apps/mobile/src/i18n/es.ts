@@ -220,7 +220,8 @@ export const es: Strings = {
     needed: (right, pass) => `${right} / ${pass} necesarias`,
     finaleIntro: (pass) =>
       `morph.ai: “Ocho preguntas, los cuatro sectores, sin caché ni carpetas. Apuesto a que al final me preguntarás a mí.” ${pass} tienen que ser correctas.`,
-    wallIntro: 'morph.ai: “Cuatro capas de cortafuegos. Y cada error lo parcheo al instante.” Cada respuesta correcta derriba una capa. Sin caché, sin carpetas, solo tu cabeza.',
+    /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
+    wallRules: 'Cuatro capas de cortafuegos, y morph.ai parchea cada error al instante. Cada respuesta correcta derriba una capa. Sin caché, sin carpetas, solo tu cabeza.',
     attack: 'Atacar',
     layers: (hp, max) => `CORTAFUEGOS ${hp}/${max}`,
     sceneA11y: (hp, max) => `Cortafuegos, ${hp} de ${max} capas en pie`,

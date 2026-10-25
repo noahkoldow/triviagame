@@ -10,6 +10,7 @@ import { seededRng } from './rng';
 import { synapseSpots } from './synapses';
 import { AREAS, SECTORS, sectorOfArea } from './taxonomy';
 import type { Sector } from './types';
+import { OUTER_ZONES, WALL_SIGHT, approachOf } from './walls';
 
 /**
  * The plot. It is told in short beats that appear on the map when their condition first
@@ -17,6 +18,12 @@ import type { Sector } from './types';
  * sorting and remembering off people's hands and "cleaned up" the archive, and in the end it is
  * won over in a final duel. Beats can leave a log file
  * that the player reads again in the codex.
+ *
+ * The firewalls are foreshadowed before they are fought: Bolt notices the first wall that comes
+ * out of the fog, every guardian names the two areas of its sector locked behind it, before
+ * each fight morph.ai and the guardian trade words about the area behind the wall
+ * (`wallVoices`), and after the third broken wall the core picks up morph.ai preparing the final
+ * duel.
  *
  * This file holds the logic; the words are in `i18n/story.<lang>.ts`, one file per language.
  */
@@ -54,6 +61,10 @@ export interface StoryText {
   morphWrong: string[];
   morphReformed: string[];
   guardianCorrect: Record<GuardianId, string[]>;
+  /** Before a fight, by the area behind the wall (every outer area): morph.ai's taunt and its guardian's answer. */
+  walls: Record<string, { morph: string; guardian: string }>;
+  /** Bolt's answer while the guardian of the sector still sleeps. */
+  wallBolt: string;
 }
 
 export const STORY_TEXT: Record<Lang, StoryText> = { de: STORY_DE, en: STORY_EN, fr: STORY_FR, es: STORY_ES };
@@ -86,6 +97,8 @@ export interface StoryFacts {
   damaged: number;
   /** Firewalls broken in a fight (bought gaps do not count). */
   broken: number;
+  /** A standing firewall has come out of the fog (a node is within `WALL_SIGHT` cells of it). */
+  wallSeen: boolean;
   /** Open topic areas. */
   connected: number;
   /** Synapses between areas, and pairs that could be joined now (see `synapses.ts`). */
@@ -122,7 +135,10 @@ export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
     bySector[sectorOfArea(pool.get(n.questionId).area)]++;
   }
   const awake = SECTORS.filter((s) => bySector[s] >= GUARDIAN_WAKE);
-  const broken = (p.network.firewalls ?? []).filter((f) => f.broken && !f.bought).length;
+  const firewalls = p.network.firewalls ?? [];
+  const broken = firewalls.filter((f) => f.broken && !f.bought).length;
+  const nodes = Object.values(p.network.nodes);
+  const wallSeen = firewalls.some((f) => !f.broken && (approachOf(nodes, f.area)?.cells ?? Infinity) <= WALL_SIGHT);
   const finale = p.story.finale;
   return {
     solved,
@@ -131,6 +147,7 @@ export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
     awake,
     damaged,
     broken,
+    wallSeen,
     connected: p.unlockedAreas.length,
     synapses: p.network.synapses?.length ?? 0,
     synapseReady: synapseSpots(p, pool).length,
@@ -207,6 +224,9 @@ export const STORY_CUES: BeatCue[] = [
   { id: 'unstable', speaker: 'bolt', mood: 'worried', when: (f) => f.integrity === 0 && f.solved > 0 },
   { id: 'four-roots', speaker: 'core', when: (f) => f.roots >= SECTORS.length },
   { id: 'first-area', speaker: 'bolt', mood: 'happy', when: (f) => f.connected > STARTING_AREAS },
+  // the first wall out of the fog (the ring around the core shows early, so not on top of the
+  // first beat); once one is broken the moment has passed
+  { id: 'first-wall', speaker: 'bolt', mood: 'worried', when: (f) => f.wallSeen && f.solved >= 2 && f.broken === 0 },
   // breadth pays: connected knowledge is worth more
   { id: 'synapse-ready', speaker: 'bolt', mood: 'wow', when: (f) => f.synapseReady > 0 && f.synapses === 0 },
   { id: 'first-synapse', speaker: 'core', when: (f) => f.synapses >= 1 },
@@ -219,6 +239,8 @@ export const STORY_CUES: BeatCue[] = [
   { id: 'firewall-1', speaker: 'morph', form: 'glitch', when: (f) => f.broken >= 1 },
   { id: 'firewall-2', speaker: 'morph', form: 'glasses', when: (f) => f.broken >= 2 },
   { id: 'firewall-3', speaker: 'morph', form: 'glasses', when: (f) => f.broken >= 3 },
+  // one wall to go: the core overhears morph.ai preparing the final duel
+  { id: 'core-glitch', speaker: 'core', when: (f) => f.broken >= 3 && !f.finale },
   { id: 'firewall-4', speaker: 'morph', form: 'crown', when: (f) => f.broken >= 4 },
   { id: 'finale-ready', speaker: 'bolt', mood: 'worried', when: (f) => f.finaleOpen },
   { id: 'finale-won', speaker: 'morph', form: 'reformed', when: (f) => f.finale && f.revealed },
@@ -313,3 +335,25 @@ export function guardianLine(
   const lines = STORY_TEXT[p.profile.lang].guardianCorrect[g.id];
   return { who: g.id, name: g.name, text: lines[Math.floor(seededRng(`guardian:${seed}`)() * lines.length)]! };
 }
+
+/**
+ * Who speaks before a fight at the firewall of `area`: morph.ai taunts with what it "cleaned up"
+ * there, and the guardian of the sector answers, or Bolt while the guardian still sleeps.
+ */
+export function wallVoices(
+  p: PlayerState,
+  pool: Pool,
+  area: string,
+): { morph: string; ally: { who: GuardianId | 'bolt'; name: string; text: string } } {
+  const text = STORY_TEXT[p.profile.lang];
+  const words = text.walls[area]!;
+  const sector = sectorOfArea(area);
+  const g = GUARDIANS[sector];
+  const ally = storyFacts(p, pool).awake.includes(sector)
+    ? { who: g.id, name: g.name, text: words.guardian }
+    : { who: 'bolt' as const, name: 'Bolt', text: text.wallBolt };
+  return { morph: words.morph, ally };
+}
+
+/** The areas behind a firewall, which `StoryText.walls` covers. */
+export const WALL_AREAS = OUTER_ZONES.map((z) => z.area);

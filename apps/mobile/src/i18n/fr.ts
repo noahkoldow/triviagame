@@ -220,7 +220,8 @@ export const fr: Strings = {
     needed: (right, pass) => `${right} / ${pass} requis`,
     finaleIntro: (pass) =>
       `morph.ai : « Huit questions, les quatre secteurs, pas de cache, pas de dossiers. Je parie que tu finiras par me demander. » ${pass} doivent être justes.`,
-    wallIntro: 'morph.ai : « Quatre couches de pare-feu. Et je répare chaque erreur aussitôt. » Chaque bonne réponse abat une couche. Pas de cache, pas de dossiers, juste ta tête.',
+    /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
+    wallRules: 'Quatre couches de pare-feu, et morph.ai répare chaque erreur aussitôt. Chaque bonne réponse abat une couche. Pas de cache, pas de dossiers, juste ta tête.',
     attack: 'Attaquer',
     layers: (hp, max) => `PARE-FEU ${hp}/${max}`,
     sceneA11y: (hp, max) => `Pare-feu, ${hp} couches sur ${max} debout`,

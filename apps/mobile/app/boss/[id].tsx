@@ -30,6 +30,7 @@ import {
   storyFacts,
   strikeWall,
   wallFightState,
+  wallVoices,
   type Answer,
   type BossOutcome,
   type WallFight,
@@ -37,6 +38,7 @@ import {
 } from '@nexus/shared';
 import { Bolt, type Mood } from '../../src/components/Bolt';
 import { FirewallScene } from '../../src/components/FirewallScene';
+import { Guardian } from '../../src/components/Guardian';
 import { Morph, type MorphForm } from '../../src/components/Morph';
 import { QuestionView } from '../../src/components/QuestionView';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
@@ -119,6 +121,8 @@ function WallFightView({ fwId }: { fwId: string }) {
     () => bossQuestions(pool, { ...fw, attempts: attempt }, getState().skill, fightFrom(pool, Object.values(getState().network.nodes), fw)),
     [fwId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // before the first question morph.ai taunts and the guardian of the sector (or Bolt) answers
+  const voices = useMemo(() => wallVoices(getState(), pool, fw.area), [fwId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [fight, setFight] = useState<WallFight>(() => startWallFight(Math.min(FIREWALL_ROUNDS, questions.length)));
   const [hit, setHit] = useState<{ kind: WallHit; seq: number } | null>(null);
   const [answer, setAnswer] = useState<Answer | null>(null);
@@ -253,7 +257,24 @@ function WallFightView({ fwId }: { fwId: string }) {
             <Pill label={areaName(area, t.lang)} color={colors.sector[sectorOfArea(area)]} />
             <Pill label={t.boss.roundsLeft(left)} color={left <= fight.hp ? colors.bad : colors.dim} />
           </View>
-          {fight.log.length === 0 ? <P style={{ color: colors.dim }}>{t.boss.wallIntro}</P> : null}
+          {fight.log.length === 0 ? (
+            <>
+              <View style={styles.intro}>
+                <Text style={[styles.speaker, { color: MORPH_PINK }]}>{t.speakers.morph}</Text>
+                <P style={{ color: colors.text, flex: 1 }}>{voices.morph}</P>
+              </View>
+              <View style={styles.intro}>
+                {voices.ally.who === 'bolt' ? <Bolt size={44} mood="proud" /> : <Guardian who={voices.ally.who} size={44} />}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.speaker, { color: voices.ally.who === 'bolt' ? colors.accent : colors.sector[sectorOfArea(fw.area)] }]}>
+                    {voices.ally.name}
+                  </Text>
+                  <P style={{ color: colors.text }}>{voices.ally.text}</P>
+                </View>
+              </View>
+              <P style={{ color: colors.dim }}>{t.boss.wallRules}</P>
+            </>
+          ) : null}
           {line ? (
             <View style={styles.intro}>
               <Text style={[styles.speaker, { color: line.morph ? MORPH_PINK : colors.accent }]}>

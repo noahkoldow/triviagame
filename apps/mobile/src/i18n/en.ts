@@ -220,7 +220,8 @@ export const en: Strings = {
     needed: (right, pass) => `${right} / ${pass} needed`,
     finaleIntro: (pass) =>
       `morph.ai: “Eight questions, all four sectors, no cache, no folders. I bet you’ll end up asking me after all.” ${pass} must be right.`,
-    wallIntro: 'morph.ai: “Four layers of firewall. And I patch every mistake at once.” Every right answer tears a layer down. No cache, no folders, just your head.',
+    /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
+    wallRules: 'Four layers of firewall, and morph.ai patches every mistake at once. Every right answer tears a layer down. No cache, no folders, just your head.',
     attack: 'Attack',
     layers: (hp, max) => `FIREWALL ${hp}/${max}`,
     sceneA11y: (hp, max) => `Firewall, ${hp} of ${max} layers standing`,

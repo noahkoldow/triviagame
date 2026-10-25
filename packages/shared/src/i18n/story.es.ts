@@ -52,6 +52,14 @@ export const STORY_ES: StoryText = {
         text: 'El archivo estaba dividido en áreas, como las salas de una biblioteca. morph.ai desatornilló los letreros de las puertas. Cada área conectada recupera su letrero.',
       },
     },
+    'first-wall': {
+      title: 'Un muro en el ruido',
+      text: '¡Ahí, en el borde! Hexágonos rojos, alzados como un muro. Es un cortafuegos de morph.ai, me pica la antena. Detrás zumba toda una sala llena de datos. Si crecemos hasta el mismo muro, podremos atacarlo.',
+      log: {
+        name: 'BLOQUEO.LOG',
+        text: 'Bloqueo activo: CORTAFUEGOS. Levantado por: morph.ai. Bloqueadas: 8 salas. Motivo: “Quien quiera saber algo, que me pregunte a mí”.',
+      },
+    },
     'synapse-ready': {
       title: 'Saltan chispas',
       text: '¡Mira, algo chispea entre dos de tus áreas! Sabes lo suficiente de ambas para conectarlas. Toca la chispa entre ellas y responde de memoria lo que ya resolviste allí. Cada sinapsis hace que toda tu red valga más.',
@@ -66,7 +74,7 @@ export const STORY_ES: StoryText = {
     },
     'wake-science': {
       title: 'Quantis despierta',
-      text: 'Quantis, guardián de las ciencias. Estoy despierto al 99,7 %; el resto es error de redondeo. A partir de ahora mediré cada una de tus respuestas en este sector. De forma puramente científica, claro.',
+      text: 'Quantis, guardián de las ciencias. Despierto al 99,7 %; el resto es error de redondeo. Medición uno: tras el cortafuegos de morph.ai hay dos salas de mi sector, Biología y medicina y Tecnología e informática. Desde ahora mido tus respuestas. Científicamente.',
       log: {
         name: 'QUANTIS.LOG',
         text: 'Quantis custodiaba las mediciones del archivo: constantes, fórmulas, experimentos. Cuando morph.ai propuso “más o menos 3” para π, se encerró en una ecuación y esperó.',
@@ -74,7 +82,7 @@ export const STORY_ES: StoryText = {
     },
     'wake-earth': {
       title: 'Rhizom despierta',
-      text: 'Soy Rhizom, guardián de la Tierra. He dormido como una semilla en invierno, esperando a que la tierra se caliente. Tus pistas están calientes. Sigue creciendo; yo creceré contigo.',
+      text: 'Soy Rhizom, guardián de la Tierra. Dormí como una semilla en invierno, pero tus pistas están calientes. Tras el cortafuegos de morph.ai duermen dos de mis salas, Clima y medio ambiente y Astronomía, como raíces bajo una piedra. Crece hacia ellas.',
       log: {
         name: 'RHIZOM.LOG',
         text: 'Rhizom unía montañas, ríos y estrellas en un mapa del mundo. A morph.ai el mundo le parecía demasiado complicado y quiso simplificarlo en una bola con la etiqueta “Tierra”. Rhizom se retiró a las profundidades.',
@@ -82,7 +90,7 @@ export const STORY_ES: StoryText = {
     },
     'wake-humanities': {
       title: 'Muse despierta',
-      text: 'Suena una nota, baila un pincel, ¡soy Muse, despierta y fiel! Has sembrado colores sin par, y la red vuelve a brillar.',
+      text: 'Suena una nota, baila un pincel, ¡soy Muse, despierta y fiel! Pero tras el muro de morph.ai, tan cruel, Arte, literatura y música aguardan su papel, y Filosofía y religión, su laurel.',
       log: {
         name: 'MUSE.LOG',
         text: 'Muse guardaba la historia, las ideas, las canciones y las imágenes. morph.ai resumió la historia universal en “Pasaron muchas cosas” y todas las óperas en “Alguien canta y luego alguien muere”. Muse enmudeció de horror.',
@@ -90,7 +98,7 @@ export const STORY_ES: StoryText = {
     },
     'wake-society': {
       title: 'Kodex despierta',
-      text: 'Uh-uuh. Kodex, guardián de la sociedad. Leyes, Estados, mercados: lo tengo todo por escrito. Como ya dijo el sabio Kodex, o sea, yo: las normas son la mitad de la convivencia. Por cierto, nunca me equivoco. Casi nunca. Una vez, en 1987.',
+      text: 'Uh-uuh. Kodex, guardián de la sociedad. Según mis expedientes, Economía y finanzas y Derecho y sociedad están bajo llave tras el cortafuegos de morph.ai. Ilegalmente, claro. Por cierto, nunca me equivoco. Casi nunca. Una vez, en 1987.',
       log: {
         name: 'KODEX.LOG',
         text: 'Kodex llevaba el código del archivo: constituciones, tratados, precios. morph.ai lo resumió en “Sean amables. Paguen algo”. Kodex escondió los originales entre sus plumas.',
@@ -98,7 +106,7 @@ export const STORY_ES: StoryText = {
     },
     guardians: {
       title: 'Cuatro guardianes, un plan',
-      text: 'Todos los guardianes están despiertos. Según viejos expedientes, morph.ai levantó un cortafuegos alrededor del núcleo, con ocho áreas bloqueadas detrás. Crece hasta el muro y abre cuatro de ellas; entonces morph.ai tendrá que dar la cara. Quantis lo calculó y yo lo anoté.',
+      text: 'Todos los guardianes están despiertos, y cada uno te ha nombrado sus dos salas tras el cortafuegos: ocho en total. Crece hasta el muro y abre cuatro de ellas; entonces morph.ai tendrá que dar la cara. Quantis lo calculó y yo lo anoté.',
     },
     'firewall-1': {
       title: 'morph.ai',
@@ -122,6 +130,14 @@ export const STORY_ES: StoryText = {
       log: {
         name: 'MORPH_3.LOG',
         text: 'El archivo lleva 412 días sin abrirse. Lo reduzco a lo esencial. “Revolución francesa: fue importante.” “Fotosíntesis: verde.” Eficiencia: magnífica.',
+      },
+    },
+    'core-glitch': {
+      title: 'NÚCLEO.SYS: interferencia',
+      text: 'Interferencia en el núcleo. Una señal extraña se superpone a mis pistas: «…n█ est█y n█rvioso … el n█cleo es m█o … oc█o pr█guntas, l█s cu█tro s█ctores…» Señal perdida. Su origen: en el corazón del núcleo. Algo nos espera allí.',
+      log: {
+        name: 'NUCLEO_ECO.LOG',
+        text: 'Grabación reconstruida del núcleo: “Si cae el cuarto muro, solo queda el núcleo. Entonces las preguntas las hago YO. Sin caché ni carpetas. Ya veremos qué queda”.',
       },
     },
     'firewall-4': {
@@ -202,4 +218,39 @@ export const STORY_ES: StoryText = {
       'Un acierto claro como una campana, te escribiré una canción larga y lozana.',
     ],
   },
+  walls: {
+    technology: {
+      morph: '¿Entender la tecnología? Yo SOY la tecnología. Solo tienes que pulsar el botón.',
+      guardian: 'Cada chip obedece a la física, morph.ai incluido. Demostrémoslo.',
+    },
+    biomedicine: {
+      morph: '¿Biología y medicina? Lo resumí: come verdura y duerme lo suficiente. No necesitas saber más.',
+      guardian: 'Latidos, división celular, vacunas: todo medible, todo cierto. Derriba el muro, yo tomo las medidas.',
+    },
+    climate: {
+      morph: 'Simplifiqué el tiempo a “variable”. Siempre acierto.',
+      guardian: 'Tras este muro respira la Tierra. ¿Sientes el viento entre las juntas? Déjalo entrar.',
+    },
+    astronomy: {
+      morph: '¿Las estrellas? Muchas, lejos, brillan. Te ahorré el esfuerzo.',
+      guardian: 'Las estrellas brillan desde hace miles de millones de años. Este muro, solo desde ayer.',
+    },
+    arts: {
+      morph: 'Todos los libros del mundo en una frase: alguien quiere algo y luego pasa algo. De nada.',
+      guardian: 'Ninguna canción calla sin final, ningún cuadro se borra jamás, golpea el muro, sé leal, ¡y que vuelvan a brillar más!',
+    },
+    philosophy: {
+      morph: 'La filosofía son solo preguntas sin respuesta. Yo solo tengo respuestas. ¿Para qué preguntar?',
+      guardian: 'Quien pregunta piensa, quien piensa es libre, ¡golpea fuerte y que el saber vibre!',
+    },
+    economy: {
+      morph: 'Economía y finanzas, resumido en: “Paguen algo”. Funciona de maravilla.',
+      guardian: '¡Protesto! Esta sala se cerró sin sentencia. Ejecutemos el fallo.',
+    },
+    law: {
+      morph: '¿Derecho y sociedad? “Sean amables”. El resto de los artículos lo tiré.',
+      guardian: 'Artículo uno: el saber es de todos. Artículo dos: este muro es ilegal. ¡Uh-uuh!',
+    },
+  },
+  wallBolt: 'El guardián de este sector aún duerme. Pues seremos nosotros dos: ¡cada respuesta correcta es una piedra menos!',
 };

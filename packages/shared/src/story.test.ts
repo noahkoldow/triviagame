@@ -34,6 +34,9 @@ import {
   sectorOfArea,
   storyFacts,
   storyLogs,
+  WALL_AREAS,
+  areaName,
+  wallVoices,
   type PlayerState,
 } from './index';
 
@@ -89,6 +92,12 @@ describe('story', () => {
       expect(text.morphWrong.length, lang).toBeGreaterThan(2);
       expect(text.morphReformed.length, lang).toBeGreaterThan(1);
       for (const g of Object.values(text.guardianCorrect)) expect(g.length, lang).toBeGreaterThan(1);
+      // every wall has its own words, short enough to sit above a question
+      expect(Object.keys(text.walls).sort(), lang).toEqual([...WALL_AREAS].sort());
+      for (const w of [...Object.values(text.walls).flatMap((x) => [x.morph, x.guardian]), text.wallBolt]) {
+        expect(w.length, lang).toBeGreaterThan(0);
+        expect(w.length, lang).toBeLessThanOrEqual(160);
+      }
     }
   });
 
@@ -168,6 +177,55 @@ describe('story', () => {
     expect(pending.length).toBeGreaterThan(1);
     const caught = catchUpStory(p, pool);
     expect(pendingBeats(caught, pool)).toEqual([pending[pending.length - 1]]);
+  });
+});
+
+describe('foreshadowing the firewalls', () => {
+  it('Bolt notices the first wall out of the fog, before any is broken', () => {
+    expect(storyFacts(initialPlayer(pool), pool).wallSeen).toBe(false);
+    const first = recordCorrect(initialPlayer(pool), pool, 'n0', DAY, 0).player;
+    expect(storyFacts(first, pool).wallSeen).toBe(true);
+    expect(pendingBeats(first, pool).map((b) => b.id)).toEqual(['first-link']);
+    const p = play(400, (x) => storyFacts(x, pool).solved >= 2);
+    expect(storyFacts(p, pool).broken).toBe(0);
+    expect(pendingBeats(p, pool).map((b) => b.id)).toContain('first-wall');
+    // once a wall is broken the moment has passed
+    const late = play(400, (x) => storyFacts(x, pool).broken >= 1);
+    expect(pendingBeats(late, pool).map((b) => b.id)).not.toContain('first-wall');
+  });
+
+  it('every guardian names the two locked areas of its sector when it wakes', () => {
+    for (const lang of LANGS) {
+      for (const s of SECTORS) {
+        const text = STORY_TEXT[lang].beats[`wake-${s}`]!.text.toLowerCase();
+        const locked = WALL_AREAS.filter((a) => sectorOfArea(a) === s);
+        expect(locked).toHaveLength(2);
+        // the Muse rhymes, so it may name an area by its first word only
+        for (const a of locked) expect(text, `${lang} ${s} ${a}`).toContain(areaName(a, lang).split(/[ ,]/)[0]!.toLowerCase());
+      }
+    }
+  });
+
+  it('the core overhears morph.ai after the third wall, until the finale is won', () => {
+    const three = play(400, (x) => storyFacts(x, pool).broken >= 3);
+    const beats = pendingBeats(three, pool).map((b) => b.id);
+    expect(beats.indexOf('core-glitch')).toBe(beats.indexOf('firewall-3') + 1);
+    const won = play(400, (x) => x.story.finale);
+    expect(pendingBeats(won, pool).map((b) => b.id)).not.toContain('core-glitch');
+  });
+
+  it('before a fight morph.ai taunts and the guardian answers, Bolt while it sleeps', () => {
+    const p = initialPlayer(pool);
+    const asleep = wallVoices(p, pool, 'astronomy');
+    expect(asleep.morph).toBe(STORY_TEXT.de.walls.astronomy!.morph);
+    expect(asleep.ally).toEqual({ who: 'bolt', name: 'Bolt', text: STORY_TEXT.de.wallBolt });
+    const awake = play(400, (x) => storyFacts(x, pool).awake.includes('earth'));
+    const en = { ...awake, profile: { ...awake.profile, lang: 'en' as const } };
+    expect(wallVoices(en, pool, 'astronomy').ally).toEqual({
+      who: GUARDIANS.earth.id,
+      name: GUARDIANS.earth.name,
+      text: STORY_TEXT.en.walls.astronomy!.guardian,
+    });
   });
 });
 

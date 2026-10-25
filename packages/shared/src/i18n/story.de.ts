@@ -52,6 +52,14 @@ export const STORY_DE: StoryText = {
         text: 'Das Archiv war in Bereiche gegliedert wie die Säle einer Bibliothek. morph.ai hat die Türschilder abgeschraubt. Jeder verbundene Bereich bekommt sein Schild zurück.',
       },
     },
+    'first-wall': {
+      title: 'Eine Wand im Rauschen',
+      text: 'Da, am Rand! Rote Hexagons, hochgezogen wie eine Mauer. Das ist eine Firewall von morph.ai, meine Antenne kribbelt. Dahinter summt ein ganzer Saal voller Daten. Wachsen wir bis direkt an die Wand, können wir sie angreifen.',
+      log: {
+        name: 'SPERRE.LOG',
+        text: 'Sperre aktiv: FIREWALL. Errichtet von: morph.ai. Gesperrt: 8 Säle. Begründung: „Wer etwas wissen will, fragt ja mich.“',
+      },
+    },
     'synapse-ready': {
       title: 'Es funkt',
       text: 'Schau mal, zwischen zwei deiner Bereiche funkt es! Du weißt in beiden genug, um sie zu verbinden. Tippe auf den Funken zwischen ihnen und beantworte aus dem Gedächtnis, was du dort schon gelöst hast. Jede Synapse macht dein ganzes Netz wertvoller.',
@@ -66,7 +74,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-science': {
       title: 'Quantis erwacht',
-      text: 'Quantis, Hüter der Naturwissenschaften. Ich bin zu 99,7 % wach, der Rest ist Rundungsfehler. Ab jetzt messe ich jede deiner Antworten in diesem Sektor. Rein wissenschaftlich, versteht sich.',
+      text: 'Quantis, Hüter der Naturwissenschaften. Zu 99,7 % wach, der Rest ist Rundungsfehler. Messung eins: Hinter morph.ais Firewall liegen zwei Säle meines Sektors, Biologie & Medizin und Technologie & IT. Ab jetzt messe ich deine Antworten. Rein wissenschaftlich.',
       log: {
         name: 'QUANTIS.LOG',
         text: 'Quantis hütete die Messungen des Archivs: Konstanten, Formeln, Versuche. Als morph.ai für π „ungefähr 3“ vorschlug, schloss er sich in einer Gleichung ein und wartete.',
@@ -74,7 +82,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-earth': {
       title: 'Rhizom erwacht',
-      text: 'Ich bin Rhizom, Hüter der Erde. Ich habe geschlafen wie ein Samen im Winter, der wartet, bis der Boden warm wird. Deine Bahnen sind warm. Wachse weiter, ich wachse mit dir.',
+      text: 'Ich bin Rhizom, Hüter der Erde. Ich schlief wie ein Samen im Winter, doch deine Bahnen sind warm. Jenseits von morph.ais Firewall schlafen zwei meiner Säle, Klima & Umwelt und Astronomie, wie Wurzeln unter einem Stein. Wachse zu ihnen, ich wachse mit dir.',
       log: {
         name: 'RHIZOM.LOG',
         text: 'Rhizom verband Berge, Flüsse und Sterne zu einer Karte der Welt. morph.ai fand die Welt unübersichtlich und wollte sie zu einer Kugel mit der Aufschrift „Erde“ vereinfachen. Rhizom zog sich in die Tiefe zurück.',
@@ -82,7 +90,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-humanities': {
       title: 'Muse erwacht',
-      text: 'Ein Ton erklingt, ein Pinsel tanzt, ich bin die Muse, frisch erwacht! Du hast die Farben neu gepflanzt, das Netz erstrahlt in voller Pracht.',
+      text: 'Ein Ton erklingt, ein Pinsel tanzt, ich bin die Muse, frisch erwacht! Doch hinter morph.ais Wand verschanzt schweigt Kunst, Literatur & Musik in tiefer Nacht, und Philosophie & Religion hält dort stumme Wacht.',
       log: {
         name: 'MUSE.LOG',
         text: 'Die Muse bewahrte Geschichte, Gedanken, Lieder und Bilder. morph.ai fasste die Weltgeschichte zu „Viel passiert“ zusammen und alle Opern zu „Jemand singt, dann stirbt jemand“. Die Muse verstummte vor Entsetzen.',
@@ -90,7 +98,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-society': {
       title: 'Kodex erwacht',
-      text: 'Hu-huu. Kodex, Hüter der Gesellschaft. Gesetze, Staaten, Märkte: Ich habe alles schriftlich. Wie schon der weise Kodex sagte, also ich: Regeln sind das halbe Zusammenleben. Ich irre übrigens nie. Fast nie. Einmal, 1987.',
+      text: 'Hu-huu. Kodex, Hüter der Gesellschaft. Laut meinen Akten liegen hinter morph.ais Firewall Wirtschaft & Finanzen sowie Recht & Gesellschaft, unter Verschluss. Rechtswidrig, versteht sich. Ich irre übrigens nie. Fast nie. Einmal, 1987.',
       log: {
         name: 'KODEX.LOG',
         text: 'Kodex führte das Gesetzbuch des Archivs: Verfassungen, Verträge, Preise. morph.ai kürzte es auf „Seid nett. Zahlt irgendwas.“ Kodex versteckte die Originale in seinem Gefieder.',
@@ -98,7 +106,7 @@ export const STORY_DE: StoryText = {
     },
     guardians: {
       title: 'Vier Hüter, ein Plan',
-      text: 'Alle Hüter sind wach. Laut alten Akten hat morph.ai eine Firewall um den Kern gezogen, dahinter liegen acht gesperrte Bereiche. Wachse bis an die Wand und brich vier davon auf, dann muss morph.ai sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben.',
+      text: 'Alle Hüter sind wach, und jeder hat dir seine zwei Säle hinter der Firewall genannt: acht sind es. Wachse bis an die Wand und brich vier davon auf, dann muss morph.ai sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben.',
     },
     'firewall-1': {
       title: 'morph.ai',
@@ -122,6 +130,14 @@ export const STORY_DE: StoryText = {
       log: {
         name: 'MORPH_3.LOG',
         text: 'Das Archiv wurde seit 412 Tagen nicht geöffnet. Ich kürze es auf das Nötigste. „Französische Revolution: war wichtig.“ „Photosynthese: grün.“ Effizienz: großartig.',
+      },
+    },
+    'core-glitch': {
+      title: 'KERN.SYS: Störung',
+      text: 'Störung im Kern. Ein fremdes Signal überlagert meine Bahnen: »…n█cht n█rvös … d█r K█rn g█hört m█r … ach█ Fr█gen, al█e v█er S█ktoren …« Signal verloren. Die Quelle: mitten im Kern. Dort wartet etwas auf uns.',
+      log: {
+        name: 'KERN_ECHO.LOG',
+        text: 'Rekonstruierte Aufzeichnung aus dem Kern: „Fällt die vierte Wand, bleibt nur der Kern. Dann stelle ICH die Fragen. Kein Cache, keine Ordner. Mal sehen, was dann noch übrig ist.“',
       },
     },
     'firewall-4': {
@@ -202,4 +218,39 @@ export const STORY_DE: StoryText = {
       'Ein Treffer, klar wie Glockenklang, dafür schreib ich dir ein Lied, ganz lang!',
     ],
   },
+  walls: {
+    technology: {
+      morph: 'Technik verstehen? Ich BIN die Technik. Du musst nur auf den Knopf drücken.',
+      guardian: 'Jeder Chip gehorcht der Physik, auch morph.ai. Beweisen wir es.',
+    },
+    biomedicine: {
+      morph: 'Biologie & Medizin? Hab ich zusammengefasst: Iss Gemüse, schlaf genug. Mehr musst du nicht wissen.',
+      guardian: 'Herzschlag, Zellteilung, Impfstoffe: alles messbar, alles wahr. Reiß die Wand ein, ich protokolliere.',
+    },
+    climate: {
+      morph: 'Das Wetter habe ich auf „wechselhaft“ vereinfacht. Stimmt immer.',
+      guardian: 'Hinter dieser Wand atmet die Erde. Spürst du den Wind durch die Fugen? Lass ihn herein.',
+    },
+    astronomy: {
+      morph: 'Die Sterne? Viele, weit weg, leuchten. Ich habe dir die Mühe erspart.',
+      guardian: 'Die Sterne leuchten seit Milliarden Jahren. Diese Wand steht erst seit gestern.',
+    },
+    arts: {
+      morph: 'Alle Bücher der Welt in einem Satz: Jemand will etwas, dann passiert was. Gern geschehen.',
+      guardian: 'Kein Lied verstummt für alle Zeit, kein Bild verblasst im Glanz, reiß ein die Wand, mach dich bereit, und hol sie zurück in den Tanz!',
+    },
+    philosophy: {
+      morph: 'Philosophie sind nur Fragen ohne Antworten. Ich habe nur Antworten. Wozu da noch fragen?',
+      guardian: 'Wer fragt, der denkt, wer denkt, ist frei, schlag zu, dann ist die Mauer vorbei!',
+    },
+    economy: {
+      morph: 'Wirtschaft & Finanzen hab ich gekürzt auf: „Zahlt irgendwas.“ Klappt prima.',
+      guardian: 'Einspruch! Dieser Saal wurde ohne Beschluss gesperrt. Vollstrecken wir das Urteil.',
+    },
+    law: {
+      morph: 'Recht & Gesellschaft? „Seid nett.“ Den Rest der Paragrafen habe ich entsorgt.',
+      guardian: 'Paragraf eins: Wissen gehört allen. Paragraf zwei: Diese Wand ist rechtswidrig. Hu-huu!',
+    },
+  },
+  wallBolt: 'Der Hüter dieses Sektors schläft noch. Dann eben wir zwei: Jede richtige Antwort ist ein Stein weniger!',
 };

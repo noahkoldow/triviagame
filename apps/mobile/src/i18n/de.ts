@@ -225,7 +225,8 @@ export const de = {
     needed: (right: number, pass: number) => `${right} / ${pass} nötig`,
     finaleIntro: (pass: number) =>
       `morph.ai: „Acht Fragen, alle vier Sektoren, kein Cache, keine Ordner. Ich wette, am Ende fragst du doch mich.“ ${pass} müssen stimmen.`,
-    wallIntro: 'morph.ai: „Vier Schichten Firewall. Und jeden Fehler flicke ich sofort.“ Jede richtige Antwort reißt eine Schicht ein. Kein Cache, keine Ordner, nur dein Kopf.',
+    /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
+    wallRules: 'Vier Schichten Firewall, und jeden Fehler flickt morph.ai sofort. Jede richtige Antwort reißt eine Schicht ein. Kein Cache, keine Ordner, nur dein Kopf.',
     attack: 'Angreifen',
     layers: (hp: number, max: number) => `FIREWALL ${hp}/${max}`,
     sceneA11y: (hp: number, max: number) => `Firewall, ${hp} von ${max} Schichten stehen`,
