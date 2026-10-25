@@ -15,13 +15,16 @@ import {
   fightFrom,
   firewallReached,
   firewallSteps,
+  hexDistance,
   initialPlayer,
   recordBoss,
   recordCorrect,
   sectorOfArea,
+  WALL_REACH,
   WALL_SIGHT,
   wallTarget,
   wallsInSight,
+  worldToHex,
   zoneOf,
   type PlayerState,
 } from './index';
@@ -161,7 +164,11 @@ describe('firewalls (bosses)', () => {
     expect(sight.cells.length).toBeGreaterThan(3);
     for (const c of sight.cells) expect(c.away).toBeLessThanOrEqual(WALL_SIGHT);
     expect(sight.cells.some((c) => c.look === 'active' && c.firewall === 'fw-biomedicine')).toBe(true);
-    expect(sight.signs.find((s) => s.area === 'biomedicine')).toMatchObject({ reached: true });
+    const sign = sight.signs.find((s) => s.area === 'biomedicine')!;
+    expect(sign).toMatchObject({ reached: true });
+    // the sign names the node at the wall, where the trace to the wall starts
+    const at = there.network.nodes[sign.node]!;
+    expect(hexDistance(worldToHex(at.pos.x, at.pos.y), worldToHex(sign.x, sign.y))).toBeLessThanOrEqual(WALL_REACH);
     // once broken, the gap shows and the rest of that wall guards nothing any more
     const r = recordBoss(there, pool, 'fw-biomedicine', BOSS_QUESTIONS).player;
     const after = wallsInSight(Object.values(r.network.nodes), r.network.firewalls!);

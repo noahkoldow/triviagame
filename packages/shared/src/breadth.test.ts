@@ -124,7 +124,7 @@ describe('synapses', () => {
     const gap = r.synapse!.gap!;
     expect([gap.area, gap.breach.from].sort()).toEqual(['biomedicine', CORE_ZONE].sort());
     expect(breachesOf(r.player.network.firewalls, r.player.network.synapses)).toContainEqual(gap);
-    const sight = wallsInSight([{ pos: gap.breach }], r.player.network.firewalls!, [gap]);
+    const sight = wallsInSight([{ id: 'n0', pos: gap.breach }], r.player.network.firewalls!, [gap]);
     expect(sight.cells.some((c) => c.look === 'gap')).toBe(true);
     // the next answer pays 5 % more XP
     const before = recordCorrect(p, pool, 'n0', DAY, 0);

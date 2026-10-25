@@ -175,15 +175,18 @@ export type WallLook = 'active' | 'locked' | 'calm' | 'gap';
 export interface WallSight {
   /** The wall cells within `WALL_SIGHT` cells of a node; `away` is that distance. */
   cells: { key: string; x: number; y: number; look: WallLook; away: number; firewall?: string }[];
-  /** One sign per standing firewall in sight, where the network comes closest to it. */
-  signs: { firewall: string; area: string; x: number; y: number; reached: boolean }[];
+  /**
+   * One sign per standing firewall in sight, where the network comes closest to it; `node` is the
+   * node closest to it (once reached, a trace runs from there to the wall).
+   */
+  signs: { firewall: string; area: string; x: number; y: number; reached: boolean; node: string }[];
 }
 
 /**
  * What the map shows of the walls: only the parts the network has come close to (fog of war).
  * `gaps` are further gaps, those of synapses (`Synapse.gap`).
  */
-export function wallsInSight(nodes: Placed[], firewalls: Firewall[], gaps: { area: string; breach: Breach }[] = []): WallSight {
+export function wallsInSight(nodes: (Placed & { id: string })[], firewalls: Firewall[], gaps: { area: string; breach: Breach }[] = []): WallSight {
   const hexes = nodes.map((n) => worldToHex(n.pos.x, n.pos.y));
   const fallen = [...firewalls.flatMap((f) => (f.breach ? [{ area: f.area, breach: f.breach }] : [])), ...gaps];
   const gapKeys = new Set(fallen.flatMap((g) => breachCells(g.area, g.breach).map((c) => c.key)));
@@ -207,7 +210,7 @@ export function wallsInSight(nodes: Placed[], firewalls: Firewall[], gaps: { are
   for (const f of standing.values()) {
     if (!seen.has(f.id)) continue;
     const a = approachOf(nodes, f.area);
-    if (a) signs.push({ firewall: f.id, area: f.area, x: a.cell.x, y: a.cell.y, reached: !!reached.get(f.id) });
+    if (a) signs.push({ firewall: f.id, area: f.area, x: a.cell.x, y: a.cell.y, reached: !!reached.get(f.id), node: a.node.id });
   }
   return { cells, signs };
 }

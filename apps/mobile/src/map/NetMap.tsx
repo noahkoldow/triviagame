@@ -205,12 +205,18 @@ function NetMapBase({
       // a trace into another zone runs through the gaps in the walls
       if (from) out.push({ from, to: n.pos, via: traceVia(gaps, from, n.pos), sector: info.sector, lit });
     }
+    // where the network has reached a wall, a trace runs from the closest node up to it
+    for (const sign of sight.signs) {
+      const n = byId[sign.node];
+      if (!sign.reached || !n) continue;
+      out.push({ from: n.pos, to: sign, sector: infos[n.id]!.sector, lit: !n.locked && n.state !== 'open' });
+    }
     strand.forEach((s, i) => {
       const from = i === 0 ? { x: 0, y: 0 } : strand[i - 1]!;
       out.push({ from, to: s, sector: s.sector, lit: false });
     });
     return out;
-  }, [placed, infos, byId, strand, firewalls, synapses]);
+  }, [placed, infos, byId, strand, firewalls, synapses, sight]);
 
   // synapses float above the map as arcs from node to node: joined ones glow, ready ones are dashed
   const arcs = useMemo(() => {
