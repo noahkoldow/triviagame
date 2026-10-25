@@ -283,7 +283,9 @@ export const en: Strings = {
     title: 'Cache',
     empty: (n) => `Empty. Open a folder and take up to ${n} files per topic area.`,
     remove: 'Remove from cache',
-    backToList: '↑ Back to the list',
+    closeAll: (n) => `Close all ${n}`,
+    openAll: 'Open all',
+    openAllA11y: (area) => `Open all files from ${area}`,
   },
   folders: {
     remove: 'Remove from cache',

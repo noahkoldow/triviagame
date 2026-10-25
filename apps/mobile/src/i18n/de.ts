@@ -288,7 +288,9 @@ export const de = {
     title: 'Cache',
     empty: (n: number) => `Leer. Öffne einen Ordner und nimm bis zu ${n} Dateien pro Themengebiet mit.`,
     remove: 'Aus dem Cache nehmen',
-    backToList: '↑ Zurück zur Liste',
+    closeAll: (n: number) => `Alle ${n} schließen`,
+    openAll: 'Alle öffnen',
+    openAllA11y: (area: string) => `Alle Dateien aus ${area} öffnen`,
   },
   folders: {
     remove: 'Aus dem Cache nehmen',

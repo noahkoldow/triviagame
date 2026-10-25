@@ -283,7 +283,9 @@ export const fr: Strings = {
     title: 'Cache',
     empty: (n) => `Vide. Ouvre un dossier et prends jusqu’à ${n} fichiers par domaine.`,
     remove: 'Retirer du cache',
-    backToList: '↑ Retour à la liste',
+    closeAll: (n) => `Fermer les ${n}`,
+    openAll: 'Tout ouvrir',
+    openAllA11y: (area) => `Ouvrir tous les fichiers de ${area}`,
   },
   folders: {
     remove: 'Retirer du cache',

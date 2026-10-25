@@ -305,7 +305,7 @@ function NodeGame({
 
         <Modal transparent animationType="fade" visible={cacheOpen} onRequestClose={() => setCacheOpen(false)}>
           <View style={styles.modalBack}>
-            <CacheFiles items={cached} onClose={() => setCacheOpen(false)} />
+            <CacheFiles items={cached} openAll onClose={() => setCacheOpen(false)} />
           </View>
         </Modal>
 

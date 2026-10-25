@@ -283,7 +283,9 @@ export const es: Strings = {
     title: 'Caché',
     empty: (n) => `Vacía. Abre una carpeta y lleva hasta ${n} archivos por área temática.`,
     remove: 'Quitar de la caché',
-    backToList: '↑ Volver a la lista',
+    closeAll: (n) => `Cerrar las ${n}`,
+    openAll: 'Abrir todo',
+    openAllA11y: (area) => `Abrir todos los archivos de ${area}`,
   },
   folders: {
     remove: 'Quitar de la caché',
