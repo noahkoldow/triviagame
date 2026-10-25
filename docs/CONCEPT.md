@@ -237,7 +237,7 @@ Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/N
 **Begleiter: Bolt**
 Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als Animation), Antenne und einem Greifarm zum Einsammeln. Neugierig, eifrig, ein bisschen tollpatschig, liebt Wortwitz. Gibt Tipps, kommentiert Antworten, jubelt und tröstet, spottet leise zurück gegen morph.ai. Wächst mit dem Netz: Sein Gehäuse bekommt in äußeren Sektoren Moos, Farbspritzer, Pergamentaufkleber oder Sternenstaub. Als Skins freischaltbar.
 
-**Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle: Beim Erwachen nennt jeder die zwei Säle seines Sektors hinter der Firewall, vor jedem Wandkampf antwortet er auf morph.ais Spott, D68):
+**Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle: Beim Erwachen nennt jeder die zwei Säle seines Sektors hinter der Firewall und bittet um Hilfe, die Karte zeigt sie; vor jedem Wandkampf antwortet er auf morph.ais Spott und kämpft dann neben Bolt mit, ohne Spielboni, D68, D71):
 
 - **Quantis** – Naturwissenschaften: übergenauer, trockener Humor, Hologramm-Gestalt aus Gleichungen.
 - **Rhizom** – Geographie & Erde: ruhiger Baumgeist, spricht in langen Bildern, verbindet Berge, Flüsse und Sterne.
