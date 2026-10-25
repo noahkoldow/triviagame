@@ -25,7 +25,8 @@ export type IconName =
   | 'file'
   | 'image'
   | 'search'
-  | 'trophy';
+  | 'trophy'
+  | 'spark';
 
 export function Icon({
   name,
@@ -118,6 +119,13 @@ export function Icon({
           <Path d="M12 2.4c.6 0 1.1.3 1.4.8l8.4 14.7c.6 1.1-.2 2.5-1.4 2.5H3.6c-1.2 0-2-1.4-1.4-2.5l8.4-14.7c.3-.5.8-.8 1.4-.8z" fill={m('#FF9600')} />
           <Rect x={11} y={8.6} width={2} height={6.2} rx={1} fill="#FFFFFF" />
           <Circle cx={12} cy={17.6} r={1.2} fill="#FFFFFF" />
+        </>
+      ) : null}
+      {name === 'spark' ? (
+        // a synapse: two points joined by a spark
+        <>
+          <Path d="M12 2.5 13.9 10.1 21.5 12 13.9 13.9 12 21.5 10.1 13.9 2.5 12 10.1 10.1z" fill={m('#B46BFF')} />
+          <Path d="M12 7.5 12.9 11.1 16.5 12 12.9 12.9 12 16.5 11.1 12.9 7.5 12 11.1 11.1z" fill={m('#EBDDFF')} />
         </>
       ) : null}
       {name === 'close' ? (

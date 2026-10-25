@@ -7,6 +7,7 @@ import type { Lang } from './lang';
 import { initialUnlockedAreas } from './monetization';
 import type { Pool } from './network';
 import { seededRng } from './rng';
+import { synapseSpots } from './synapses';
 import { AREAS, SECTORS, sectorOfArea } from './taxonomy';
 import type { Sector } from './types';
 
@@ -87,6 +88,9 @@ export interface StoryFacts {
   broken: number;
   /** Open topic areas. */
   connected: number;
+  /** Synapses between areas, and pairs that could be joined now (see `synapses.ts`). */
+  synapses: number;
+  synapseReady: number;
   integrity: number;
   finale: boolean;
   /** Everything before the final duel is done. */
@@ -128,6 +132,8 @@ export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
     damaged,
     broken,
     connected: p.unlockedAreas.length,
+    synapses: p.network.synapses?.length ?? 0,
+    synapseReady: synapseSpots(p, pool).length,
     integrity: p.integrity,
     finale,
     finaleOpen: !finale && roots >= SECTORS.length && awake.length === SECTORS.length && broken >= SECTORS.length,
@@ -201,6 +207,9 @@ export const STORY_CUES: BeatCue[] = [
   { id: 'unstable', speaker: 'bolt', mood: 'worried', when: (f) => f.integrity === 0 && f.solved > 0 },
   { id: 'four-roots', speaker: 'core', when: (f) => f.roots >= SECTORS.length },
   { id: 'first-area', speaker: 'bolt', mood: 'happy', when: (f) => f.connected > STARTING_AREAS },
+  // breadth pays: connected knowledge is worth more
+  { id: 'synapse-ready', speaker: 'bolt', mood: 'wow', when: (f) => f.synapseReady > 0 && f.synapses === 0 },
+  { id: 'first-synapse', speaker: 'core', when: (f) => f.synapses >= 1 },
   { id: 'wake-science', speaker: 'quantis', when: wake('science') },
   { id: 'wake-earth', speaker: 'rhizom', when: wake('earth') },
   { id: 'wake-humanities', speaker: 'muse', when: wake('humanities') },

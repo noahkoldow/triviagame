@@ -133,6 +133,15 @@ export const es: Strings = {
     openFor: (cost) => `Abrir por ${cost} gemas`,
     toShop: 'A la tienda',
     restored: 'Restaurado. Encontrarás los fragmentos reunidos en el códice.',
+    synapse: 'Sinapsis',
+    synapseText: (a: string, b: string, questions: number, pass: number) =>
+      `${a} y ${b} van juntas, y sabes lo suficiente de ambas. Conéctalas: ${questions} preguntas que ya resolviste allí, de memoria y sin caché. ${pass} deben ser correctas. Un fallo no cuesta nada; mañana puedes volver a intentarlo.`,
+    synapseReward: (xp: number, bits: number, gems: number, pct: number) =>
+      `Recompensa: ${xp} XP, ${bits} bits, ${gems} gemas y +${pct} % de XP y bits en cada respuesta, para siempre.`,
+    synapseResting: 'Ya lo intentaste hoy. Vuelve a probar mañana, quizá se te quede mejor.',
+    connect: 'Conectar',
+    synapseA11y: (a: string, b: string, resting: boolean) => `Sinapsis entre ${a} y ${b}${resting ? ', de nuevo mañana' : ''}`,
+    synapseState: (resting: boolean) => (resting ? 'de nuevo mañana' : 'lista'),
   },
 
   node: {
@@ -177,6 +186,9 @@ export const es: Strings = {
     backToDebris: 'Volver al campo de escombros',
     laterText: 'Puedes volver a intentar este nodo más tarde. La respuesta correcta habría sido:',
     later: 'Volver más tarde',
+    networkBonus: (pct: number) => `Conectividad +${pct} %`,
+    varietyBonus: (pct: number) => `Variedad +${pct} % de bits`,
+    albumFull: (name: string, gems: number, bits: number) => `¡Álbum completo: ${name}! +${gems} gemas, +${bits} bits.`,
   },
 
   boss: {
@@ -212,6 +224,16 @@ export const es: Strings = {
     answer: 'Responder',
     result: 'Resultado',
     nextQuestion: 'Siguiente >',
+    synapse: 'Sinapsis',
+    synapseTitle: (a: string, b: string) => `Sinapsis: ${a} + ${b}`,
+    synapseClosed: 'Esta sinapsis no es posible ahora mismo.',
+    synapseIntro: 'De memoria: preguntas que ya resolviste en ambas áreas. Sin caché, sin carpetas.',
+    synapseJoined: 'Sinapsis establecida',
+    synapseHolds: 'Todavía sin conexión',
+    synapseWon: (right: number, total: number, a: string, b: string, pct: number) =>
+      `${right} de ${total} correctas. ${a} y ${b} ya están conectadas. Conectividad: +${pct} % en cada respuesta.`,
+    synapseLost: (right: number, total: number, pass: number) =>
+      `${right} de ${total} correctas, hacían falta ${pass}. No pierdes nada: mañana puedes volver a intentarlo.`,
   },
 
   question: {
@@ -278,6 +300,19 @@ export const es: Strings = {
     intro: (n) => `Todos los fragmentos que has restaurado. ${n} reunidos.`,
     empty: 'Todavía vacío. Resuelve tu primer nodo y los fragmentos llegarán aquí.',
     logbook: 'BITÁCORA · SYSTEM/LOGS',
+    albums: 'ÁLBUMES',
+    albumsIntro: (gems: number, bits: number) => `Temas que cruzan las áreas. Un álbum completo da ${gems} gemas y ${bits} bits.`,
+    albumMissing: (area: string) => `??? · ${area}`,
+    albumNames: {
+      antiquity: 'Antigüedad',
+      sound: 'El sonido',
+      breath: 'El aliento de la Tierra',
+      cosmos: 'Luz del espacio',
+      europe: 'Europa',
+      code: 'Del signo al código',
+      rules: 'Las reglas de la sociedad',
+      earth: 'El rostro de la Tierra',
+    },
   },
 
   profile: {
@@ -315,6 +350,10 @@ export const es: Strings = {
     resetText: 'Se borrarán tu red y todo tu progreso.',
     resetConfirm: 'Reiniciar',
     defaultName: 'Reconstructor',
+    network: 'Conectividad',
+    networkLine: (n: number, total: number, pct: number) => `${n} de ${total} sinapsis · +${pct} % de XP y bits en cada respuesta`,
+    networkEmpty: (need: number) =>
+      `Todavía ninguna sinapsis. Resuelve ${need} nodos en cada una de dos áreas relacionadas y conéctalas en el mapa.`,
   },
 
   settings: {

@@ -47,6 +47,11 @@ import {
   firewallReached,
   firewallSteps,
   wallsInSight,
+  SYNAPSE_BONUS,
+  SYNAPSE_PASS,
+  SYNAPSE_QUESTIONS,
+  SYNAPSE_REWARD,
+  synapseSpots,
   leagueIsNew,
   leagueUnlocked,
   LEAGUE_NOTICED_ID,
@@ -100,10 +105,18 @@ export default function Home() {
   const dailyDue = useGame((p) => dailyBonusDue(p, today()));
   const [listOpen, setListOpen] = useState(false);
   const [firewallId, setFirewallId] = useState<string | null>(null);
+  const [synapseId, setSynapseId] = useState<string | null>(null);
+  const unlocked = useGame((p) => p.unlockedAreas);
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
   // the walls the network has come close to (the others still hide in the fog)
-  const sight = useMemo(() => wallsInSight(nodes, network.firewalls ?? []), [nodes, network.firewalls]);
+  const synapses = network.synapses;
+  const sight = useMemo(
+    () => wallsInSight(nodes, network.firewalls ?? [], (synapses ?? []).flatMap((x) => (x.gap ? [x.gap] : []))),
+    [nodes, network.firewalls, synapses],
+  );
+  // pairs of related areas that can be joined by a synapse (breadth pays)
+  const spots = useMemo(() => synapseSpots(getState(), pool, today()), [network, unlocked]); // eslint-disable-line react-hooks/exhaustive-deps
   const due = dueReviews(getState(), today());
   const player = useGame((p) => p);
   const facts = useMemo(() => storyFacts(player, pool), [player]);
@@ -224,6 +237,7 @@ export default function Home() {
   const debrisFree = debrisQ ? cacheFreeSlots(getState(), pool, debrisQ.area) : 0;
 
   const firewall = firewallId ? firewalls.find((f) => f.id === firewallId) : undefined;
+  const spot = synapseId ? spots.find((x) => x.id === synapseId) : undefined;
   const wallArea = firewall ? area(firewall.area) : '';
   const wallCost = firewall ? areaCost(firewall.area) : 0;
 
@@ -240,7 +254,7 @@ export default function Home() {
   const openCount = nodes.filter((n) => n.state === 'open' && !n.locked).length;
   const hint = debrisId ? getHint(debrisId) : null;
 
-  const busy = !!(debrisId || shard || explorerOpen || cacheOpen || firewall || unstable || selected || listOpen);
+  const busy = !!(debrisId || shard || explorerOpen || cacheOpen || firewall || spot || unstable || selected || listOpen);
   const beat = focused && !busy ? pendingBeats(player, pool)[0] : undefined;
 
   // after the finale the network shows what it really is (once; it can be replayed in the settings)
@@ -302,6 +316,12 @@ export default function Home() {
         onFirewall={(id) => {
           tap();
           setFirewallId(id);
+        }}
+        synapses={synapses}
+        spots={spots}
+        onSynapse={(id) => {
+          tap();
+          setSynapseId(id);
         }}
         debris={debrisProp}
         onShard={(id) => {
@@ -557,6 +577,38 @@ export default function Home() {
         </Pressable>
       </Modal>
 
+      {/* a synapse that can be joined */}
+      <Modal transparent animationType="fade" visible={!!spot} onRequestClose={() => setSynapseId(null)}>
+        <Pressable style={styles.center} onPress={() => setSynapseId(null)}>
+          <Dialog title={t.map.synapse} icon="spark" onClose={() => setSynapseId(null)}>
+            {spot ? (
+              <>
+                <Text style={styles.topic}>
+                  {area(spot.a)} + {area(spot.b)}
+                </Text>
+                <Text style={styles.fragText}>{t.map.synapseText(area(spot.a), area(spot.b), SYNAPSE_QUESTIONS, SYNAPSE_PASS)}</Text>
+                <Text style={styles.cardSub}>
+                  {t.map.synapseReward(SYNAPSE_REWARD.xp, SYNAPSE_REWARD.bits, SYNAPSE_REWARD.gems, Math.round(SYNAPSE_BONUS * 100))}
+                </Text>
+                {spot.resting ? (
+                  <Text style={styles.fragText}>{t.map.synapseResting}</Text>
+                ) : (
+                  <Button
+                    label={t.map.connect}
+                    onPress={() => {
+                      const id = spot.id;
+                      setSynapseId(null);
+                      router.push({ pathname: '/boss/[id]', params: { id } });
+                    }}
+                  />
+                )}
+                <Button label={t.common.close} variant="ghost" onPress={() => setSynapseId(null)} />
+              </>
+            ) : null}
+          </Dialog>
+        </Pressable>
+      </Modal>
+
       {/* integrity 0: the network is unstable */}
       <Modal transparent animationType="fade" visible={unstable} onRequestClose={() => setUnstable(false)}>
         <Pressable style={styles.center} onPress={() => setUnstable(false)}>
@@ -630,6 +682,27 @@ export default function Home() {
                   </Pressable>
                 );
               })}
+              {/* synapses that can be joined, like on the map */}
+              {spots.map((x) => (
+                <Pressable
+                  key={x.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.map.synapseA11y(area(x.a), area(x.b), x.resting)}
+                  onPress={() => {
+                    setListOpen(false);
+                    setSynapseId(x.id);
+                  }}
+                  style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
+                >
+                  <Icon name="spark" size={16} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listTopic}>{t.map.synapse}</Text>
+                    <Text style={styles.listSub}>
+                      {area(x.a)} + {area(x.b)} · {t.map.synapseState(x.resting)}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
               {/* the firewalls in sight, like on the map */}
               {sight.signs.map((sign) => (
                 <Pressable

@@ -159,6 +159,10 @@ export interface NetworkState {
   nodes: Record<string, NetNode>;
   /** The walls around the outer areas, and where they are broken; see `boss.ts` and `walls.ts`. */
   firewalls?: import('./boss').Firewall[];
+  /** Links between two related areas the player knows well; see `synapses.ts`. */
+  synapses?: import('./synapses').Synapse[];
+  /** Failed synapse probes: pair id → the day of the last one and how many there were. */
+  synapseTries?: Record<string, { day: string; attempts: number }>;
   /** Question ids already used by a node (solved or open). */
   usedQuestions: string[];
   /** Version of the placement rules the nodes were placed with (`LAYOUT_VERSION`); none before D60. */

@@ -420,9 +420,56 @@ function ShardTileBase({
 }
 
 
+const sparkPath = unitPath((p) => {
+  p.moveTo(0, -1);
+  p.lineTo(0.22, -0.22);
+  p.lineTo(1, 0);
+  p.lineTo(0.22, 0.22);
+  p.lineTo(0, 1);
+  p.lineTo(-0.22, 0.22);
+  p.lineTo(-1, 0);
+  p.lineTo(-0.22, -0.22);
+  p.close();
+});
+
+/**
+ * The sign of a synapse that can be joined: a spark naming the two areas, floating `up` above
+ * the ground point (x, y) at the top of its arc. Dim while the pair rests after a failed probe.
+ */
+function SynapseSignBase({
+  x,
+  y,
+  up,
+  label,
+  resting,
+  font,
+}: {
+  x: number;
+  y: number;
+  up: number;
+  label: string;
+  resting: boolean;
+  font: SkFont;
+}) {
+  const w = font.getTextWidth(label) + 36;
+  const top = -up - 12;
+  const ink = resting ? '#9FB3C8' : '#EBDDFF';
+  return (
+    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]} opacity={resting ? 0.7 : 1}>
+      <RoundedRect x={-w / 2} y={top} width={w} height={24} r={12} color="#04080F" opacity={0.88} />
+      <RoundedRect x={-w / 2} y={top} width={w} height={24} r={12} style="stroke" strokeWidth={2} color={resting ? '#56606E' : '#B46BFF'} />
+      <Group transform={[{ translateX: -w / 2 + 15 }, { translateY: top + 12 }, { scale: 7 }]}>
+        <Path path={sparkPath} color={ink} />
+      </Group>
+      <SkText x={-w / 2 + 28} y={top + 16.5} text={label} font={font} color={ink} />
+    </Group>
+  );
+}
+
 export const NodeTile = memo(NodeTileBase);
 export const SiteTile = memo(SiteTileBase);
 export const CoreTile = memo(CoreTileBase);
 export const ShardTile = memo(ShardTileBase);
 
 export const WallSign = memo(WallSignBase);
+export const SynapseSign = memo(SynapseSignBase);

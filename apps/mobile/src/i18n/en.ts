@@ -133,6 +133,15 @@ export const en: Strings = {
     openFor: (cost) => `Open for ${cost} gems`,
     toShop: 'To the shop',
     restored: 'Restored. You’ll find the collected fragments in the codex.',
+    synapse: 'Synapse',
+    synapseText: (a: string, b: string, questions: number, pass: number) =>
+      `${a} and ${b} belong together, and you know enough in both. Connect them: ${questions} questions you have already solved there, from memory and without the cache. ${pass} must be right. A failed try costs nothing; you can try again tomorrow.`,
+    synapseReward: (xp: number, bits: number, gems: number, pct: number) =>
+      `Reward: ${xp} XP, ${bits} bits, ${gems} gems and a lasting +${pct} % XP and bits on every answer.`,
+    synapseResting: 'Already tried today. Try again tomorrow, it may stick better then.',
+    connect: 'Connect',
+    synapseA11y: (a: string, b: string, resting: boolean) => `Synapse between ${a} and ${b}${resting ? ', again tomorrow' : ''}`,
+    synapseState: (resting: boolean) => (resting ? 'again tomorrow' : 'ready'),
   },
 
   node: {
@@ -177,6 +186,9 @@ export const en: Strings = {
     backToDebris: 'Back to the debris field',
     laterText: 'You can take on this node again later. The right answer would have been:',
     later: 'Come back later',
+    networkBonus: (pct: number) => `Connectedness +${pct} %`,
+    varietyBonus: (pct: number) => `Variety +${pct} % bits`,
+    albumFull: (name: string, gems: number, bits: number) => `Album complete: ${name}! +${gems} gems, +${bits} bits.`,
   },
 
   boss: {
@@ -212,6 +224,16 @@ export const en: Strings = {
     answer: 'Answer',
     result: 'Result',
     nextQuestion: 'Next >',
+    synapse: 'Synapse',
+    synapseTitle: (a: string, b: string) => `Synapse: ${a} + ${b}`,
+    synapseClosed: 'This synapse is not possible right now.',
+    synapseIntro: 'From memory: questions you have already solved in both areas. No cache, no folders.',
+    synapseJoined: 'Synapse joined',
+    synapseHolds: 'No connection yet',
+    synapseWon: (right: number, total: number, a: string, b: string, pct: number) =>
+      `${right} of ${total} right. ${a} and ${b} are connected now. Connectedness: +${pct} % on every answer.`,
+    synapseLost: (right: number, total: number, pass: number) =>
+      `${right} of ${total} right, ${pass} were needed. Nothing lost: you can try again tomorrow.`,
   },
 
   question: {
@@ -278,6 +300,19 @@ export const en: Strings = {
     intro: (n) => `All the fragments you have restored. ${n} collected.`,
     empty: 'Still empty. Solve your first node and the fragments will land here.',
     logbook: 'LOG BOOK · SYSTEM/LOGS',
+    albums: 'ALBUMS',
+    albumsIntro: (gems: number, bits: number) => `Themes across the areas. A complete album brings ${gems} gems and ${bits} bits.`,
+    albumMissing: (area: string) => `??? · ${area}`,
+    albumNames: {
+      antiquity: 'Antiquity',
+      sound: 'Sound',
+      breath: 'The Earth breathes',
+      cosmos: 'Light from space',
+      europe: 'Europe',
+      code: 'From sign to code',
+      rules: 'The rules of society',
+      earth: 'The face of the Earth',
+    },
   },
 
   profile: {
@@ -314,6 +349,10 @@ export const en: Strings = {
     resetText: 'Your network and all progress will be deleted.',
     resetConfirm: 'Reset',
     defaultName: 'Rebuilder',
+    network: 'Connectedness',
+    networkLine: (n: number, total: number, pct: number) => `${n} of ${total} synapses · +${pct} % XP and bits on every answer`,
+    networkEmpty: (need: number) =>
+      `No synapse yet. Solve ${need} nodes in each of two related areas, then you can connect them on the map.`,
   },
 
   settings: {

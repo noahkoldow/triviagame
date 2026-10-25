@@ -16,6 +16,7 @@ import {
 import { type Rng } from './rng';
 import { targetDifficulty, BASE_SKILL, type SkillMap } from './skill';
 import { markDamaged, applyReview } from './srs';
+import type { Synapse } from './synapses';
 import { SECTORS, sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Question, Sector, Vec3 } from './types';
 import { CORE_ZONE, clampToZone, traceVia, zoneOf, zoneOfArea, zoneRoute, type Breach } from './walls';
@@ -193,9 +194,12 @@ function nextId(state: NetworkState): string {
   return `n${Object.keys(state.nodes).length}`;
 }
 
-/** The gaps in the walls, for routes between zones. */
-export function breachesOf(firewalls: Firewall[] | undefined): { area: string; breach: Breach }[] {
-  return (firewalls ?? []).flatMap((f) => (f.breach ? [{ area: f.area, breach: f.breach }] : []));
+/** The gaps in the walls (broken firewalls and synapses), for routes between zones. */
+export function breachesOf(firewalls: Firewall[] | undefined, synapses: Synapse[] = []): { area: string; breach: Breach }[] {
+  return [
+    ...(firewalls ?? []).flatMap((f) => (f.breach ? [{ area: f.area, breach: f.breach }] : [])),
+    ...synapses.flatMap((s) => (s.gap ? [s.gap] : [])),
+  ];
 }
 
 /**
@@ -203,7 +207,7 @@ export function breachesOf(firewalls: Firewall[] | undefined): { area: string; b
  * behind the last gap on the way there, so the branch passes through the wall and not over it.
  */
 function growFrom(state: NetworkState, parent: Vec3, zone: string): Vec3 {
-  const route = zoneRoute(breachesOf(state.firewalls), zoneOf(parent.x, parent.y), zone);
+  const route = zoneRoute(breachesOf(state.firewalls, state.synapses), zoneOf(parent.x, parent.y), zone);
   const gap = route?.[route.length - 1];
   return gap ? { ...clampToZone(gap, zone), z: parent.z } : parent;
 }

@@ -22,7 +22,19 @@ import {
   unlockDebris,
   type SpawnContext,
 } from './network';
-import { MAX_ENERGY, MAX_INTEGRITY, STREAK_FREEZES, rewardFor, streakAfter, type Reward } from './rewards';
+import { ALBUM_REWARD, fullAlbums } from './albums';
+import {
+  MAX_ENERGY,
+  MAX_INTEGRITY,
+  STREAK_FREEZES,
+  VARIETY_WINDOW,
+  boosted,
+  rewardFor,
+  streakAfter,
+  varied,
+  type Reward,
+} from './rewards';
+import { networkBonus } from './synapses';
 import { seededRng } from './rng';
 import { BASE_SKILL, updateSkill, type SkillMap } from './skill';
 import { isDue } from './srs';
@@ -76,6 +88,10 @@ export interface PlayerState {
   story: StoryState;
   /** The weekly league; see `league.ts`. */
   league: LeagueState;
+  /** Areas of the last right answers, newest last (the variety bonus looks at them). */
+  recentAreas: string[];
+  /** Collection albums that are full and paid out; see `albums.ts`. */
+  albums: string[];
 }
 
 /** Colours for the player's spark. `de` is the German name; the app shows the name of the player's language by id. */
@@ -121,6 +137,8 @@ export function initialPlayer(
     stats: { correct: 0, wrong: 0, solved: 0 },
     story: initialStory(),
     league: initialLeague(),
+    recentAreas: [],
+    albums: [],
   };
 }
 
@@ -249,6 +267,10 @@ export interface CorrectResult {
   prepared: boolean;
   /** Areas whose wall the network reached with this answer: their firewall can be attacked now. */
   reachedWalls: string[];
+  /** What raised the reward: the synapses (0.05 each) and the variety of the last answers. */
+  bonus: { network: number; variety: boolean };
+  /** Collection albums this answer filled (each paid `ALBUM_REWARD` on top). */
+  albums: string[];
 }
 
 function collect(p: PlayerState, pool: Pool, questionId: string, today: string) {
@@ -268,7 +290,7 @@ export function recordCorrect(
 ): CorrectResult {
   const n = p.network.nodes[nodeId];
   if (!n || n.state !== 'open') {
-    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false, reachedWalls: [] };
+    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false, reachedWalls: [], bonus: { network: 0, variety: false }, albums: [] };
   }
   const q = pool.get(n.questionId);
   const attempts = n.attempts + 1;
@@ -295,8 +317,12 @@ export function recordCorrect(
   if (p.integrity === 0) {
     reward = { xp: Math.round(reward.xp / 2), bits: Math.round(reward.bits / 2), gems: 0 };
   }
+  // breadth pays: every synapse raises the reward, and so do varied areas in the last answers
+  const recentAreas = [...(p.recentAreas ?? []), q.area].slice(-VARIETY_WINDOW);
+  const bonus = { network: networkBonus(p), variety: varied(recentAreas) };
+  reward = boosted(reward, bonus.network, bonus.variety);
   const st = streakAfter(p.streak.count, p.streak.lastDay, today, p.streak.freezes);
-  const player: PlayerState = {
+  const solvedNow: PlayerState = {
     ...p,
     network: grown.state,
     xp: p.xp + reward.xp,
@@ -312,7 +338,18 @@ export function recordCorrect(
     cache: cacheWithoutArea(p.cache, pool, q.area),
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
+    recentAreas,
   };
+  // collection albums this answer filled pay once
+  const albums = fullAlbums(solvedNow.network).filter((id) => !(p.albums ?? []).includes(id));
+  const player: PlayerState = albums.length
+    ? {
+        ...solvedNow,
+        bits: solvedNow.bits + ALBUM_REWARD.bits * albums.length,
+        gems: solvedNow.gems + ALBUM_REWARD.gems * albums.length,
+        albums: [...(p.albums ?? []), ...albums],
+      }
+    : solvedNow;
   return {
     player,
     spawned: grown.spawned.map((s) => s.id),
@@ -320,6 +357,8 @@ export function recordCorrect(
     closedCircle: grown.closedCircle,
     prepared,
     reachedWalls: newlyReached(p.network, player.network),
+    bonus,
+    albums,
   };
 }
 

@@ -29,6 +29,8 @@ import {
   snapToHex,
   traceVia,
   wallsInSight,
+  type Synapse,
+  type SynapseSpot,
   type NetNode,
   type Pool,
   type Sector,
@@ -55,6 +57,7 @@ import {
   NodeTile,
   ShardTile,
   SiteTile,
+  SynapseSign,
   WallSign,
   type NodeInfo,
   type Shard,
@@ -79,6 +82,11 @@ interface Props {
   /** The walls around the outer areas; the map shows the parts the network has come close to. */
   firewalls?: Firewall[];
   onFirewall?: (id: string) => void;
+  /** Joined synapses: glowing arcs between two areas; their gaps open the walls. */
+  synapses?: Synapse[];
+  /** Pairs of areas that can be joined now. */
+  spots?: SynapseSpot[];
+  onSynapse?: (id: string) => void;
   /** Debris field of the node the player is currently scavenging. */
   debris?: { nodeId: string; center: { x: number; y: number }; color: string; shards: Shard[] };
   onShard?: (fragmentId: string) => void;
@@ -88,6 +96,8 @@ interface Props {
 }
 
 const SECTOR_COLOR = colors.sector;
+const NO_SYNAPSES: Synapse[] = [];
+const NO_SPOTS: SynapseSpot[] = [];
 
 function NetMapBase({
   nodes,
@@ -103,6 +113,9 @@ function NetMapBase({
   showStrand = false,
   firewalls = [],
   onFirewall,
+  synapses = NO_SYNAPSES,
+  spots = NO_SPOTS,
+  onSynapse,
   debris,
   onShard,
   onDismiss,
@@ -144,7 +157,10 @@ function NetMapBase({
   );
   const byId = useMemo(() => Object.fromEntries(placed.map((n) => [n.id, n])), [placed]);
   // the walls hide in the fog until the network comes within a few cells
-  const sight = useMemo(() => wallsInSight(placed, firewalls), [placed, firewalls]);
+  const sight = useMemo(
+    () => wallsInSight(placed, firewalls, synapses.flatMap((s) => (s.gap ? [s.gap] : []))),
+    [placed, firewalls, synapses],
+  );
 
   const infos = useMemo(() => {
     const out: Record<string, NodeInfo> = {};
@@ -179,7 +195,7 @@ function NetMapBase({
 
   const edges = useMemo<TraceEdge[]>(() => {
     const out: TraceEdge[] = [];
-    const gaps = breachesOf(firewalls);
+    const gaps = breachesOf(firewalls, synapses);
     for (const n of placed) {
       const info = infos[n.id]!;
       const lit = !n.locked && n.state !== 'open';
@@ -192,7 +208,33 @@ function NetMapBase({
       out.push({ from, to: s, sector: s.sector, lit: false });
     });
     return out;
-  }, [placed, infos, byId, strand, firewalls]);
+  }, [placed, infos, byId, strand, firewalls, synapses]);
+
+  // synapses float above the map as arcs from node to node: joined ones glow, ready ones are dashed
+  const arcs = useMemo(() => {
+    const arc = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+      const lift = 40 + Math.hypot(b.x - a.x, b.y - a.y) * 0.22;
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const pb = Skia.PathBuilder.Make();
+      pb.moveTo(a.x, a.y * SQUASH - NODE_DEPTH);
+      // the top of a quadratic curve lies halfway to its control point
+      pb.quadTo(mx, my * SQUASH - NODE_DEPTH - lift * 2, b.x, b.y * SQUASH - NODE_DEPTH);
+      return { path: pb.detach(), top: { x: mx, y: my, up: NODE_DEPTH + lift } };
+    };
+    const joined = synapses.flatMap((s) => {
+      const a = byId[s.from]?.pos;
+      const b = byId[s.to]?.pos;
+      if (!a || !b) return [];
+      const color = mix(SECTOR_COLOR[sectorOfArea(s.a)], SECTOR_COLOR[sectorOfArea(s.b)], 0.5);
+      return [{ id: s.id, color: mix(color, '#FFFFFF', 0.35), ...arc(a, b) }];
+    });
+    const ready = spots.map((sp) => ({
+      ...sp,
+      ...arc(snapToHex(sp.from.pos.x, sp.from.pos.y), snapToHex(sp.to.pos.x, sp.to.pos.y)),
+    }));
+    return { joined, ready };
+  }, [synapses, spots, byId]);
 
   const scene = useMemo(() => buildHexScene(sites, edges, sight.cells), [sites, edges, sight]);
 
@@ -245,6 +287,10 @@ function NetMapBase({
   onFirewallRef.current = onFirewall;
   const sightRef = useRef(sight);
   sightRef.current = sight;
+  const onSynapseRef = useRef(onSynapse);
+  onSynapseRef.current = onSynapse;
+  const readyRef = useRef(arcs.ready);
+  readyRef.current = arcs.ready;
   const shardsRef = useRef<Shard[]>([]);
   shardsRef.current = debris?.shards ?? [];
 
@@ -341,6 +387,14 @@ function NetMapBase({
             onShardRef.current?.(sBest.id);
             return;
           }
+          // the spark of a synapse that can be joined
+          for (const r of readyRef.current) {
+            const p = project(x, y, s, w, h, r.top.x, r.top.y, r.top.up);
+            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(30, 40 * s)) {
+              onSynapseRef.current?.(r.id);
+              return;
+            }
+          }
           // a wall: its sign, or any of its cells in sight
           for (const sign of sightRef.current.signs) {
             const p = project(x, y, s, w, h, sign.x, sign.y, LIFT[WALL_LEVEL]! + 22);
@@ -380,6 +434,7 @@ function NetMapBase({
     return Math.floor(g * 16);
   };
   const glowOpacity = useDerivedValue(() => 0.35 + pulse.value * 0.5);
+  const synapseGlow = useDerivedValue(() => 0.65 + pulse.value * 0.35);
   const noiseA = useDerivedValue(() => (((step(glitch.value) * 37 + 11) % 7) / 7) * 0.4);
   const noiseB = useDerivedValue(() => (((step(glitch.value) * 53 + 5) % 5) / 5) * 0.4);
   const noiseC = useDerivedValue(() => (((step(glitch.value) * 29 + 3) % 6) / 6) * 0.35);
@@ -528,6 +583,28 @@ function NetMapBase({
               <SiteTile key={`p-${b.site!.id}`} x={b.site!.x} y={b.site!.y} color={SECTOR_COLOR[b.site!.sector]} />
             ),
           )}
+          {/* synapses: glowing arcs between joined areas, dashed ones with a spark where two can be joined */}
+          {arcs.joined.map((a) => (
+            <Group key={a.id} opacity={synapseGlow}>
+              <Path path={a.path} style="stroke" strokeWidth={9} strokeCap="round" color={a.color} opacity={0.25} />
+              <Path path={a.path} style="stroke" strokeWidth={3} strokeCap="round" color={a.color} />
+            </Group>
+          ))}
+          {arcs.ready.map((r) => (
+            <Group key={r.id}>
+              <Path path={r.path} style="stroke" strokeWidth={2.5} strokeCap="round" color="#B46BFF" opacity={r.resting ? 0.35 : 0.8}>
+                <DashPathEffect intervals={[8, 7]} />
+              </Path>
+              <SynapseSign
+                x={r.top.x}
+                y={r.top.y}
+                up={r.top.up}
+                label={`${t.profile.short[r.a] ?? areaName(r.a, t.lang)} + ${t.profile.short[r.b] ?? areaName(r.b, t.lang)}`}
+                resting={r.resting}
+                font={font}
+              />
+            </Group>
+          ))}
         </Group>
 
         {/* veil: pulls everything back while a node is being scavenged */}

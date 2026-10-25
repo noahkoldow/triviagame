@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SECTORS, areaName, footprint, levelFromXp } from '@nexus/shared';
+import { AREA_LINKS, SECTORS, SYNAPSE_NEED, areaName, footprint, levelFromXp, networkBonus } from '@nexus/shared';
 import { useWindowDimensions } from 'react-native';
 import { Bolt } from '../src/components/Bolt';
 import { Radar } from '../src/components/Radar';
@@ -68,6 +68,22 @@ export default function Profile() {
               {summary[i]}
             </Text>
           ))}
+        </Card>
+
+        <Card style={{ gap: 6 }}>
+          <Text style={styles.title}>{t.profile.network}</Text>
+          {state.network.synapses?.length ? (
+            <>
+              <P>{t.profile.networkLine(state.network.synapses.length, AREA_LINKS.length, Math.round(networkBonus(state) * 100))}</P>
+              {state.network.synapses.map((s) => (
+                <Text key={s.id} style={styles.legendText}>
+                  {areaName(s.a, t.lang)} + {areaName(s.b, t.lang)}
+                </Text>
+              ))}
+            </>
+          ) : (
+            <P>{t.profile.networkEmpty(SYNAPSE_NEED)}</P>
+          )}
         </Card>
 
         <Card>

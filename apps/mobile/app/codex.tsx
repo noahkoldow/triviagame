@@ -2,7 +2,16 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SECTORS, areaName, sectorOfArea, storyLogs, type Fragment } from '@nexus/shared';
+import {
+  ALBUMS,
+  ALBUM_REWARD,
+  SECTORS,
+  albumSolved,
+  areaName,
+  sectorOfArea,
+  storyLogs,
+  type Fragment,
+} from '@nexus/shared';
 import { Bolt } from '../src/components/Bolt';
 import { Icon } from '../src/components/Icon';
 import { BackBar, Card, P } from '../src/components/ui';
@@ -16,6 +25,7 @@ export default function Codex() {
   const t = useStrings();
   const codex = useGame((p) => p.codex);
   const story = useGame((p) => p.story);
+  const network = useGame((p) => p.network);
   // the log files of the story: what the core remembers, piece by piece
   const logs = useMemo(() => storyLogs({ story }, t.lang), [story, t.lang]);
 
@@ -56,6 +66,37 @@ export default function Codex() {
             ))}
           </View>
         ) : null}
+        {/* collection albums: themes across the areas, so exploring wide pays */}
+        <View style={{ gap: 8 }}>
+          <Text style={[styles.sector, { color: colors.gem }]}>{t.codex.albums}</Text>
+          <P>{t.codex.albumsIntro(ALBUM_REWARD.gems, ALBUM_REWARD.bits)}</P>
+          {ALBUMS.map((a) => {
+            const solved = albumSolved(network, a);
+            const full = solved.length === a.questions.length;
+            return (
+              <Card key={a.id} style={{ padding: 12, gap: 4, borderLeftWidth: 3, borderLeftColor: full ? colors.gem : colors.panelHi }}>
+                <View style={styles.logHead}>
+                  {full ? <Icon name="check" size={14} /> : <Icon name="book" size={14} />}
+                  <Text style={[styles.text, { fontWeight: '800', flex: 1 }]}>
+                    {t.codex.albumNames[a.id as keyof typeof t.codex.albumNames]}
+                  </Text>
+                  <Text style={styles.area}>
+                    {solved.length} / {a.questions.length}
+                  </Text>
+                </View>
+                {a.questions.map((id) => {
+                  const q = pool.byId.get(id);
+                  if (!q) return null;
+                  return (
+                    <Text key={id} style={styles.area}>
+                      {solved.includes(id) ? `✓ ${q.topic} · ${areaName(q.area, t.lang)}` : t.codex.albumMissing(areaName(q.area, t.lang))}
+                    </Text>
+                  );
+                })}
+              </Card>
+            );
+          })}
+        </View>
         {SECTORS.map((s) =>
           bySector[s]?.length ? (
             <View key={s} style={{ gap: 8 }}>

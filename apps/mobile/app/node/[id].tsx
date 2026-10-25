@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  ALBUM_REWARD,
+  VARIETY_BONUS,
   answerText,
   areaName,
   CACHE_FILES_PER_AREA,
@@ -105,6 +107,10 @@ function NodeGame({
     closedCircle?: boolean;
     prepared?: boolean;
     reachedWalls?: string[];
+    /** What breadth added to the reward: synapses and varied answers. */
+    bonus?: { network: number; variety: boolean };
+    /** Collection albums this answer filled. */
+    albums?: string[];
     gaveUp?: boolean;
     /** A repair before its day: children regrow, but no box, reward or integrity. */
     early?: boolean;
@@ -166,6 +172,8 @@ function NodeGame({
         closedCircle: r.closedCircle,
         prepared: r.prepared,
         reachedWalls: r.reachedWalls,
+        bonus: r.bonus,
+        albums: r.albums,
         guardian,
         attempts: node.attempts + 1,
       });
@@ -386,8 +394,21 @@ function NodeGame({
                 <Chip icon="bit" label={`+${r.reward.bits}`} color={colors.bit} />
                 {r.prepared ? <Chip icon="check" label={t.node.prepared} color={colors.primary} /> : null}
                 {r.reward.gems > 0 ? <Chip icon="gem" label={`+${r.reward.gems}`} color={colors.gem} /> : null}
+                {r.bonus && r.bonus.network > 0 ? (
+                  <Chip icon="spark" label={t.node.networkBonus(Math.round(r.bonus.network * 100))} color="#B46BFF" />
+                ) : null}
+                {r.bonus?.variety ? (
+                  <Chip icon="bit" label={t.node.varietyBonus(Math.round(VARIETY_BONUS * 100))} color={colors.bit} />
+                ) : null}
               </View>
             ) : null}
+            {(r.albums ?? []).map((id) => (
+              <Card key={id} style={{ borderColor: colors.gem }}>
+                <P style={{ color: colors.gem }}>
+                  {t.node.albumFull(t.codex.albumNames[id as keyof typeof t.codex.albumNames], ALBUM_REWARD.gems, ALBUM_REWARD.bits)}
+                </P>
+              </Card>
+            ))}
             {!review && r.attempts === 2 ? (
               <Card style={{ borderColor: colors.warn }}>
                 <P style={{ color: colors.warn }}>

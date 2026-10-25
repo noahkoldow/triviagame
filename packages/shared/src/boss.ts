@@ -179,10 +179,14 @@ export interface WallSight {
   signs: { firewall: string; area: string; x: number; y: number; reached: boolean }[];
 }
 
-/** What the map shows of the walls: only the parts the network has come close to (fog of war). */
-export function wallsInSight(nodes: Placed[], firewalls: Firewall[]): WallSight {
+/**
+ * What the map shows of the walls: only the parts the network has come close to (fog of war).
+ * `gaps` are further gaps, those of synapses (`Synapse.gap`).
+ */
+export function wallsInSight(nodes: Placed[], firewalls: Firewall[], gaps: { area: string; breach: Breach }[] = []): WallSight {
   const hexes = nodes.map((n) => worldToHex(n.pos.x, n.pos.y));
-  const gaps = new Set(firewalls.flatMap((f) => (f.breach ? breachCells(f.area, f.breach).map((c) => c.key) : [])));
+  const fallen = [...firewalls.flatMap((f) => (f.breach ? [{ area: f.area, breach: f.breach }] : [])), ...gaps];
+  const gapKeys = new Set(fallen.flatMap((g) => breachCells(g.area, g.breach).map((c) => c.key)));
   const standing = new Map(firewalls.filter((f) => !f.broken).map((f) => [f.area, f]));
   const reached = new Map([...standing.values()].map((f) => [f.id, firewallReached(nodes, f)]));
   const cells: WallSight['cells'] = [];
@@ -195,7 +199,7 @@ export function wallsInSight(nodes: Placed[], firewalls: Firewall[]): WallSight 
     }
     if (away > WALL_SIGHT) continue;
     const fw = c.zones.map((z) => standing.get(z)).find((f) => f);
-    const look: WallLook = gaps.has(c.key) ? 'gap' : fw ? (reached.get(fw.id) ? 'active' : 'locked') : 'calm';
+    const look: WallLook = gapKeys.has(c.key) ? 'gap' : fw ? (reached.get(fw.id) ? 'active' : 'locked') : 'calm';
     cells.push({ key: c.key, x: c.x, y: c.y, look, away, firewall: fw?.id });
     if (fw && look !== 'gap') seen.add(fw.id);
   }

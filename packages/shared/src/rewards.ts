@@ -40,6 +40,25 @@ export function rewardFor(i: RewardInput): Reward {
   return { xp, bits, gems };
 }
 
+/** Breadth pays: with this many different areas among the last answers (`VARIETY_WINDOW`), bits rise by `VARIETY_BONUS`. */
+export const VARIETY_WINDOW = 10;
+export const VARIETY_AREAS = 5;
+export const VARIETY_BONUS = 0.2;
+
+/** Whether the areas of the last answers (the newest included) are varied enough for the bonus. */
+export function varied(recentAreas: string[]): boolean {
+  return new Set(recentAreas.slice(-VARIETY_WINDOW)).size >= VARIETY_AREAS;
+}
+
+/** A reward raised by the network's connectedness (XP and bits) and the variety bonus (bits). */
+export function boosted(r: Reward, network: number, variety: boolean): Reward {
+  return {
+    xp: Math.round(r.xp * (1 + network)),
+    bits: Math.round(r.bits * (1 + network + (variety ? VARIETY_BONUS : 0))),
+    gems: r.gems,
+  };
+}
+
 export function levelFromXp(xp: number): { level: number; into: number; next: number } {
   let level = 1;
   let need = 60;

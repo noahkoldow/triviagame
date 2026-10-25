@@ -52,6 +52,18 @@ export const STORY_EN: StoryText = {
         text: 'The archive was divided into areas like the halls of a library. morph.ai unscrewed the door signs. Every connected area gets its sign back.',
       },
     },
+    'synapse-ready': {
+      title: 'Sparks are flying',
+      text: 'Look, something is sparking between two of your areas! You know enough in both to connect them. Tap the spark between them and answer from memory what you have already solved there. Every synapse makes your whole network worth more.',
+    },
+    'first-synapse': {
+      title: 'The first synapse',
+      text: 'Connection detected. Knowledge that is linked to other knowledge is harder to forget and used more often. Every synapse raises your connectedness: from now on every answer brings more XP and bits.',
+      log: {
+        name: 'CORE_SYN.LOG',
+        text: 'Synapse 1 active. Note of the core: single facts are islands. Connected facts are a continent. morph.ai only ever handed out islands.',
+      },
+    },
     'wake-science': {
       title: 'Quantis awakens',
       text: 'Quantis, guardian of the sciences. I am 99.7 % awake; the rest is rounding error. From now on I will measure every one of your answers in this sector. Purely scientifically, of course.',

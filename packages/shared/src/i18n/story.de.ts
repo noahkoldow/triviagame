@@ -52,6 +52,18 @@ export const STORY_DE: StoryText = {
         text: 'Das Archiv war in Bereiche gegliedert wie die Säle einer Bibliothek. morph.ai hat die Türschilder abgeschraubt. Jeder verbundene Bereich bekommt sein Schild zurück.',
       },
     },
+    'synapse-ready': {
+      title: 'Es funkt',
+      text: 'Schau mal, zwischen zwei deiner Bereiche funkt es! Du weißt in beiden genug, um sie zu verbinden. Tippe auf den Funken zwischen ihnen und beantworte aus dem Gedächtnis, was du dort schon gelöst hast. Jede Synapse macht dein ganzes Netz wertvoller.',
+    },
+    'first-synapse': {
+      title: 'Die erste Synapse',
+      text: 'Verbindung erkannt. Was mit anderem Wissen verknüpft ist, vergisst man schwerer und nutzt man öfter. Jede Synapse hebt die Vernetzung: Ab jetzt bringt jede Antwort mehr XP und Bits.',
+      log: {
+        name: 'KERN_SYN.LOG',
+        text: 'Synapse 1 aktiv. Notiz des Kerns: Einzelne Fakten sind Inseln. Verbundene Fakten sind ein Kontinent. morph.ai hat immer nur Inseln geliefert.',
+      },
+    },
     'wake-science': {
       title: 'Quantis erwacht',
       text: 'Quantis, Hüter der Naturwissenschaften. Ich bin zu 99,7 % wach, der Rest ist Rundungsfehler. Ab jetzt messe ich jede deiner Antworten in diesem Sektor. Rein wissenschaftlich, versteht sich.',

@@ -17,6 +17,8 @@ export * from './cache';
 export * from './hex';
 export * from './links';
 export * from './walls';
+export * from './synapses';
+export * from './albums';
 export * from './footprint';
 export * from './boss';
 export * from './ai';

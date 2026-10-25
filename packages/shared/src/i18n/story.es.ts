@@ -52,6 +52,18 @@ export const STORY_ES: StoryText = {
         text: 'El archivo estaba dividido en áreas, como las salas de una biblioteca. morph.ai desatornilló los letreros de las puertas. Cada área conectada recupera su letrero.',
       },
     },
+    'synapse-ready': {
+      title: 'Saltan chispas',
+      text: '¡Mira, algo chispea entre dos de tus áreas! Sabes lo suficiente de ambas para conectarlas. Toca la chispa entre ellas y responde de memoria lo que ya resolviste allí. Cada sinapsis hace que toda tu red valga más.',
+    },
+    'first-synapse': {
+      title: 'La primera sinapsis',
+      text: 'Conexión detectada. El saber unido a otro saber se olvida menos y se usa más. Cada sinapsis aumenta tu conectividad: a partir de ahora, cada respuesta da más XP y bits.',
+      log: {
+        name: 'NUCLEO_SYN.LOG',
+        text: 'Sinapsis 1 activa. Nota del núcleo: los datos sueltos son islas. Los datos conectados forman un continente. morph.ai solo repartía islas.',
+      },
+    },
     'wake-science': {
       title: 'Quantis despierta',
       text: 'Quantis, guardián de las ciencias. Estoy despierto al 99,7 %; el resto es error de redondeo. A partir de ahora mediré cada una de tus respuestas en este sector. De forma puramente científica, claro.',

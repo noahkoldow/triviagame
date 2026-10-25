@@ -1,7 +1,7 @@
 import { AREAS } from './taxonomy';
 
-/** Areas that lead into each other: the questions of a branch drift along these links. */
-const LINKS: [string, string][] = [
+/** Areas that lead into each other: the questions of a branch drift along these links, and synapses join them (see `synapses.ts`). */
+export const AREA_LINKS: [string, string][] = [
   ['physics', 'biomedicine'],
   ['physics', 'technology'],
   ['physics', 'astronomy'],
@@ -23,7 +23,7 @@ const LINKS: [string, string][] = [
 ];
 
 const NEIGHBOURS = new Map<string, string[]>();
-for (const [a, b] of LINKS) {
+for (const [a, b] of AREA_LINKS) {
   NEIGHBOURS.set(a, [...(NEIGHBOURS.get(a) ?? []), b]);
   NEIGHBOURS.set(b, [...(NEIGHBOURS.get(b) ?? []), a]);
 }

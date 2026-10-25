@@ -52,6 +52,18 @@ export const STORY_FR: StoryText = {
         text: 'L’archive était divisée en domaines, comme les salles d’une bibliothèque. morph.ai a dévissé les plaques des portes. Chaque domaine connecté retrouve sa plaque.',
       },
     },
+    'synapse-ready': {
+      title: 'Ça fait des étincelles',
+      text: 'Regarde, ça crépite entre deux de tes domaines ! Tu en sais assez dans les deux pour les relier. Touche l’étincelle entre eux et réponds de mémoire à ce que tu y as déjà résolu. Chaque synapse rend tout ton réseau plus précieux.',
+    },
+    'first-synapse': {
+      title: 'La première synapse',
+      text: 'Connexion détectée. Un savoir relié à d’autres s’oublie moins vite et sert plus souvent. Chaque synapse augmente ta connectivité : désormais, chaque réponse rapporte plus d’XP et de bits.',
+      log: {
+        name: 'NOYAU_SYN.LOG',
+        text: 'Synapse 1 active. Note du noyau : des faits isolés sont des îles. Des faits reliés forment un continent. morph.ai n’a jamais livré que des îles.',
+      },
+    },
     'wake-science': {
       title: 'Quantis s’éveille',
       text: 'Quantis, gardien des sciences. Je suis éveillé à 99,7 %, le reste est une erreur d’arrondi. Désormais, je mesure chacune de tes réponses dans ce secteur. De façon purement scientifique, bien sûr.',
