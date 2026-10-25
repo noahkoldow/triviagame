@@ -73,9 +73,14 @@ Spielbar in Expo Go (Mock-Daten):
 - **Gemini je Sprache:** Anfrage mit `lang`, ein Pool je Sprache und Bereich, Prompt und Prüfer in der Zielsprache.
 - **Ungeprüft auf Gerät:** Textlängen auf kleinen Bildschirmen (Französisch und Spanisch sind länger), Erkennung der Gerätesprache. Die Übersetzungen sollten Muttersprachler gegenlesen.
 
+## Prototyp 0.11 (Karte wächst in der Nähe)
+
+- **Keine Bahnen mehr quer über die Karte** (D60): Brücken führen nur in ein Thema, das man vom gelösten Knoten aus erreicht (Nachbarsektor oder nahe Lücke), sonst bleiben sie im Thema oder warten auf neue Fragen. Neue Knoten stehen höchstens 230 Einheiten vom Elternknoten (oder der Lücke) entfernt und meiden Kreuzungen. Alte Karten werden beim Laden einmal repariert.
+- **Ungeprüft auf Gerät:** wie eine reparierte alte Karte aussieht. Die Reparatur dauert am Rechner 10–60 ms, bei 240 Knoten 0,2 s.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (190 + 43 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (194 + 43 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 
