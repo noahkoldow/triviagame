@@ -1,5 +1,5 @@
 import type { Lang } from './lang';
-import type { ChartSpec, FileKind, Fragment, FragmentFile } from './types';
+import type { ChartSpec, FileKind, Fragment, FragmentFile, GeoBox } from './types';
 
 /**
  * The files inside a cache folder. A fragment has a short fact (`text`); its folder can
@@ -26,6 +26,27 @@ export function fragmentFiles(f: Fragment): FragmentFile[] {
   return [{ name: NOTE_FILE.de, kind: 'note', text: f.text }];
 }
 
+/** Words morph.ai blacked out in a redacted file are written `[[like this]]`. */
+const REDACTION = /\[\[([^\]]+)\]\]/g;
+
+/** A redacted text in pieces: what can be read and what is blacked out. */
+export function redactedParts(text: string): { text: string; hidden: boolean }[] {
+  const out: { text: string; hidden: boolean }[] = [];
+  let at = 0;
+  for (const m of text.matchAll(REDACTION)) {
+    if (m.index! > at) out.push({ text: text.slice(at, m.index), hidden: false });
+    out.push({ text: m[1]!, hidden: true });
+    at = m.index! + m[0].length;
+  }
+  if (at < text.length) out.push({ text: text.slice(at), hidden: false });
+  return out;
+}
+
+/** A redacted text as it can be read: every blacked-out word is a bar as long as the word. */
+export function redact(text: string): string {
+  return text.replace(REDACTION, (_, w: string) => '█'.repeat(Math.max(3, w.length)));
+}
+
 /** All readable words of a chart: what the search looks through and screen readers can speak. */
 export function chartText(c: ChartSpec): string {
   switch (c.chart) {
@@ -41,6 +62,8 @@ export function chartText(c: ChartSpec): string {
       return [c.title, ...c.items.map((i) => `${i.label} ${i.value} %`)].join('. ');
     case 'flow':
       return [c.title, c.steps.join(' → ') + (c.cycle ? ` → ${c.steps[0]}` : '')].join('. ');
+    case 'map':
+      return [c.title, ...c.places.map((p) => p.label)].join('. ');
   }
 }
 
@@ -49,7 +72,8 @@ export function fileText(file: FragmentFile): string {
   const parts = [file.name];
   if (file.from) parts.push(file.from);
   if (file.subject) parts.push(file.subject);
-  if (file.text) parts.push(file.text);
+  // what morph.ai blacked out cannot be found
+  if (file.text) parts.push(file.kind === 'redacted' ? redact(file.text) : file.text);
   if (file.source) parts.push(file.source);
   if (file.fields) parts.push(...file.fields.map(([k, v]) => `${k}: ${v}`));
   if (file.alt) parts.push(file.alt);
@@ -220,13 +244,50 @@ export function validateChart(raw: unknown): { chart?: ChartSpec; errors: string
       if (errors.length === 0) return { chart: { chart: 'flow', title, steps, ...(c['cycle'] === true ? { cycle: true } : {}) }, errors };
       break;
     }
+    case 'map': {
+      const places = (Array.isArray(c['places']) ? (c['places'] as unknown[]) : []).map((e) => {
+        const o = (e && typeof e === 'object' ? e : {}) as Record<string, unknown>;
+        return { label: clean(o['label']), lat: o['lat'] as number, lon: o['lon'] as number };
+      });
+      if (places.length < 1 || places.length > 6) errors.push('a map needs 1 to 6 places');
+      if (places.some((p) => !p.label || p.label.length > 24 || !isLatLon(p.lat, p.lon))) {
+        errors.push('places need a label (max 24 characters) and a latitude (-90..90) and longitude (-180..180)');
+      }
+      if (new Set(places.map((p) => p.label.toLowerCase())).size !== places.length) errors.push('place labels must be unique');
+      let region: GeoBox | undefined;
+      if (c['region'] !== undefined) {
+        const r = validateRegion(c['region']);
+        r.errors.forEach((e) => errors.push(e));
+        region = r.region;
+        if (region && places.some((p) => !inRegion(region!, p.lat, p.lon))) errors.push('every place must lie inside the region');
+      }
+      if (errors.length === 0) return { chart: { chart: 'map', title, ...(region ? { region } : {}), places }, errors };
+      break;
+    }
     default:
-      errors.push('chart must be "bars", "timeline", "table", "line", "pie" or "flow"');
+      errors.push('chart must be "bars", "timeline", "table", "line", "pie", "flow" or "map"');
   }
   return { errors };
 }
 
-const FILE_KINDS: FileKind[] = ['note', 'article', 'image', 'profile', 'quote', 'mail'];
+const FILE_KINDS: FileKind[] = ['note', 'article', 'image', 'profile', 'quote', 'mail', 'redacted'];
+
+const isLatLon = (lat: unknown, lon: unknown) =>
+  typeof lat === 'number' && typeof lon === 'number' && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+
+export function inRegion(r: GeoBox, lat: number, lon: number): boolean {
+  return lat >= r.south && lat <= r.north && lon >= r.west && lon <= r.east;
+}
+
+/** A part of the map: west of east, south of north, at least 5 degrees each way. */
+export function validateRegion(raw: unknown): { region?: GeoBox; errors: string[] } {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const [west, south, east, north] = ['west', 'south', 'east', 'north'].map((k) => o[k]);
+  if (!isLatLon(south, west) || !isLatLon(north, east)) return { errors: ['region needs west, south, east and north in degrees'] };
+  const r = { west, south, east, north } as GeoBox;
+  if (r.east - r.west < 5 || r.north - r.south < 5) return { errors: ['region must be at least 5 degrees wide and high, west before east, south before north'] };
+  return { region: r, errors: [] };
+}
 
 /** Checks the files of one fragment. Returns the cleaned files and every problem found. */
 export function validateFiles(raw: unknown): { files: FragmentFile[]; errors: string[] } {
@@ -268,6 +329,11 @@ export function validateFiles(raw: unknown): { files: FragmentFile[]; errors: st
     const text = clean(o['text']);
     const max = kind === 'article' ? 900 : kind === 'quote' ? 300 : 400;
     if (text.length < 10 || text.length > max) errors.push(`${at}: text must be 10 to ${max} characters`);
+    if (kind === 'redacted') {
+      const hidden = redactedParts(text).filter((p) => p.hidden);
+      if (hidden.length < 1 || hidden.length > 3) errors.push(`${at}: a redacted file blacks out 1 to 3 words, marked [[like this]]`);
+      if (hidden.some((h) => h.text.trim().length < 2 || h.text.length > 30)) errors.push(`${at}: blacked-out words must be 2 to 30 characters`);
+    }
     if (kind === 'article' && !(text.includes('\n\n') || text.length < 200)) errors.push(`${at}: an article is split into paragraphs`);
     const source = clean(o['source']);
     if (source.length > 80) errors.push(`${at}: source is too long`);

@@ -1,6 +1,29 @@
 import type { Lang } from './lang';
 import type { Answer, Question } from './types';
 
+/** Distance between two points on Earth in kilometres (haversine). */
+export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const rad = Math.PI / 180;
+  const a =
+    Math.sin(((lat2 - lat1) * rad) / 2) ** 2 +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(((lon2 - lon1) * rad) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/** "30° N, 31° E" in the player's language (east is "O" in German, west "O" in French and Spanish). */
+export function formatLatLon(lat: number, lon: number, lang: Lang): string {
+  const east = { de: 'O', en: 'E', fr: 'E', es: 'E' }[lang];
+  const west = { de: 'W', en: 'W', fr: 'O', es: 'O' }[lang];
+  const deg = (v: number) => String(Math.round(Math.abs(v)));
+  return `${deg(lat)}° ${lat >= 0 ? 'N' : 'S'}, ${deg(lon)}° ${lon >= 0 ? east : west}`;
+}
+
+/** Extra bits for a riddle solved before all clues were open: 3 for every clue left closed. */
+export function riddleBonus(q: Question, a: Answer | undefined): number {
+  if (q.type !== 'riddle' || !a || a.type !== 'riddle' || a.index !== q.answer) return 0;
+  return 3 * Math.max(0, q.clues.length - Math.max(1, a.clues));
+}
+
 /** The two buttons of a true/false question. */
 export const TRUE_FALSE: Record<Lang, { yes: string; no: string }> = {
   de: { yes: 'Stimmt', no: 'Stimmt nicht' },
@@ -44,6 +67,12 @@ export function isCorrect(q: Question, a: Answer): boolean {
       return a.type === 'sort' && q.items.every(([item, g]) => a.groups[item] === g);
     case 'spot':
       return a.type === 'spot' && a.index === q.wrong;
+    case 'locate':
+      return a.type === 'locate' && distanceKm(a.lat, a.lon, q.lat, q.lon) <= q.tolerance;
+    case 'riddle':
+      return a.type === 'riddle' && a.index === q.answer;
+    case 'source':
+      return a.type === 'source' && a.index === q.reliable;
   }
 }
 
@@ -69,6 +98,12 @@ export function answerText(q: Question, lang: Lang): string {
       return q.groups.map((g, k) => `${g}: ${q.items.filter((it) => it[1] === k).map((it) => it[0]).join(', ')}`).join(' · ');
     case 'spot':
       return q.lines[q.wrong] ?? '';
+    case 'locate':
+      return `${q.place} (${formatLatLon(q.lat, q.lon, lang)})`;
+    case 'riddle':
+      return q.options[q.answer] ?? '';
+    case 'source':
+      return q.sources[q.reliable]?.name ?? '';
   }
 }
 

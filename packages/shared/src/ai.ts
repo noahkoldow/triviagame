@@ -1,4 +1,4 @@
-import { validateFiles } from './files';
+import { inRegion, validateFiles, validateRegion } from './files';
 import { DEFAULT_LANG, LANG_IN_ENGLISH, isLang, type Lang } from './lang';
 import { hashString } from './rng';
 import { AREAS, SECTORS, areaById } from './taxonomy';
@@ -12,7 +12,20 @@ import type { Fragment, FragmentKind, Question, QuestionType, Sector } from './t
  * a backend function or any provider, without changing the game.
  */
 
-export const QUESTION_TYPES: QuestionType[] = ['choice', 'estimate', 'order', 'truefalse', 'match', 'cloze', 'multi', 'sort', 'spot'];
+export const QUESTION_TYPES: QuestionType[] = [
+  'choice',
+  'estimate',
+  'order',
+  'truefalse',
+  'match',
+  'cloze',
+  'multi',
+  'sort',
+  'spot',
+  'locate',
+  'riddle',
+  'source',
+];
 
 export interface GenerationRequest {
   /** One of the fixed taxonomy areas: the model picks within it, it does not invent topics. */
@@ -32,9 +45,17 @@ export interface QuestionGenerator {
   generate(prompt: string, request?: GenerationRequest): Promise<string>;
 }
 
+/** A web page the checker looked at to confirm a question (from search grounding). */
+export interface Evidence {
+  uri: string;
+  title?: string;
+}
+
 export interface CheckResult {
   ok: boolean;
   issues: string[];
+  /** Pages that back the question, when the checker searched the web. */
+  evidence?: Evidence[];
 }
 
 /** The second pass: is the answer unambiguous, are the decoys really wrong, is it solvable from the fragments? */
@@ -56,14 +77,17 @@ const SHAPES: Record<QuestionType, string> = {
   multi: '{ "type": "multi", "options": ["…", "…", "…", "…", "…"], "answers": [<index>, <index>] }   // 4 to 6 options; "answers" lists ALL right options (2 to 4), at least one option is wrong; "stem" says that several are right',
   sort: '{ "type": "sort", "groups": ["…", "…"], "items": [["…", <group index>], …] }   // 2 or 3 groups (folders), 4 to 8 items; every item fits exactly one group, every group gets at least one item',
   spot: '{ "type": "spot", "lines": ["…", "…", "…", "…"], "wrong": <index> }   // 3 to 5 statements on one topic, all true except exactly one plausible but false statement; "stem" asks the player to find it',
+  locate: '{ "type": "locate", "place": "<name of what is there>", "lat": <degrees>, "lon": <degrees>, "tolerance": <km, 50 to 1500>, "region": { "west": <deg>, "south": <deg>, "east": <deg>, "north": <deg> } }   // the player taps the spot on a map of "region" (at least 5 degrees each way, the place well inside); "stem" names what to find',
+  riddle: '{ "type": "riddle", "clues": ["<vaguest>", "…", "<clearest>"], "options": ["…", "…", "…", "…"], "answer": <index> }   // "Who/what am I?": 3 to 5 clues revealed one by one, vaguest first, none naming the answer; 3 to 5 options',
+  source: '{ "type": "source", "sources": [ { "name": "<file name>", "origin": "<who published it, where, when>", "text": "<what it claims, 10-300 chars>" }, … ], "reliable": <index> }   // 2 or 3 sources that contradict each other; exactly one is trustworthy (a scientific body, an official statistic, a recognised reference work), the others are plausible but weak (an anonymous post, an advert, an outdated claim); "stem" asks which source to trust',
 };
 
 /** File names the prompt shows as examples, so the model names files in the right language. */
-const FILE_EXAMPLES: Record<Lang, { note: string; article: string; image: string; profile: string; quote: string; mail: string }> = {
-  de: { note: 'Notizen.txt', article: 'Artikel.txt', image: 'Diagramm.png', profile: 'Steckbrief.inf', quote: 'Zitat.txt', mail: 'Nachricht.eml' },
-  en: { note: 'Notes.txt', article: 'Article.txt', image: 'Chart.png', profile: 'Profile.inf', quote: 'Quote.txt', mail: 'Message.eml' },
-  fr: { note: 'Notes.txt', article: 'Article.txt', image: 'Diagramme.png', profile: 'Fiche.inf', quote: 'Citation.txt', mail: 'Message.eml' },
-  es: { note: 'Notas.txt', article: 'Articulo.txt', image: 'Grafico.png', profile: 'Ficha.inf', quote: 'Cita.txt', mail: 'Mensaje.eml' },
+const FILE_EXAMPLES: Record<Lang, { note: string; article: string; image: string; profile: string; quote: string; mail: string; redacted: string }> = {
+  de: { note: 'Notizen.txt', article: 'Artikel.txt', image: 'Diagramm.png', profile: 'Steckbrief.inf', quote: 'Zitat.txt', mail: 'Nachricht.eml', redacted: 'Beschaedigt.txt' },
+  en: { note: 'Notes.txt', article: 'Article.txt', image: 'Chart.png', profile: 'Profile.inf', quote: 'Quote.txt', mail: 'Message.eml', redacted: 'Damaged.txt' },
+  fr: { note: 'Notes.txt', article: 'Article.txt', image: 'Diagramme.png', profile: 'Fiche.inf', quote: 'Citation.txt', mail: 'Message.eml', redacted: 'Endommage.txt' },
+  es: { note: 'Notas.txt', article: 'Articulo.txt', image: 'Grafico.png', profile: 'Ficha.inf', quote: 'Cita.txt', mail: 'Mensaje.eml', redacted: 'Danado.txt' },
 };
 
 export function buildGenerationPrompt(req: GenerationRequest): string {
@@ -104,26 +128,54 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
     '      { "chart": "line", "title": "…", "unit": "…", "points": [ { "year": <whole number>, "value": <number> } ] }   // 3-8 points, years rising',
     '      { "chart": "pie", "title": "…", "items": [ { "label": "…", "value": <percent> } ] }   // 2-6 slices, adding up to 100',
     '      { "chart": "flow", "title": "…", "steps": ["…", "…", "…"], "cycle": true | false }   // 2-6 steps of a process; cycle = the last step leads back to the first',
+    '      { "chart": "map", "title": "…", "region": { "west": <deg>, "south": <deg>, "east": <deg>, "north": <deg> }, "places": [ { "label": "…", "lat": <deg>, "lon": <deg> } ] }   // 1-6 places on a drawn map; region optional (whole world)',
     '  > }',
     `  { "name": "${files.profile}", "kind": "profile", "fields": [ ["<label, max 24>", "<value, max 60>"], … ] }   // fact sheet of one thing, place, being or person, 2-8 lines`,
     `  { "name": "${files.quote}", "kind": "quote", "text": "<the exact words, 10-300 chars>", "source": "<who said or wrote it, in which work or speech, and when>" }`,
     `  { "name": "${files.mail}", "kind": "mail", "from": "<sender, e.g. a researcher, an archivist or the robot Bolt>", "subject": "…", "text": "<a short message, 10-400 chars>" }`,
-    'Pick the format that fits the knowledge: values over the years → line; shares of a whole → pie; amounts side by side → bars; dates → timeline; steps of a process or a cycle → flow; several properties of one thing → profile; what a source really says (a law, a charter, a famous speech or book) → quote; context someone passes on → mail; explanations → article; a single fact → note. Mix formats: do not fill a folder with notes only.',
+    `  { "name": "${files.redacted}", "kind": "redacted", "text": "<a note in which the villain morph.ai blacked out 1 to 3 words, marked [[like this]]; the player can work them out from other files>" }`,
+    'Pick the format that fits the knowledge: where something is → map; values over the years → line; shares of a whole → pie; amounts side by side → bars; dates → timeline; steps of a process or a cycle → flow; several properties of one thing → profile; what a source really says (a law, a charter, a famous speech or book) → quote; context someone passes on → mail; explanations → article; a single fact → note. Mix formats: do not fill a folder with notes only.',
     'Images are drawn from this description, so use real, checkable numbers. Quotes must be verbatim and well documented; if you are not sure of the exact words, write an article instead. File names must not give the answer away.',
   ]
     .filter((l) => l !== '')
     .join('\n');
 }
 
-/** The prompt for the checker pass, in the language the question is written in. */
-export function buildCheckPrompt(q: Question): string {
+/**
+ * The prompt for the checker pass, in the language the question is written in. With `grounded`
+ * the checker may search the web and must flag every fact it cannot confirm there.
+ */
+export function buildCheckPrompt(q: Question, grounded = false): string {
   const language = LANG_IN_ENGLISH[q.lang ?? DEFAULT_LANG];
   return [
     `You check a quiz question for a knowledge game played in ${language}. Answer with JSON only: { "ok": true | false, "issues": ["…"] }.`,
-    `Check: 1) Is every stated fact correct, including every number in a chart and table? 2) Is the answer unambiguous: exactly one right option; for "multi" all listed answers and no other option right; for "sort" every item in exactly one group; for "spot" exactly one statement false? 3) Are the decoy fragments irrelevant or wrong, and do the key fragments really allow solving the question? 4) Do topic, intro, hints and file names avoid giving the answer away, and is the key fact not simply in every file? 5) Is every quote verbatim and attributed to the right source? 6) Is every text the player reads written in correct, natural ${language}?`,
+    grounded
+      ? 'Use Google Search to verify the facts, numbers, coordinates and quotes. Add an issue for every one you cannot confirm with a reliable source. Your final answer must still be only the JSON object.'
+      : '',
+    `Check: 1) Is every stated fact correct, including every number in a chart and table and every coordinate on a map? 2) Is the answer unambiguous: exactly one right option; for "multi" all listed answers and no other option right; for "sort" every item in exactly one group; for "spot" exactly one statement false; for "locate" the coordinates right and the tolerance not reaching a wrong place; for "riddle" no clue naming the answer and only one option fitting all clues; for "source" exactly one source trustworthy and its claim correct? 3) Are the decoy fragments irrelevant or wrong, and do the key fragments really allow solving the question? 4) Do topic, intro, hints and file names avoid giving the answer away, and is the key fact not simply in every file? 5) Is every quote verbatim and attributed to the right source? 6) Is every text the player reads written in correct, natural ${language}?`,
     'Question:',
     JSON.stringify(q),
-  ].join('\n');
+  ]
+    .filter((l) => l !== '')
+    .join('\n');
+}
+
+/**
+ * The web pages a grounded model answer cites (Gemini's `groundingMetadata`): http(s) links only,
+ * each once, at most eight. Anything else in the metadata is ignored.
+ */
+export function groundingEvidence(metadata: unknown): Evidence[] {
+  const chunks = (metadata as { groundingChunks?: unknown } | undefined)?.groundingChunks;
+  if (!Array.isArray(chunks)) return [];
+  const out: Evidence[] = [];
+  for (const c of chunks) {
+    const web = (c as { web?: { uri?: unknown; title?: unknown } } | null)?.web;
+    const uri = typeof web?.uri === 'string' ? web.uri : '';
+    if (!/^https?:\/\//.test(uri) || out.some((e) => e.uri === uri)) continue;
+    out.push({ uri, ...(typeof web?.title === 'string' && web.title ? { title: web.title.slice(0, 120) } : {}) });
+    if (out.length === 8) break;
+  }
+  return out;
 }
 
 /** Reads the checker's answer; anything unclear counts as "not ok". */
@@ -357,6 +409,53 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
       typed = { type, lines, wrong };
       break;
     }
+    case 'locate': {
+      const place = clean(d['place']);
+      const { lat, lon, tolerance } = d as { lat: unknown; lon: unknown; tolerance: unknown };
+      if (place.length < 2 || place.length > 40) errors.push('place must be 2 to 40 characters');
+      const geo = typeof lat === 'number' && typeof lon === 'number' && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+      if (!geo) errors.push('lat and lon must be degrees (-90..90, -180..180)');
+      if (typeof tolerance !== 'number' || tolerance < 50 || tolerance > 1500) errors.push('tolerance must be 50 to 1500 km');
+      const r = validateRegion(d['region']);
+      r.errors.forEach((e) => errors.push(e));
+      if (r.region && geo && !inRegion(r.region, lat, lon)) errors.push('the place must lie inside the region');
+      typed = { type, place, lat, lon, tolerance, region: r.region };
+      break;
+    }
+    case 'riddle': {
+      const clues = Array.isArray(d['clues']) ? (d['clues'] as unknown[]).map(clean) : [];
+      const options = Array.isArray(d['options']) ? (d['options'] as unknown[]).map(clean) : [];
+      const answer = d['answer'];
+      if (clues.length < 3 || clues.length > 5) errors.push('3 to 5 clues are needed');
+      if (clues.some((c) => c.length < 10 || c.length > 160)) errors.push('clues must be 10 to 160 characters');
+      if (new Set(clues.map(norm)).size !== clues.length) errors.push('clues must be unique');
+      if (options.length < 3 || options.length > 5) errors.push('3 to 5 options are needed');
+      if (options.some((o) => o === '' || o.length > 80)) errors.push('options must be 1 to 80 characters');
+      if (new Set(options.map(norm)).size !== options.length) errors.push('options must be unique');
+      if (!Number.isInteger(answer) || (answer as number) < 0 || (answer as number) >= options.length) errors.push('answer must be the index of an option');
+      else {
+        const right = options[answer as number]!;
+        secrets.push(right);
+        if (clues.some((c) => mentions(c, right))) errors.push(`a clue gives away the answer "${right}"`);
+      }
+      typed = { type, clues, options, answer };
+      break;
+    }
+    case 'source': {
+      const sources = (Array.isArray(d['sources']) ? (d['sources'] as unknown[]) : []).map((x) => {
+        const o = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+        return { name: clean(o['name']), origin: clean(o['origin']), text: clean(o['text']) };
+      });
+      const reliable = d['reliable'];
+      if (sources.length < 2 || sources.length > 3) errors.push('2 or 3 sources are needed');
+      if (sources.some((x) => x.name.length < 3 || x.name.length > 40)) errors.push('source names must be 3 to 40 characters');
+      if (sources.some((x) => x.origin.length < 3 || x.origin.length > 80)) errors.push('every source needs an origin of 3 to 80 characters');
+      if (sources.some((x) => x.text.length < 10 || x.text.length > 300)) errors.push('source texts must be 10 to 300 characters');
+      if (new Set(sources.map((x) => norm(x.name))).size !== sources.length) errors.push('source names must be unique');
+      if (!Number.isInteger(reliable) || (reliable as number) < 0 || (reliable as number) >= sources.length) errors.push('reliable must be the index of a source');
+      typed = { type, sources, reliable };
+      break;
+    }
     default:
       break;
   }
@@ -404,6 +503,8 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
 export interface GenerationResult {
   accepted: Question[];
   rejected: { reasons: string[] }[];
+  /** What the checker found on the web, by question id (only with a grounded checker). */
+  evidence: Record<string, Evidence[]>;
 }
 
 /**
@@ -416,15 +517,15 @@ export async function generateQuestions(
   req: GenerationRequest,
   known: Set<string> = new Set(),
 ): Promise<GenerationResult> {
-  const out: GenerationResult = { accepted: [], rejected: [] };
+  const out: GenerationResult = { accepted: [], rejected: [], evidence: {} };
   let text: string;
   try {
     text = await generator.generate(buildGenerationPrompt(req), req);
   } catch (e) {
-    return { accepted: [], rejected: [{ reasons: [`generator failed: ${e instanceof Error ? e.message : String(e)}`] }] };
+    return { accepted: [], rejected: [{ reasons: [`generator failed: ${e instanceof Error ? e.message : String(e)}`] }], evidence: {} };
   }
   const drafts = parseDrafts(text);
-  if (drafts.length === 0) return { accepted: [], rejected: [{ reasons: ['no JSON in the model answer'] }] };
+  if (drafts.length === 0) return { accepted: [], rejected: [{ reasons: ['no JSON in the model answer'] }], evidence: {} };
   for (const draft of drafts.slice(0, Math.max(1, req.count))) {
     const v = validateDraft(draft, { area: req.area, type: req.type, lang: req.lang });
     if (!v.ok) {
@@ -446,6 +547,7 @@ export async function generateQuestions(
         out.rejected.push({ reasons: r.issues.length ? r.issues : ['checker did not approve'] });
         continue;
       }
+      if (r.evidence?.length) out.evidence[v.question.id] = r.evidence;
     }
     out.accepted.push(v.question);
   }

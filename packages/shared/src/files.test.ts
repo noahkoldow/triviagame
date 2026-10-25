@@ -26,9 +26,9 @@ describe('cache folders with files', () => {
   it('several folders have files, of every kind and every chart', () => {
     expect(withFiles.length).toBeGreaterThanOrEqual(12);
     const kinds = new Set(withFiles.flatMap(({ f }) => f.files!.map((x) => x.kind)));
-    expect([...kinds].sort()).toEqual(['article', 'image', 'mail', 'note', 'profile', 'quote']);
+    expect([...kinds].sort()).toEqual(['article', 'image', 'mail', 'note', 'profile', 'quote', 'redacted']);
     const charts = new Set(withFiles.flatMap(({ f }) => f.files!.filter((x) => x.chart).map((x) => x.chart!.chart)));
-    expect([...charts].sort()).toEqual(['bars', 'flow', 'line', 'pie', 'table', 'timeline']);
+    expect([...charts].sort()).toEqual(['bars', 'flow', 'line', 'map', 'pie', 'table', 'timeline']);
   });
 
   it('checks the new formats: profiles, quotes, mails, lines, pies and flows', () => {

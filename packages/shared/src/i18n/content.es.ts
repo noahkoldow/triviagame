@@ -1266,4 +1266,158 @@ export const CONTENT_ES: Record<string, QuestionText> = {
       ],
     },
   },
+  'ear-cairo': {
+    topic: 'Ciudades del Nilo',
+    intro: 'El río más largo de África atraviesa el desierto y ha hecho crecer grandes ciudades en sus orillas.',
+    stem: 'Toca el lugar del mapa donde está El Cairo.',
+    place: 'El Cairo',
+    f: [
+      ['Junto al río', 'El Cairo está junto al Nilo, justo antes de que se abra en el delta y desemboque en el Mediterráneo.'],
+      ['Coordenadas', 'El Cairo está a unos 30 grados de latitud norte y 31 grados de longitud este.'],
+      ['Delta', 'El delta del Nilo es una de las zonas más fértiles de Egipto.'],
+      ['Kairuán', 'Kairuán, de nombre parecido, es una antigua ciudad de Túnez.'],
+    ],
+    why: 'El Cairo está a unos 30° N y 31° E junto al Nilo, justo antes de que se abra en el delta.',
+    files: {
+      1: [
+        {
+          name: 'Nilo.png',
+          kind: 'image',
+          alt: 'Mapa del noreste de África con Alejandría, Asuán y Jartum junto al Nilo.',
+          chart: {
+            chart: 'map',
+            title: 'Ciudades del Nilo',
+            region: { west: 20, south: 10, east: 45, north: 35 },
+            places: [
+              { label: 'Alejandría', lat: 31.2, lon: 29.9 },
+              { label: 'Asuán', lat: 24.1, lon: 32.9 },
+              { label: 'Jartum', lat: 15.5, lon: 32.6 },
+            ],
+          },
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'El Cairo está junto al Nilo, justo antes de que se abra en el delta y desemboque en el Mediterráneo.' },
+      ],
+      2: [
+        {
+          name: 'El_Cairo.inf',
+          kind: 'profile',
+          fields: [
+            ['País', 'Egipto'],
+            ['Río', 'Nilo'],
+            ['Latitud', 'unos 30° N'],
+            ['Longitud', 'unos 31° E'],
+            ['Área metropolitana', 'más de 20 millones de personas'],
+          ],
+        },
+      ],
+      3: [
+        {
+          name: 'Danado.txt',
+          kind: 'redacted',
+          text: 'Al norte de la ciudad, el río se abre en el [[delta]] antes de desembocar en el Mediterráneo en [[Alejandría]].',
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'El delta del Nilo es una de las zonas más fértiles de Egipto.' },
+      ],
+    },
+  },
+  'sci-curie': {
+    topic: 'Se busca científica',
+    intro: 'Tres pistas, una persona de la ciencia. Cuanto antes la reconozcas, más bits ganas.',
+    stem: '¿Quién soy?',
+    clues: [
+      'Investigué en París, pero venía de otro país.',
+      'Uno de los elementos que descubrí lleva el nombre de mi tierra natal.',
+      'Fui la primera persona en recibir dos premios Nobel, en física y en química.',
+    ],
+    options: ['Marie Curie', 'Lise Meitner', 'Rosalind Franklin', 'Ada Lovelace'],
+    f: [
+      ['Polonio', 'El elemento polonio debe su nombre a Polonia, la tierra natal de quien lo descubrió.'],
+      ['Dos premios', 'La primera persona con dos premios Nobel fue una investigadora de Varsovia: física en 1903, química en 1911.'],
+      ['Radio', 'El radio brilla débilmente en azul en la oscuridad y antes se usaba en las esferas luminosas de los relojes.'],
+      ['Fisión', 'Lise Meitner explicó la fisión nuclear con Otto Frisch en 1939; nunca recibió el premio Nobel.'],
+      ['Programa', 'En el siglo XIX, Ada Lovelace escribió el primer programa para una máquina de calcular.'],
+    ],
+    why: 'Marie Curie, nacida en Varsovia en 1867, descubrió el polonio y el radio y recibió el Nobel de Física en 1903 y el de Química en 1911.',
+    files: {
+      2: [
+        {
+          name: 'Trayectoria.png',
+          kind: 'image',
+          alt: 'Cronología: nacimiento en Varsovia en 1867, descubrimiento del polonio y el radio en 1898, premios Nobel en 1903 y 1911.',
+          chart: {
+            chart: 'timeline',
+            title: 'Una vida de investigadora',
+            events: [
+              { label: 'Nace en Varsovia', year: 1867 },
+              { label: 'Polonio y radio', year: 1898 },
+              { label: 'Nobel de Física', year: 1903 },
+              { label: 'Nobel de Química', year: 1911 },
+            ],
+          },
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'La primera persona con dos premios Nobel fue una investigadora de Varsovia: física en 1903, química en 1911.' },
+      ],
+    },
+  },
+  'ear-moonwall': {
+    topic: 'La vista desde la Luna',
+    intro: 'Algunas afirmaciones suenan tan bien que llevan décadas repitiéndose.',
+    stem: 'Dos archivos se contradicen: ¿se ve la Gran Muralla China desde la Luna a simple vista? ¿En qué fuente confías?',
+    sources: [
+      {
+        name: 'Mensaje_foro.txt',
+        origin: 'Mensaje anónimo en un foro de viajes',
+        text: 'La Gran Muralla China es la única obra humana que se ve a simple vista incluso desde la Luna.',
+      },
+      {
+        name: 'Informe_espacial.txt',
+        origin: 'NASA, informe sobre fotos desde la estación espacial',
+        text: 'Desde la Luna no se ve a simple vista ninguna construcción. Incluso desde la estación espacial cuesta mucho distinguir la muralla.',
+      },
+      {
+        name: 'Folleto.txt',
+        origin: 'Folleto de una agencia de viajes',
+        text: '¡Descubre la obra que los astronautas ven incluso desde la Luna!',
+      },
+    ],
+    f: [
+      ['Distancia', 'La Luna está a unos 384.000 km; la muralla suele medir solo de 5 a 8 metros de ancho.'],
+      ['Estación espacial', 'Incluso desde la estación espacial, a unos 400 km de altura, la muralla apenas se ve a simple vista.'],
+      ['Mito', 'La idea de que la muralla se ve desde la Luna es más antigua que los viajes espaciales.'],
+      ['Longitud', 'Con todos sus tramos, la Gran Muralla China mide más de 20.000 km.'],
+    ],
+    why: 'El informe de la NASA tiene razón: a 384.000 km, una franja de pocos metros de ancho es invisible. El mensaje del foro y el folleto repiten un viejo mito.',
+    files: {
+      1: [
+        {
+          name: 'Muralla.inf',
+          kind: 'profile',
+          fields: [
+            ['Anchura', 'casi siempre 5 a 8 m'],
+            ['Longitud', 'más de 20.000 km'],
+            ['Material', 'tierra apisonada, ladrillo, piedra'],
+          ],
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'La Luna está a unos 384.000 km; la muralla suele medir solo de 5 a 8 metros de ancho.' },
+      ],
+      4: [
+        {
+          name: 'Muralla.png',
+          kind: 'image',
+          alt: 'Mapa del norte de China con Jiayuguan al oeste, Yinchuan y Pekín.',
+          chart: {
+            chart: 'map',
+            title: 'La muralla en el norte de China',
+            region: { west: 85, south: 25, east: 130, north: 50 },
+            places: [
+              { label: 'Jiayuguan', lat: 39.8, lon: 98.3 },
+              { label: 'Pekín', lat: 39.9, lon: 116.4 },
+              { label: 'Yinchuan', lat: 38.5, lon: 106.3 },
+            ],
+          },
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'Con todos sus tramos, la Gran Muralla China mide más de 20.000 km.' },
+      ],
+    },
+  },
 };

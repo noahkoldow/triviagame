@@ -21,7 +21,7 @@ export interface QuestionText {
   f: [string, string][];
   /** The files of the fragments that have some in the source, by fragment number (1 = "-f1"). */
   files?: Record<number, FragmentFile[]>;
-  /** choice and multi: the options in the source's order (the answer indices stay). */
+  /** choice, multi and riddle: the options in the source's order (the answer indices stay). */
   options?: string[];
   /** estimate */
   unit?: string;
@@ -31,6 +31,12 @@ export interface QuestionText {
   groups?: string[];
   /** spot: the statements in the source's order (the wrong one stays). */
   lines?: string[];
+  /** locate: the name of the place (the coordinates stay). */
+  place?: string;
+  /** riddle: the clues, vaguest first. */
+  clues?: string[];
+  /** source: the sources in the source's order (the reliable one stays). */
+  sources?: { name: string; origin: string; text: string }[];
   /** match: the pairs in the source's order. */
   pairs?: [string, string][];
   /** cloze */
@@ -108,5 +114,11 @@ function typedText(base: Omit<Question, 'type'>, q: Question, t: QuestionText): 
       };
     case 'spot':
       return { ...base, type: 'spot', lines: t.lines ?? q.lines, wrong: q.wrong };
+    case 'locate':
+      return { ...base, type: 'locate', place: t.place ?? q.place, lat: q.lat, lon: q.lon, tolerance: q.tolerance, region: q.region };
+    case 'riddle':
+      return { ...base, type: 'riddle', clues: t.clues ?? q.clues, options: t.options ?? q.options, answer: q.answer };
+    case 'source':
+      return { ...base, type: 'source', sources: t.sources ?? q.sources, reliable: q.reliable };
   }
 }

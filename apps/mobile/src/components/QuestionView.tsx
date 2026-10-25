@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import {
   TRUE_FALSE,
   answerText,
+  distanceKm,
+  formatLatLon,
   parseNumber,
   variantBank,
   variantMatch,
@@ -12,15 +14,19 @@ import {
   variantSort,
   type Answer,
   type ClozeQuestion,
+  type LocateQuestion,
   type MatchQuestion,
   type MultiQuestion,
   type Question,
+  type RiddleQuestion,
   type SortQuestion,
+  type SourceQuestion,
   type SpotQuestion,
 } from '@nexus/shared';
 import { useStrings } from '../strings';
 import { colors } from '../theme';
 import { Icon } from './Icon';
+import { MapView } from './MapView';
 import { tap } from './ui';
 import { WIN, sunken } from './Win';
 
@@ -52,7 +58,10 @@ export function QuestionView({
       {q.type === 'multi' ? <MultiView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
       {q.type === 'sort' ? <SortView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
       {q.type === 'spot' ? <SpotView q={q} reveal={reveal} onChange={onChange} /> : null}
-      {reveal && q.type !== 'choice' && q.type !== 'multi' && q.type !== 'spot' ? (
+      {q.type === 'locate' ? <LocateView q={q} reveal={reveal} onChange={onChange} /> : null}
+      {q.type === 'riddle' ? <RiddleView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
+      {q.type === 'source' ? <SourceView q={q} reveal={reveal} onChange={onChange} /> : null}
+      {reveal && !['choice', 'multi', 'spot', 'riddle', 'source'].includes(q.type) ? (
         <Text style={styles.rightLine} maxFontSizeMultiplier={1.4}>
           {t.question.right(answerText(q, t.lang))}
         </Text>
@@ -510,6 +519,183 @@ function SpotView({ q, reveal, onChange }: Props<SpotQuestion>) {
   );
 }
 
+// -------------------------------------------------------------------- tap the place on a map
+function LocateView({ q, reveal, onChange }: Props<LocateQuestion>) {
+  const t = useStrings();
+  const { width } = useWindowDimensions();
+  const [pin, setPin] = useState<{ lat: number; lon: number } | null>(null);
+  useEffect(() => {
+    onChange(pin ? { type: 'locate', lat: pin.lat, lon: pin.lon } : null);
+  }, [pin]); // eslint-disable-line react-hooks/exhaustive-deps
+  const mapW = Math.min(width - 40, 480) - 24 - 8;
+  // the arrows move the mark one degree; they also make the map usable with a screen reader
+  const start = { lat: (q.region.north + q.region.south) / 2, lon: (q.region.west + q.region.east) / 2 };
+  const nudge = (dLat: number, dLon: number) => {
+    tap();
+    const p = pin ?? start;
+    setPin({
+      lat: Math.min(q.region.north, Math.max(q.region.south, p.lat + dLat)),
+      lon: Math.min(q.region.east, Math.max(q.region.west, p.lon + dLon)),
+    });
+  };
+  const right = !!pin && distanceKm(pin.lat, pin.lon, q.lat, q.lon) <= q.tolerance;
+  return (
+    <>
+      <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
+        {t.question.locateHint}
+      </Text>
+      <View style={[sunken, { padding: 4, alignSelf: 'center' }]}>
+        <MapView
+          width={mapW}
+          region={q.region}
+          marked={pin}
+          target={reveal ? { lat: q.lat, lon: q.lon, km: q.tolerance, right } : undefined}
+          onTap={
+            reveal
+              ? undefined
+              : (p) => {
+                  tap();
+                  setPin(p);
+                }
+          }
+          label={pin ? t.question.locateMarked(formatLatLon(pin.lat, pin.lon, t.lang)) : t.question.locateMap}
+        />
+      </View>
+      {!reveal ? (
+        <View style={styles.nudges}>
+          {(
+            [
+              ['↑', 1, 0, t.question.north],
+              ['↓', -1, 0, t.question.south],
+              ['←', 0, -1, t.question.west],
+              ['→', 0, 1, t.question.east],
+            ] as const
+          ).map(([arrow, dLat, dLon, a11y]) => (
+            <Pressable key={arrow} onPress={() => nudge(dLat, dLon)} accessibilityRole="button" accessibilityLabel={a11y} style={[styles.chip, styles.nudge]}>
+              <Text style={styles.chipText}>{arrow}</Text>
+            </Pressable>
+          ))}
+          <Text style={[styles.hint, { flex: 1, textAlign: 'right' }]}>{pin ? formatLatLon(pin.lat, pin.lon, t.lang) : ''}</Text>
+        </View>
+      ) : pin ? (
+        <Text style={[styles.rightLine, !right && { color: colors.bad }]} maxFontSizeMultiplier={1.4}>
+          {t.question.locateOff(Math.round(distanceKm(pin.lat, pin.lon, q.lat, q.lon)), q.tolerance)}
+        </Text>
+      ) : null}
+    </>
+  );
+}
+
+// -------------------------------------------------------------------- who am I?
+function RiddleView({ q, variant, reveal, onChange }: Props<RiddleQuestion> & { variant: number }) {
+  const t = useStrings();
+  const opts = useMemo(() => variantOptions({ ...q, type: 'choice' }, variant), [q, variant]);
+  const [open, setOpen] = useState(1);
+  const [sel, setSel] = useState<number | null>(null);
+  useEffect(() => {
+    // the clues count that were open when the player picked
+    onChange(sel === null ? null : { type: 'riddle', index: q.options.indexOf(opts.options[sel]!), clues: open });
+  }, [sel, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shown = reveal ? q.clues.length : open;
+  return (
+    <>
+      <View style={[styles.doc, sunken]}>
+        {q.clues.slice(0, shown).map((c, i) => (
+          <View key={i} style={styles.docLine}>
+            <Text style={styles.lineNo}>{i + 1}</Text>
+            <Text style={styles.docText} maxFontSizeMultiplier={1.4}>
+              {c}
+            </Text>
+          </View>
+        ))}
+        {!reveal && open < q.clues.length ? (
+          <Pressable
+            onPress={() => {
+              tap();
+              setOpen(open + 1);
+            }}
+            accessibilityRole="button"
+            style={[styles.chip, { alignSelf: 'flex-start', margin: 6 }]}
+          >
+            <Text style={styles.chipText}>{t.question.nextClue(open + 1, q.clues.length)}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {!reveal && open < q.clues.length ? (
+        <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
+          {t.question.clueBonus(3 * (q.clues.length - open))}
+        </Text>
+      ) : null}
+      {opts.options.map((o, i) => {
+        const state = reveal ? (i === opts.answer ? 'right' : i === sel ? 'wrong' : 'plain') : i === sel ? 'selected' : 'plain';
+        return (
+          <Pressable
+            key={`${variant}-${i}`}
+            disabled={reveal}
+            onPress={() => {
+              tap();
+              setSel(i);
+            }}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: sel === i }}
+            style={[styles.option, sunken, stateStyle(state)]}
+          >
+            <Text style={styles.optionText} maxFontSizeMultiplier={1.4}>
+              {o}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
+// -------------------------------------------------------------------- which source to trust
+function SourceView({ q, reveal, onChange }: Props<SourceQuestion>) {
+  const t = useStrings();
+  const [sel, setSel] = useState<number | null>(null);
+  useEffect(() => {
+    onChange(sel === null ? null : { type: 'source', index: sel });
+  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
+        {t.question.sourceHint}
+      </Text>
+      {q.sources.map((src, i) => {
+        const state = reveal ? (i === q.reliable ? 'right' : i === sel ? 'wrong' : 'plain') : i === sel ? 'selected' : 'plain';
+        return (
+          <Pressable
+            key={src.name}
+            disabled={reveal}
+            onPress={() => {
+              tap();
+              setSel(i);
+            }}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: sel === i }}
+            accessibilityLabel={t.question.sourceA11y(src.name, src.origin, src.text)}
+            style={[styles.option, sunken, { gap: 6 }, stateStyle(state)]}
+          >
+            <View style={styles.checkRow}>
+              <Icon name="file" size={20} />
+              <Text style={[styles.optionText, { flex: 1 }]} maxFontSizeMultiplier={1.3}>
+                {src.name}
+              </Text>
+            </View>
+            <Text style={styles.origin} maxFontSizeMultiplier={1.3}>
+              {t.question.sourceOrigin(src.origin)}
+            </Text>
+            <Text style={styles.docText} maxFontSizeMultiplier={1.4}>
+              {src.text}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
 function stateStyle(state: 'plain' | 'selected' | 'right' | 'wrong') {
   if (state === 'selected') return { backgroundColor: WIN.titleA };
   if (state === 'right') return { backgroundColor: '#1F5A12' };
@@ -560,4 +746,7 @@ const styles = StyleSheet.create({
   lineNo: { color: colors.dim, fontSize: 13, fontWeight: '800', width: 16, marginTop: 2 },
   docText: { color: colors.text, fontSize: 16, lineHeight: 22, flex: 1 },
   struck: { textDecorationLine: 'line-through' },
+  nudges: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  nudge: { minWidth: 44, alignItems: 'center' },
+  origin: { color: colors.dim, fontSize: 13, fontStyle: 'italic' },
 });

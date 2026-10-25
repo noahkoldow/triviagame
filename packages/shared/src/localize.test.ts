@@ -52,6 +52,12 @@ function rightAnswer(q: Question): Answer {
       return { type: 'sort', groups: Object.fromEntries(q.items) };
     case 'spot':
       return { type: 'spot', index: q.wrong };
+    case 'locate':
+      return { type: 'locate', lat: q.lat, lon: q.lon };
+    case 'riddle':
+      return { type: 'riddle', index: q.answer, clues: 1 };
+    case 'source':
+      return { type: 'source', index: q.reliable };
   }
 }
 

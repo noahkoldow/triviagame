@@ -32,8 +32,8 @@ describe('AI drafts: the schema covers every question type', () => {
     expect(failed).toEqual([]);
   });
 
-  it('knows all nine types', () => {
-    expect(QUESTION_TYPES).toHaveLength(9);
+  it('knows all twelve types', () => {
+    expect(QUESTION_TYPES).toHaveLength(12);
     for (const t of QUESTION_TYPES) expect(MOCK_QUESTIONS.some((q) => q.type === t), t).toBe(true);
   });
 
@@ -120,7 +120,7 @@ describe('AI drafts: what is rejected', () => {
   it('rejects an unknown area, difficulty or type', () => {
     expect(bad('choice', (d) => (d.area = 'astrology')).join()).toMatch(/area/);
     expect(bad('choice', (d) => (d.difficulty = 9)).join()).toMatch(/difficulty/);
-    expect(bad('choice', (d) => (d.type = 'riddle')).join()).toMatch(/type/);
+    expect(bad('choice', (d) => (d.type = 'crossword')).join()).toMatch(/type/);
   });
 });
 

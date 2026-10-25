@@ -1257,4 +1257,158 @@ export const CONTENT_EN: Record<string, QuestionText> = {
       ],
     },
   },
+  'ear-cairo': {
+    topic: 'Cities on the Nile',
+    intro: 'Africa’s longest river flows through the desert and has let great cities grow on its banks.',
+    stem: 'Tap the spot on the map where Cairo lies.',
+    place: 'Cairo',
+    f: [
+      ['On the river', 'Cairo lies on the Nile, just before it fans out into the delta and flows into the Mediterranean.'],
+      ['Coordinates', 'Cairo lies at about 30 degrees north and 31 degrees east.'],
+      ['Delta', 'The Nile Delta is one of the most fertile regions of Egypt.'],
+      ['Kairouan', 'Kairouan, which sounds similar, is an old city in Tunisia.'],
+    ],
+    why: 'Cairo lies at about 30° N and 31° E on the Nile, just before it fans out into the delta.',
+    files: {
+      1: [
+        {
+          name: 'Nile.png',
+          kind: 'image',
+          alt: 'Map of north-east Africa with Alexandria, Aswan and Khartoum on the Nile.',
+          chart: {
+            chart: 'map',
+            title: 'Cities on the Nile',
+            region: { west: 20, south: 10, east: 45, north: 35 },
+            places: [
+              { label: 'Alexandria', lat: 31.2, lon: 29.9 },
+              { label: 'Aswan', lat: 24.1, lon: 32.9 },
+              { label: 'Khartoum', lat: 15.5, lon: 32.6 },
+            ],
+          },
+        },
+        { name: 'Note.txt', kind: 'note', text: 'Cairo lies on the Nile, just before it fans out into the delta and flows into the Mediterranean.' },
+      ],
+      2: [
+        {
+          name: 'Cairo.inf',
+          kind: 'profile',
+          fields: [
+            ['Country', 'Egypt'],
+            ['River', 'Nile'],
+            ['Latitude', 'about 30° N'],
+            ['Longitude', 'about 31° E'],
+            ['Metro area', 'over 20 million people'],
+          ],
+        },
+      ],
+      3: [
+        {
+          name: 'Damaged.txt',
+          kind: 'redacted',
+          text: 'North of the city the river fans out into the [[delta]] before it flows into the Mediterranean at [[Alexandria]].',
+        },
+        { name: 'Note.txt', kind: 'note', text: 'The Nile Delta is one of the most fertile regions of Egypt.' },
+      ],
+    },
+  },
+  'sci-curie': {
+    topic: 'Wanted: a scientist',
+    intro: 'Three clues, one person from science. The sooner you recognise her, the more bits you get.',
+    stem: 'Who am I?',
+    clues: [
+      'I did my research in Paris, but I came from another country.',
+      'One of the elements I discovered bears the name of my homeland.',
+      'I was the first person to receive two Nobel Prizes, in physics and in chemistry.',
+    ],
+    options: ['Marie Curie', 'Lise Meitner', 'Rosalind Franklin', 'Ada Lovelace'],
+    f: [
+      ['Polonium', 'The element polonium is named after Poland, the homeland of the woman who discovered it.'],
+      ['Two prizes', 'The first person with two Nobel Prizes was a scientist from Warsaw: physics in 1903, chemistry in 1911.'],
+      ['Radium', 'Radium glows faintly blue in the dark and was once used for luminous watch dials.'],
+      ['Nuclear fission', 'Lise Meitner explained nuclear fission with Otto Frisch in 1939; she never received a Nobel Prize.'],
+      ['Program', 'In the 19th century Ada Lovelace wrote the first program for a calculating machine.'],
+    ],
+    why: 'Marie Curie, born in Warsaw in 1867, discovered polonium and radium and received the Nobel Prize in Physics in 1903 and in Chemistry in 1911.',
+    files: {
+      2: [
+        {
+          name: 'Life.png',
+          kind: 'image',
+          alt: 'Timeline: born in Warsaw in 1867, polonium and radium discovered in 1898, Nobel Prizes in 1903 and 1911.',
+          chart: {
+            chart: 'timeline',
+            title: 'A scientist’s life',
+            events: [
+              { label: 'Born in Warsaw', year: 1867 },
+              { label: 'Polonium and radium', year: 1898 },
+              { label: 'Nobel Prize in Physics', year: 1903 },
+              { label: 'Nobel Prize in Chemistry', year: 1911 },
+            ],
+          },
+        },
+        { name: 'Note.txt', kind: 'note', text: 'The first person with two Nobel Prizes was a scientist from Warsaw: physics in 1903, chemistry in 1911.' },
+      ],
+    },
+  },
+  'ear-moonwall': {
+    topic: 'The view from the Moon',
+    intro: 'Some claims sound so good that they have been passed on for decades.',
+    stem: 'Two files contradict each other: can you see the Great Wall of China from the Moon with the naked eye? Which source do you trust?',
+    sources: [
+      {
+        name: 'Forum_post.txt',
+        origin: 'Anonymous post in a travel forum',
+        text: 'The Great Wall of China is the only human structure you can see with the naked eye even from the Moon.',
+      },
+      {
+        name: 'Space_report.txt',
+        origin: 'NASA, report on photos from the space station',
+        text: 'No single structure can be seen with the naked eye from the Moon. Even from the space station the wall is very hard to make out.',
+      },
+      {
+        name: 'Brochure.txt',
+        origin: 'Brochure of a tour operator',
+        text: 'Discover the structure that astronauts can see even from the Moon!',
+      },
+    ],
+    f: [
+      ['Distance', 'The Moon is about 384,000 km away; the wall is mostly only 5 to 8 metres wide.'],
+      ['Space station', 'Even from the space station, about 400 km up, the wall is hardly visible to the naked eye.'],
+      ['Myth', 'The claim that the wall can be seen from the Moon is older than space travel.'],
+      ['Length', 'With all its sections, the Great Wall of China is over 20,000 km long.'],
+    ],
+    why: 'The NASA report is right: from 384,000 km away a strip a few metres wide is invisible. The forum post and the brochure repeat an old myth.',
+    files: {
+      1: [
+        {
+          name: 'Wall.inf',
+          kind: 'profile',
+          fields: [
+            ['Width', 'mostly 5 to 8 m'],
+            ['Length', 'over 20,000 km'],
+            ['Material', 'rammed earth, brick, stone'],
+          ],
+        },
+        { name: 'Note.txt', kind: 'note', text: 'The Moon is about 384,000 km away; the wall is mostly only 5 to 8 metres wide.' },
+      ],
+      4: [
+        {
+          name: 'Wall.png',
+          kind: 'image',
+          alt: 'Map of northern China with Jiayuguan in the west, Yinchuan and Beijing.',
+          chart: {
+            chart: 'map',
+            title: 'The wall in northern China',
+            region: { west: 85, south: 25, east: 130, north: 50 },
+            places: [
+              { label: 'Jiayuguan', lat: 39.8, lon: 98.3 },
+              { label: 'Beijing', lat: 39.9, lon: 116.4 },
+              { label: 'Yinchuan', lat: 38.5, lon: 106.3 },
+            ],
+          },
+        },
+        { name: 'Note.txt', kind: 'note', text: 'With all its sections, the Great Wall of China is over 20,000 km long.' },
+      ],
+    },
+  },
 };

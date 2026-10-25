@@ -12,6 +12,7 @@ import {
 import {
   fileSizeKb,
   matchRanges,
+  redactedParts,
   searchFiles,
   type FragmentFile,
   type SearchFolder,
@@ -31,6 +32,7 @@ const ICON_OF: Record<FragmentFile['kind'], IconName> = {
   profile: 'user',
   quote: 'book',
   mail: 'file',
+  redacted: 'warn',
 };
 
 /** Text with the words of the query marked, like a viewer that highlights search hits. */
@@ -76,6 +78,25 @@ export function FileView({ file, width, query = '' }: { file: FragmentFile; widt
       <View style={styles.quote}>
         <Highlighted text={t.explorer.quoted(file.text ?? '')} query={query} style={[styles.body, styles.quoteText]} />
         {file.source ? <Highlighted text={`— ${file.source}`} query={query} style={styles.source} /> : null}
+      </View>
+    );
+  }
+  if (file.kind === 'redacted') {
+    // what morph.ai blacked out stays black; the rest reads and highlights like a note
+    return (
+      <View style={{ gap: 8 }}>
+        <Text style={styles.source}>{t.explorer.redactedNote}</Text>
+        <Text style={styles.body} accessibilityLabel={redactedParts(file.text ?? '').map((p) => (p.hidden ? t.explorer.blackedOut : p.text)).join('')}>
+          {redactedParts(file.text ?? '').map((p, i) =>
+            p.hidden ? (
+              <Text key={i} style={styles.bar}>
+                {'\u2007'.repeat(Math.max(3, p.text.length))}
+              </Text>
+            ) : (
+              <Highlighted key={i} text={p.text} query={query} style={styles.body} />
+            ),
+          )}
+        </Text>
       </View>
     );
   }
@@ -484,6 +505,7 @@ const styles = StyleSheet.create({
   quoteText: { fontStyle: 'italic', fontSize: 16 },
   mailHead: { gap: 2, backgroundColor: '#ECECEC', padding: 8, borderWidth: 1, borderColor: '#C0C0C0' },
   mailLine: { color: INK, fontSize: 13 },
+  bar: { backgroundColor: '#000000', color: '#000000' },
   empty: { color: '#505860', fontSize: 14, padding: 12 },
   mark: { backgroundColor: '#FFE680', color: INK, fontWeight: '800' },
   status: { color: WIN.dark, fontSize: 12 },

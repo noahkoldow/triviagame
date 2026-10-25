@@ -14,6 +14,7 @@ import {
   buildCheckPrompt,
   choosePoolEntries,
   generateQuestions,
+  groundingEvidence,
   isAlias,
   isBoard,
   nextQuestionType,
@@ -24,6 +25,7 @@ import {
   rankEntries,
   scoreOn,
   zeroScores,
+  type Evidence,
   type PoolEntry,
   type Question,
   type QuestionChecker,
@@ -48,6 +50,10 @@ const REGION = 'europe-west3';
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const geminiModel = defineString('GEMINI_MODEL', { description: 'Gemini model ID used by the content API' });
 const aiEnabled = defineBoolean('AI_ENABLED', { default: false, description: 'Emergency switch for Gemini calls' });
+const checkGrounding = defineBoolean('AI_CHECK_GROUNDING', {
+  default: false,
+  description: 'Let the checker pass verify facts with Google Search (billed per search beyond the free tier)',
+});
 const dailyCallLimit = defineInt('AI_DAILY_CALL_LIMIT', {
   default: 100,
   description: 'Maximum combined generation and review calls per UTC day',
@@ -110,20 +116,35 @@ async function reserveDailyCall(): Promise<boolean> {
   });
 }
 
-async function callModel(prompt: string, temperature: number): Promise<string> {
+/**
+ * One model call. `grounded` lets the model search the web; the answer is then plain text with
+ * JSON inside (JSON mode and search do not go together everywhere), and the pages it used come back.
+ */
+async function callModel(prompt: string, temperature: number, grounded = false): Promise<{ text: string; evidence: Evidence[] }> {
   if (!(await reserveDailyCall())) throw new Error('daily AI budget reached');
   const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
   const result = await ai.models.generateContent({
     model: geminiModel.value(),
     contents: prompt,
-    config: { systemInstruction: SYSTEM_INSTRUCTION, responseMimeType: 'application/json', temperature, maxOutputTokens: 8192 },
+    config: grounded
+      ? { systemInstruction: SYSTEM_INSTRUCTION, tools: [{ googleSearch: {} }], temperature, maxOutputTokens: 8192 }
+      : { systemInstruction: SYSTEM_INSTRUCTION, responseMimeType: 'application/json', temperature, maxOutputTokens: 8192 },
   });
   if (!result.text) throw new Error('model returned no text');
-  return result.text;
+  return { text: result.text, evidence: groundingEvidence(result.candidates?.[0]?.groundingMetadata) };
 }
 
-const generator: QuestionGenerator = { generate: (prompt) => callModel(prompt, 0.7) };
-const checker: QuestionChecker = { check: async (q) => parseCheck(await callModel(buildCheckPrompt(q), 0.1)) };
+const generator: QuestionGenerator = { generate: async (prompt) => (await callModel(prompt, 0.7)).text };
+const checker: QuestionChecker = {
+  check: async (q) => {
+    const grounded = checkGrounding.value();
+    const { text, evidence } = await callModel(buildCheckPrompt(q, grounded), 0.1, grounded);
+    const r = parseCheck(text);
+    // a grounded check that found nothing to back the question does not pass
+    if (grounded && r.ok && evidence.length === 0) return { ok: false, issues: ['no web source confirmed the question'] };
+    return { ...r, evidence };
+  },
+};
 
 /** Common gate of both endpoints: POST with a JSON body. */
 function jsonPost(request: Request, response: Response): boolean {
@@ -196,6 +217,8 @@ export const questions = onRequest(
               lang: req.lang,
               status: 'checked',
               reports: 0,
+              // the pages the checker confirmed it with (only with AI_CHECK_GROUNDING)
+              evidence: result.evidence[q.id] ?? [],
               createdAt: FieldValue.serverTimestamp(),
             });
           }

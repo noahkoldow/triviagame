@@ -6,9 +6,18 @@ export type FragmentKind = 'key' | 'context' | 'decoy';
 
 /**
  * What a file in a cache folder is: a note, a short article, an image (a chart the game draws),
- * a profile (a fact sheet of a thing, place or person), a quote from a source, or a mail.
+ * a profile (a fact sheet of a thing, place or person), a quote from a source, a mail, or a
+ * redacted note in which morph.ai blacked out words (marked `[[…]]` in `text`).
  */
-export type FileKind = 'note' | 'article' | 'image' | 'profile' | 'quote' | 'mail';
+export type FileKind = 'note' | 'article' | 'image' | 'profile' | 'quote' | 'mail' | 'redacted';
+
+/** A part of the world map, in degrees. */
+export interface GeoBox {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
 
 /** An image the game draws itself from a small description (no photos, no image model). */
 export type ChartSpec =
@@ -20,7 +29,9 @@ export type ChartSpec =
   /** Shares of a whole in percent; they add up to 100. */
   | { chart: 'pie'; title: string; items: { label: string; value: number }[] }
   /** Steps of a process; `cycle` leads the last step back to the first. */
-  | { chart: 'flow'; title: string; steps: string[]; cycle?: boolean };
+  | { chart: 'flow'; title: string; steps: string[]; cycle?: boolean }
+  /** Places on a drawn map (land outlines and a grid of degrees); without `region` the whole world. */
+  | { chart: 'map'; title: string; region?: GeoBox; places: { label: string; lat: number; lon: number }[] };
 
 /** One file inside a cache folder. */
 export interface FragmentFile {
@@ -51,7 +62,19 @@ export interface Fragment {
   files?: FragmentFile[];
 }
 
-export type QuestionType = 'choice' | 'estimate' | 'order' | 'truefalse' | 'match' | 'cloze' | 'multi' | 'sort' | 'spot';
+export type QuestionType =
+  | 'choice'
+  | 'estimate'
+  | 'order'
+  | 'truefalse'
+  | 'match'
+  | 'cloze'
+  | 'multi'
+  | 'sort'
+  | 'spot'
+  | 'locate'
+  | 'riddle'
+  | 'source';
 
 interface QuestionBase {
   id: string;
@@ -145,8 +168,39 @@ export interface SpotQuestion extends QuestionBase {
   wrong: number;
 }
 
+/** Tap the place on a map; right within `tolerance` kilometres. */
+export interface LocateQuestion extends QuestionBase {
+  type: 'locate';
+  /** What lies there, shown after answering. */
+  place: string;
+  lat: number;
+  lon: number;
+  tolerance: number;
+  /** The part of the map that is shown; it contains the place with some margin. */
+  region: GeoBox;
+}
+
+/** "Who am I?": clues are revealed one after another, vaguest first; fewer clues pay more. */
+export interface RiddleQuestion extends QuestionBase {
+  type: 'riddle';
+  clues: string[];
+  options: string[];
+  answer: number;
+}
+
+/** Sources that contradict each other: the player picks the one to trust. */
+export interface SourceQuestion extends QuestionBase {
+  type: 'source';
+  sources: { name: string; origin: string; text: string }[];
+  /** Index of the reliable source. */
+  reliable: number;
+}
+
 export type Question =
   | ChoiceQuestion
+  | LocateQuestion
+  | RiddleQuestion
+  | SourceQuestion
   | MultiQuestion
   | SortQuestion
   | SpotQuestion
@@ -168,7 +222,11 @@ export type Answer =
   | { type: 'multi'; indices: number[] }
   /** item → the group index the player filed it in */
   | { type: 'sort'; groups: Record<string, number> }
-  | { type: 'spot'; index: number };
+  | { type: 'spot'; index: number }
+  | { type: 'locate'; lat: number; lon: number }
+  /** `clues`: how many clues were open when the player answered */
+  | { type: 'riddle'; index: number; clues: number }
+  | { type: 'source'; index: number };
 
 export type NodeKind = 'root' | 'deepen' | 'bridge' | 'debris';
 export type NodeState = 'open' | 'solved' | 'damaged';

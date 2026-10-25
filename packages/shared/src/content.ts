@@ -352,6 +352,96 @@ const FILES: Record<string, FragmentFile[]> = {
       text: 'China, Frankreich, Russland, das Vereinigte Königreich und die USA sitzen dauerhaft im Sicherheitsrat und haben ein Vetorecht. Zehn weitere Länder werden für je zwei Jahre gewählt.',
     },
   ],
+  // --- Kairo
+  'ear-cairo-f1': [
+    {
+      name: 'Nil.png',
+      kind: 'image',
+      alt: 'Karte von Nordostafrika mit Alexandria, Assuan und Khartum am Nil.',
+      chart: {
+        chart: 'map',
+        title: 'Städte am Nil',
+        region: { west: 20, south: 10, east: 45, north: 35 },
+        places: [
+          { label: 'Alexandria', lat: 31.2, lon: 29.9 },
+          { label: 'Assuan', lat: 24.1, lon: 32.9 },
+          { label: 'Khartum', lat: 15.5, lon: 32.6 },
+        ],
+      },
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Kairo liegt am Nil, kurz bevor er sich zum Delta auffächert und ins Mittelmeer mündet.' },
+  ],
+  'ear-cairo-f2': [
+    {
+      name: 'Kairo.inf',
+      kind: 'profile',
+      fields: [
+        ['Land', 'Ägypten'],
+        ['Fluss', 'Nil'],
+        ['Breite', 'etwa 30° N'],
+        ['Länge', 'etwa 31° O'],
+        ['Großraum', 'über 20 Millionen Menschen'],
+      ],
+    },
+  ],
+  'ear-cairo-f3': [
+    {
+      name: 'Beschaedigt.txt',
+      kind: 'redacted',
+      text: 'Nördlich der Stadt fächert sich der Fluss zum [[Delta]] auf, bevor er bei [[Alexandria]] ins Mittelmeer mündet.',
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Das Nildelta ist eine der fruchtbarsten Gegenden Ägyptens.' },
+  ],
+  // --- Forscherin gesucht
+  'sci-curie-f2': [
+    {
+      name: 'Lebenslauf.png',
+      kind: 'image',
+      alt: 'Zeitleiste: Geburt in Warschau 1867, Entdeckung von Polonium und Radium 1898, Nobelpreise 1903 und 1911.',
+      chart: {
+        chart: 'timeline',
+        title: 'Ein Forscherinnenleben',
+        events: [
+          { label: 'Geburt in Warschau', year: 1867 },
+          { label: 'Polonium und Radium', year: 1898 },
+          { label: 'Nobelpreis Physik', year: 1903 },
+          { label: 'Nobelpreis Chemie', year: 1911 },
+        ],
+      },
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Die erste Person mit zwei Nobelpreisen war eine Forscherin aus Warschau: 1903 Physik, 1911 Chemie.' },
+  ],
+  // --- Blick vom Mond
+  'ear-moonwall-f1': [
+    {
+      name: 'Mauer.inf',
+      kind: 'profile',
+      fields: [
+        ['Breite', 'meist 5 bis 8 m'],
+        ['Länge', 'über 20.000 km'],
+        ['Baustoff', 'Stampflehm, Ziegel, Stein'],
+      ],
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Der Mond ist rund 384.000 km entfernt; die Mauer ist meist nur 5 bis 8 Meter breit.' },
+  ],
+  'ear-moonwall-f4': [
+    {
+      name: 'Mauer.png',
+      kind: 'image',
+      alt: 'Karte von Nordchina mit Jiayuguan im Westen, Yinchuan und Peking.',
+      chart: {
+        chart: 'map',
+        title: 'Die Mauer im Norden Chinas',
+        region: { west: 85, south: 25, east: 130, north: 50 },
+        places: [
+          { label: 'Jiayuguan', lat: 39.8, lon: 98.3 },
+          { label: 'Peking', lat: 39.9, lon: 116.4 },
+          { label: 'Yinchuan', lat: 38.5, lon: 106.3 },
+        ],
+      },
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Mit allen Abschnitten ist die Chinesische Mauer über 20.000 km lang.' },
+  ],
 };
 
 function frags(id: string, list: F[]): Fragment[] {
@@ -439,6 +529,9 @@ const TOPICS: Record<string, string> = {
   'ear-greenhouse': 'Treibhauseffekt',
   'sci-classes': 'Tierklassen',
   'soc-un-assembly': 'UN-Generalversammlung',
+  'ear-cairo': 'Städte am Nil',
+  'sci-curie': 'Forscherin gesucht',
+  'ear-moonwall': 'Blick vom Mond',
 };
 
 const INTROS: Record<string, string> = {
@@ -506,6 +599,9 @@ const INTROS: Record<string, string> = {
   'ear-greenhouse': 'Ein paar Gase in der Luft wirken wie die Scheiben eines Gewächshauses: Sie halten Wärme fest.',
   'sci-classes': 'Manche Tiere sehen aus wie andere, gehören aber zu einer ganz anderen Klasse.',
   'soc-un-assembly': 'Nach dem Zweiten Weltkrieg schlossen sich Staaten zusammen, um den Frieden zu sichern.',
+  'ear-cairo': 'Der längste Fluss Afrikas fließt durch die Wüste und hat an seinen Ufern große Städte wachsen lassen.',
+  'sci-curie': 'Drei Hinweise, eine Person aus der Wissenschaft. Je früher du sie erkennst, desto mehr Bits.',
+  'ear-moonwall': 'Manche Behauptungen klingen so gut, dass sie seit Jahrzehnten weitererzählt werden.',
 };
 
 function base(c: Common) {
@@ -550,6 +646,17 @@ function sorting(c: Common & { groups: string[]; items: [string, number][] }): Q
 }
 function spot(c: Common & { lines: string[]; wrong: number }): Question {
   return { ...base(c), type: 'spot', lines: c.lines, wrong: c.wrong };
+}
+function locate(
+  c: Common & { place: string; lat: number; lon: number; tolerance: number; region: { west: number; south: number; east: number; north: number } },
+): Question {
+  return { ...base(c), type: 'locate', place: c.place, lat: c.lat, lon: c.lon, tolerance: c.tolerance, region: c.region };
+}
+function riddle(c: Common & { clues: string[]; options: string[]; answer: number }): Question {
+  return { ...base(c), type: 'riddle', clues: c.clues, options: c.options, answer: c.answer };
+}
+function sourceCheck(c: Common & { sources: { name: string; origin: string; text: string }[]; reliable: number }): Question {
+  return { ...base(c), type: 'source', sources: c.sources, reliable: c.reliable };
 }
 
 /**
@@ -1788,6 +1895,76 @@ export const MOCK_QUESTIONS: Question[] = [
     ],
     why: 'In der Generalversammlung gilt: ein Staat, eine Stimme. Die anderen Sätze stimmen: gegründet 1945, Sitz in New York, fünf ständige Mitglieder mit Vetorecht im Sicherheitsrat.',
     bridge: ['his-euro'],
+  }),
+  locate({
+    id: 'ear-cairo',
+    area: 'geography',
+    d: 2,
+    stem: 'Tippe auf der Karte an, wo Kairo liegt.',
+    place: 'Kairo',
+    lat: 30.04,
+    lon: 31.24,
+    tolerance: 350,
+    region: { west: -20, south: 0, east: 60, north: 45 },
+    f: [
+      ['key', 'Am Fluss', 'Kairo liegt am Nil, kurz bevor er sich zum Delta auffächert und ins Mittelmeer mündet.'],
+      ['key', 'Koordinaten', 'Kairo liegt auf etwa 30 Grad nördlicher Breite und 31 Grad östlicher Länge.'],
+      ['context', 'Delta', 'Das Nildelta ist eine der fruchtbarsten Gegenden Ägyptens.'],
+      ['decoy', 'Kairouan', 'Kairouan, ähnlich klingend, ist eine alte Stadt in Tunesien.'],
+    ],
+    why: 'Kairo liegt auf etwa 30° N und 31° O am Nil, kurz bevor er sich zum Delta auffächert.',
+  }),
+  riddle({
+    id: 'sci-curie',
+    area: 'physics',
+    d: 2,
+    stem: 'Wer bin ich?',
+    clues: [
+      'Ich habe in Paris geforscht, kam aber aus einem anderen Land.',
+      'Eines der Elemente, die ich entdeckt habe, trägt den Namen meiner Heimat.',
+      'Ich bekam als erster Mensch zwei Nobelpreise, in Physik und in Chemie.',
+    ],
+    options: ['Marie Curie', 'Lise Meitner', 'Rosalind Franklin', 'Ada Lovelace'],
+    answer: 0,
+    f: [
+      ['key', 'Polonium', 'Das Element Polonium ist nach Polen benannt, dem Heimatland seiner Entdeckerin.'],
+      ['key', 'Zwei Preise', 'Die erste Person mit zwei Nobelpreisen war eine Forscherin aus Warschau: 1903 Physik, 1911 Chemie.'],
+      ['context', 'Radium', 'Radium leuchtet im Dunkeln schwach bläulich und wurde früher für Leuchtziffern benutzt.'],
+      ['decoy', 'Kernspaltung', 'Lise Meitner erklärte 1939 mit Otto Frisch die Kernspaltung; einen Nobelpreis bekam sie nie.'],
+      ['decoy', 'Programm', 'Ada Lovelace schrieb im 19. Jahrhundert das erste Programm für eine Rechenmaschine.'],
+    ],
+    why: 'Marie Curie, 1867 in Warschau geboren, entdeckte Polonium und Radium und erhielt 1903 den Nobelpreis für Physik und 1911 den für Chemie.',
+  }),
+  sourceCheck({
+    id: 'ear-moonwall',
+    area: 'astronomy',
+    d: 2,
+    stem: 'Zwei Dateien widersprechen sich: Kann man die Chinesische Mauer vom Mond aus mit bloßem Auge sehen? Welcher Quelle vertraust du?',
+    sources: [
+      {
+        name: 'Forum_Beitrag.txt',
+        origin: 'Anonymer Beitrag in einem Reiseforum',
+        text: 'Die Chinesische Mauer ist das einzige Bauwerk der Menschheit, das man sogar vom Mond aus mit bloßem Auge erkennt.',
+      },
+      {
+        name: 'Raumfahrt_Bericht.txt',
+        origin: 'NASA, Bericht über Fotos aus der Raumstation',
+        text: 'Vom Mond aus ist kein einzelnes Bauwerk mit bloßem Auge zu erkennen. Selbst aus der Raumstation ist die Mauer nur sehr schwer auszumachen.',
+      },
+      {
+        name: 'Prospekt.txt',
+        origin: 'Werbeprospekt eines Reiseveranstalters',
+        text: 'Erleben Sie das Bauwerk, das Astronauten sogar vom Mond aus sehen!',
+      },
+    ],
+    reliable: 1,
+    f: [
+      ['key', 'Entfernung', 'Der Mond ist rund 384.000 km entfernt; die Mauer ist meist nur 5 bis 8 Meter breit.'],
+      ['key', 'Raumstation', 'Selbst aus der Raumstation in rund 400 km Höhe ist die Mauer mit bloßem Auge kaum zu erkennen.'],
+      ['context', 'Mythos', 'Die Behauptung, die Mauer sei vom Mond aus sichtbar, ist älter als die Raumfahrt.'],
+      ['decoy', 'Länge', 'Mit allen Abschnitten ist die Chinesische Mauer über 20.000 km lang.'],
+    ],
+    why: 'Der Bericht der NASA stimmt: Aus 384.000 km Entfernung ist ein wenige Meter breiter Streifen unsichtbar. Forumsbeitrag und Prospekt wiederholen einen alten Mythos.',
   }),
 ];
 

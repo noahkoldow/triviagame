@@ -23,6 +23,7 @@ import {
   type SpawnContext,
 } from './network';
 import { ALBUM_REWARD, fullAlbums } from './albums';
+import { riddleBonus } from './answers';
 import {
   MAX_ENERGY,
   MAX_INTEGRITY,
@@ -43,7 +44,7 @@ import { initialLeague, type LeagueState } from './league';
 import { ROOT_QUESTIONS } from './content';
 import { DEFAULT_LANG, type Lang } from './lang';
 import { sectorOfArea } from './taxonomy';
-import type { NetNode, NetworkState, Sector } from './types';
+import type { Answer, NetNode, NetworkState, Sector } from './types';
 import { WALL_REACH, approachOf, type Breach } from './walls';
 
 export interface PlayerProfile {
@@ -281,12 +282,17 @@ function collect(p: PlayerState, pool: Pool, questionId: string, today: string) 
   return codex;
 }
 
+/**
+ * A right answer at an open node. `answer` is what the player gave; a riddle solved with clues
+ * still closed pays extra bits (`riddleBonus`).
+ */
 export function recordCorrect(
   p: PlayerState,
   pool: Pool,
   nodeId: string,
   today: string,
   rewinds: number,
+  answer?: Answer,
 ): CorrectResult {
   const n = p.network.nodes[nodeId];
   if (!n || n.state !== 'open') {
@@ -314,6 +320,7 @@ export function recordCorrect(
     closedCircle: grown.closedCircle,
     prepared,
   });
+  reward = { ...reward, bits: reward.bits + riddleBonus(q, answer) };
   if (p.integrity === 0) {
     reward = { xp: Math.round(reward.xp / 2), bits: Math.round(reward.bits / 2), gems: 0 };
   }

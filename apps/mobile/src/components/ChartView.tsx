@@ -4,6 +4,7 @@ import Svg, { Circle, Path, Polyline, Text as SvgText } from 'react-native-svg';
 import { chartText, type ChartSpec } from '@nexus/shared';
 import { useStrings } from '../strings';
 import { barLayout, formatNumber, lineLayout, pieSlices, slicePath, timelineLayout } from './chart.logic';
+import { MapView } from './MapView';
 
 const INK = '#101820';
 const BAR = ['#1CB0F6', '#58CC02', '#FF9600', '#CE82FF', '#FF86D0', '#FFC800'];
@@ -25,6 +26,7 @@ export function ChartView({ chart, width, alt }: { chart: ChartSpec; width: numb
       {chart.chart === 'line' ? <LineChart chart={chart} width={width - 24} /> : null}
       {chart.chart === 'pie' ? <Pie chart={chart} width={width - 24} /> : null}
       {chart.chart === 'flow' ? <Flow chart={chart} /> : null}
+      {chart.chart === 'map' ? <MapView width={width - 24} region={chart.region} places={chart.places} label={alt ?? chartText(chart)} /> : null}
     </View>
   );
 }

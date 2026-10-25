@@ -1262,4 +1262,158 @@ export const CONTENT_FR: Record<string, QuestionText> = {
       ],
     },
   },
+  'ear-cairo': {
+    topic: 'Villes du Nil',
+    intro: 'Le plus long fleuve d’Afrique traverse le désert et a fait naître de grandes villes sur ses rives.',
+    stem: 'Touche l’endroit de la carte où se trouve Le Caire.',
+    place: 'Le Caire',
+    f: [
+      ['Au bord du fleuve', 'Le Caire est au bord du Nil, juste avant qu’il ne s’ouvre en delta et se jette dans la Méditerranée.'],
+      ['Coordonnées', 'Le Caire se trouve vers 30 degrés de latitude nord et 31 degrés de longitude est.'],
+      ['Delta', 'Le delta du Nil est l’une des régions les plus fertiles d’Égypte.'],
+      ['Kairouan', 'Kairouan, au nom ressemblant, est une ancienne ville de Tunisie.'],
+    ],
+    why: 'Le Caire se trouve vers 30° N et 31° E au bord du Nil, juste avant qu’il ne s’ouvre en delta.',
+    files: {
+      1: [
+        {
+          name: 'Nil.png',
+          kind: 'image',
+          alt: 'Carte du nord-est de l’Afrique avec Alexandrie, Assouan et Khartoum au bord du Nil.',
+          chart: {
+            chart: 'map',
+            title: 'Villes du Nil',
+            region: { west: 20, south: 10, east: 45, north: 35 },
+            places: [
+              { label: 'Alexandrie', lat: 31.2, lon: 29.9 },
+              { label: 'Assouan', lat: 24.1, lon: 32.9 },
+              { label: 'Khartoum', lat: 15.5, lon: 32.6 },
+            ],
+          },
+        },
+        { name: 'Note.txt', kind: 'note', text: 'Le Caire est au bord du Nil, juste avant qu’il ne s’ouvre en delta et se jette dans la Méditerranée.' },
+      ],
+      2: [
+        {
+          name: 'Le_Caire.inf',
+          kind: 'profile',
+          fields: [
+            ['Pays', 'Égypte'],
+            ['Fleuve', 'Nil'],
+            ['Latitude', 'environ 30° N'],
+            ['Longitude', 'environ 31° E'],
+            ['Agglomération', 'plus de 20 millions d’habitants'],
+          ],
+        },
+      ],
+      3: [
+        {
+          name: 'Endommage.txt',
+          kind: 'redacted',
+          text: 'Au nord de la ville, le fleuve s’ouvre en [[delta]] avant de se jeter dans la Méditerranée à [[Alexandrie]].',
+        },
+        { name: 'Note.txt', kind: 'note', text: 'Le delta du Nil est l’une des régions les plus fertiles d’Égypte.' },
+      ],
+    },
+  },
+  'sci-curie': {
+    topic: 'Scientifique recherchée',
+    intro: 'Trois indices, une personne de la science. Plus tu la reconnais tôt, plus tu gagnes de bits.',
+    stem: 'Qui suis-je ?',
+    clues: [
+      'J’ai fait mes recherches à Paris, mais je venais d’un autre pays.',
+      'L’un des éléments que j’ai découverts porte le nom de mon pays natal.',
+      'J’ai été la première personne à recevoir deux prix Nobel, en physique et en chimie.',
+    ],
+    options: ['Marie Curie', 'Lise Meitner', 'Rosalind Franklin', 'Ada Lovelace'],
+    f: [
+      ['Polonium', 'L’élément polonium doit son nom à la Pologne, le pays natal de celle qui l’a découvert.'],
+      ['Deux prix', 'La première personne à recevoir deux prix Nobel était une chercheuse de Varsovie : physique en 1903, chimie en 1911.'],
+      ['Radium', 'Le radium brille faiblement en bleu dans le noir et servait autrefois aux cadrans lumineux.'],
+      ['Fission', 'Lise Meitner a expliqué la fission nucléaire avec Otto Frisch en 1939 ; elle n’a jamais reçu le prix Nobel.'],
+      ['Programme', 'Au XIXe siècle, Ada Lovelace a écrit le premier programme pour une machine à calculer.'],
+    ],
+    why: 'Marie Curie, née à Varsovie en 1867, a découvert le polonium et le radium et a reçu le prix Nobel de physique en 1903 et celui de chimie en 1911.',
+    files: {
+      2: [
+        {
+          name: 'Parcours.png',
+          kind: 'image',
+          alt: 'Frise : naissance à Varsovie en 1867, découverte du polonium et du radium en 1898, prix Nobel en 1903 et 1911.',
+          chart: {
+            chart: 'timeline',
+            title: 'Une vie de chercheuse',
+            events: [
+              { label: 'Naissance à Varsovie', year: 1867 },
+              { label: 'Polonium et radium', year: 1898 },
+              { label: 'Nobel de physique', year: 1903 },
+              { label: 'Nobel de chimie', year: 1911 },
+            ],
+          },
+        },
+        { name: 'Note.txt', kind: 'note', text: 'La première personne à recevoir deux prix Nobel était une chercheuse de Varsovie : physique en 1903, chimie en 1911.' },
+      ],
+    },
+  },
+  'ear-moonwall': {
+    topic: 'Vue depuis la Lune',
+    intro: 'Certaines affirmations sonnent si bien qu’on les répète depuis des décennies.',
+    stem: 'Deux fichiers se contredisent : voit-on la Grande Muraille de Chine depuis la Lune à l’œil nu ? À quelle source fais-tu confiance ?',
+    sources: [
+      {
+        name: 'Message_forum.txt',
+        origin: 'Message anonyme sur un forum de voyage',
+        text: 'La Grande Muraille de Chine est la seule construction humaine visible à l’œil nu même depuis la Lune.',
+      },
+      {
+        name: 'Rapport_spatial.txt',
+        origin: 'NASA, rapport sur des photos prises depuis la station spatiale',
+        text: 'Depuis la Lune, aucune construction n’est visible à l’œil nu. Même depuis la station spatiale, la muraille est très difficile à distinguer.',
+      },
+      {
+        name: 'Brochure.txt',
+        origin: 'Brochure d’un voyagiste',
+        text: 'Découvrez la construction que les astronautes voient même depuis la Lune !',
+      },
+    ],
+    f: [
+      ['Distance', 'La Lune est à environ 384 000 km ; la muraille ne fait le plus souvent que 5 à 8 mètres de large.'],
+      ['Station spatiale', 'Même depuis la station spatiale, à environ 400 km d’altitude, la muraille est à peine visible à l’œil nu.'],
+      ['Mythe', 'L’idée que la muraille serait visible depuis la Lune est plus ancienne que les voyages spatiaux.'],
+      ['Longueur', 'Avec toutes ses sections, la Grande Muraille de Chine mesure plus de 20 000 km.'],
+    ],
+    why: 'Le rapport de la NASA a raison : à 384 000 km, une bande large de quelques mètres est invisible. Le message du forum et la brochure répètent un vieux mythe.',
+    files: {
+      1: [
+        {
+          name: 'Muraille.inf',
+          kind: 'profile',
+          fields: [
+            ['Largeur', 'le plus souvent 5 à 8 m'],
+            ['Longueur', 'plus de 20 000 km'],
+            ['Matériaux', 'terre damée, brique, pierre'],
+          ],
+        },
+        { name: 'Note.txt', kind: 'note', text: 'La Lune est à environ 384 000 km ; la muraille ne fait le plus souvent que 5 à 8 mètres de large.' },
+      ],
+      4: [
+        {
+          name: 'Muraille.png',
+          kind: 'image',
+          alt: 'Carte du nord de la Chine avec Jiayuguan à l’ouest, Yinchuan et Pékin.',
+          chart: {
+            chart: 'map',
+            title: 'La muraille au nord de la Chine',
+            region: { west: 85, south: 25, east: 130, north: 50 },
+            places: [
+              { label: 'Jiayuguan', lat: 39.8, lon: 98.3 },
+              { label: 'Pékin', lat: 39.9, lon: 116.4 },
+              { label: 'Yinchuan', lat: 38.5, lon: 106.3 },
+            ],
+          },
+        },
+        { name: 'Note.txt', kind: 'note', text: 'Avec toutes ses sections, la Grande Muraille de Chine mesure plus de 20 000 km.' },
+      ],
+    },
+  },
 };

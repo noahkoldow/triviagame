@@ -154,7 +154,7 @@ function NodeGame({
       return;
     }
     if (ok) {
-      const r = recordCorrect(getState(), pool, nodeId, day, rewinds);
+      const r = recordCorrect(getState(), pool, nodeId, day, rewinds, answer ?? undefined);
       update(() => r.player);
       setRecentlySpawned(r.spawned);
       clearHint(nodeId);
