@@ -22,6 +22,7 @@ import {
   initialUnlockedAreas,
   migrateSave,
   moveBreach,
+  wallsOfLayout,
   placeNode,
   recordBoss,
   recordCorrect,
@@ -188,25 +189,29 @@ describe('walls', () => {
     // the ring lay at 470 before
     const old = { x: (cell.x * 470) / WALL_RADIUS, y: (cell.y * 470) / WALL_RADIUS, from: CORE_ZONE };
     expect(breachCells('biomedicine', old)).toHaveLength(0);
-    const moved = moveBreach('biomedicine', old);
+    const moved = moveBreach('biomedicine', old, wallsOfLayout(2));
     expect(Math.hypot(moved.x - cell.x, moved.y - cell.y)).toBeLessThan(60);
     expect(breachCells('biomedicine', moved).length).toBeGreaterThanOrEqual(3);
     // a gap on its wall stays
     const now = { x: cell.x, y: cell.y, from: CORE_ZONE };
-    expect(moveBreach('biomedicine', now)).toBe(now);
+    expect(moveBreach('biomedicine', now, wallsOfLayout(2))).toBe(now);
   });
 
-  it('an old save gets its gaps moved onto the bigger walls and its nodes into their zones', () => {
+  it.each([2, 3])('a save from layout %i gets its gaps moved onto the current walls and its nodes into their zones', (layout) => {
     const p = grow(160);
-    const shrink = (v: { x: number; y: number }) => {
+    const was = wallsOfLayout(layout);
+    const scale = (v: { x: number; y: number }) => {
       const r = Math.hypot(v.x, v.y);
-      const k = r <= WALL_RADIUS + 50 ? 470 / WALL_RADIUS : (470 + ((r - WALL_RADIUS) * 2030) / (WALL_OUTER - WALL_RADIUS)) / r;
+      const k =
+        r <= WALL_RADIUS + 50
+          ? was.radius / WALL_RADIUS
+          : (was.radius + ((r - WALL_RADIUS) * (was.outer - was.radius)) / (WALL_OUTER - WALL_RADIUS)) / r;
       return { x: v.x * k, y: v.y * k };
     };
-    // the same map as it lay before the zones grew: ring at 470, outer edge at 2500
-    const nodes = Object.fromEntries(Object.values(p.network.nodes).map((n) => [n.id, { ...n, pos: { ...n.pos, ...shrink(n.pos) } }]));
-    const firewalls = p.network.firewalls!.map((f) => (f.breach ? { ...f, breach: { ...f.breach, ...shrink(f.breach) } } : f));
-    const old: PlayerState = { ...p, network: { ...p.network, nodes, firewalls, layout: 2 } };
+    // the same map as it lay with the walls of that layout
+    const nodes = Object.fromEntries(Object.values(p.network.nodes).map((n) => [n.id, { ...n, pos: { ...n.pos, ...scale(n.pos) } }]));
+    const firewalls = p.network.firewalls!.map((f) => (f.breach ? { ...f, breach: { ...f.breach, ...scale(f.breach) } } : f));
+    const old: PlayerState = { ...p, network: { ...p.network, nodes, firewalls, layout } };
     const m = migrateSave(old, pool);
     for (const f of m.network.firewalls!.filter((x) => x.breach)) expect(breachCells(f.area, f.breach!).length, f.area).toBeGreaterThan(0);
     for (const n of Object.values(m.network.nodes)) {

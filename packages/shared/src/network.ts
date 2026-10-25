@@ -19,12 +19,12 @@ import { markDamaged, applyReview } from './srs';
 import type { Synapse } from './synapses';
 import { SECTORS, sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Question, Sector, Vec3 } from './types';
-import { CORE_ZONE, clampToZone, moveBreach, traceVia, zoneOf, zoneOfArea, zoneRoute, type Breach } from './walls';
+import { CORE_ZONE, clampToZone, moveBreach, traceVia, wallsOfLayout, zoneOf, zoneOfArea, zoneRoute, type Breach } from './walls';
 
 /** How strongly a new node leans toward the wall its branch is growing to. */
 const WALL_PULL = { deepen: 0.7, bridge: 0.4 };
 /** Version of the placement rules; a map placed with older ones is repaired once (`relayout`). */
-export const LAYOUT_VERSION = 3;
+export const LAYOUT_VERSION = 4;
 
 export class Pool {
   readonly byId = new Map<string, Question>();
@@ -446,15 +446,19 @@ export function growMissing(
  * cannot reach hangs on the nearest node that can (links only decide what the map draws and
  * which circles close); a node whose link is then short, free and crosses nothing keeps its
  * place, every other one is placed anew. A wall only counts as open from the first node behind
- * it on, as it was while the map grew. Maps from before the zones grew (layout 3) get their
- * breaches (and synapse gaps) moved onto the bigger walls first; nodes that now lie in the wrong zone are placed anew.
+ * it on, as it was while the map grew. Maps with walls of another size (before layout 4, D69)
+ * get their breaches and synapse gaps moved onto the current walls first; nodes that now lie in
+ * the wrong zone are placed anew.
  */
 export function relayout(old: NetworkState, pool: Pool): NetworkState {
   if ((old.layout ?? 1) >= LAYOUT_VERSION) return old;
+  const before = wallsOfLayout(old.layout ?? 1);
   const state: NetworkState = {
     ...old,
-    firewalls: old.firewalls?.map((f) => (f.breach ? { ...f, breach: moveBreach(f.area, f.breach) } : f)),
-    synapses: old.synapses?.map((s) => (s.gap ? { ...s, gap: { ...s.gap, breach: moveBreach(s.gap.area, s.gap.breach) } } : s)),
+    firewalls: old.firewalls?.map((f) => (f.breach ? { ...f, breach: moveBreach(f.area, f.breach, before) } : f)),
+    synapses: old.synapses?.map((s) =>
+      s.gap ? { ...s, gap: { ...s.gap, breach: moveBreach(s.gap.area, s.gap.breach, before) } } : s,
+    ),
   };
   const order = Object.values(state.nodes).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
   const entered = new Set<string>();
