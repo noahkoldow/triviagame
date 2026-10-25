@@ -568,6 +568,7 @@ export const es: Strings = {
     oneGem: '+1 gema',
     gemVideosDone: 'Ya has visto todos los vídeos de gemas de hoy.',
     testMode: 'Modo de prueba: las compras son simuladas y no cuestan nada.',
+    unavailable: 'Las compras no están disponibles ahora mismo. El resto de la tienda sigue funcionando.',
     freezeHeading: 'PROTECCIÓN DE RACHA',
     freezeText: (n, max) => `Una protección salva tu racha si un día no juegas. Tienes ${n} de ${max}.`,
     freezeBuy: (cost) => `1 protección de racha · ${cost}`,

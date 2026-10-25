@@ -569,6 +569,7 @@ export const fr: Strings = {
     oneGem: '+1 gemme',
     gemVideosDone: 'Tu as regardé toutes les vidéos à gemmes du jour.',
     testMode: 'Mode test : les achats sont simulés et gratuits.',
+    unavailable: 'Les achats ne sont pas possibles pour le moment. Le reste de la boutique fonctionne.',
     freezeHeading: 'PROTECTION DE SÉRIE',
     freezeText: (n, max) => `Une protection sauve ta série si tu ne joues pas un jour. Tu en as ${n} sur ${max}.`,
     freezeBuy: (cost) => `1 protection de série · ${cost}`,

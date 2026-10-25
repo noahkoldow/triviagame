@@ -578,6 +578,7 @@ export const de = {
     oneGem: '+1 Gem',
     gemVideosDone: 'Für heute sind alle Gem-Videos geschaut.',
     testMode: 'Testmodus: Käufe sind simuliert und kosten nichts.',
+    unavailable: 'Käufe sind gerade nicht möglich. Alles andere im Shop geht weiter.',
     freezeHeading: 'STREAK-SCHUTZ',
     freezeText: (n: number, max: number) => `Ein Streak-Schutz rettet deine Serie, wenn du einen Tag nicht spielst. Du hast ${n} von ${max}.`,
     freezeBuy: (cost: number) => `1 Streak-Schutz · ${cost}`,

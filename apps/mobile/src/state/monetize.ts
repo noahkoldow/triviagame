@@ -1,4 +1,5 @@
 import {
+  adAudience,
   applyEntitlements,
   applyPurchase,
   claimPlusBonus,
@@ -16,7 +17,8 @@ import { IS_PROTOTYPE } from '../config';
 import { createAdMobProvider } from '../services/admob';
 import { ads, setAdProvider } from '../services/ads';
 import { track } from '../services/analytics';
-import { PRODUCT_TEXT, purchases, type StoreProduct } from '../services/purchases';
+import { PRODUCT_TEXT, canPurchase, purchases, setPurchaseProvider, type StoreProduct } from '../services/purchases';
+import { createRevenueCatProvider } from '../services/revenuecat';
 import { getState, today, update } from './store';
 
 /**
@@ -87,17 +89,21 @@ export async function buy(productId: ProductId): Promise<boolean> {
 let started = false;
 
 /**
- * Once the player is onboarded (the age is known): Plus from the store, then in store builds the
- * real ad provider with its consent dialog, then maybe an app-open ad (cold start).
+ * Once the player is onboarded (the age is known): in store builds RevenueCat, Plus from the store,
+ * then in store builds the real ad provider with its consent dialog, then maybe an app-open ad (cold start).
  */
 export async function startMonetization(): Promise<void> {
   if (started) return;
   started = true;
+  if (!IS_PROTOTYPE) {
+    const store = createRevenueCatProvider();
+    if (store) setPurchaseProvider(store);
+  }
   await syncEntitlements();
   if (!IS_PROTOTYPE) {
     const p = getState().profile;
     const real = await createAdMobProvider({
-      minor: p.ageGroup === 'minor',
+      audience: adAudience(p.birthYear, new Date().getFullYear()),
       personalized: personalizedAds(p.ageGroup, p.consent),
     });
     if (real) setAdProvider(real);
@@ -126,20 +132,30 @@ const FALLBACK = Object.fromEntries(
   ]),
 ) as Record<ProductId, StoreProduct>;
 
-/** Localised store prices, with the fallback texts until the store answers. */
-export function usePrices(): Record<ProductId, StoreProduct> {
+export interface Prices {
+  /** Localised store prices, with the fallback texts until the store answers. */
+  prices: Record<ProductId, StoreProduct>;
+  /** Products the store sells; in Expo Go all of them (mock), without a store none. */
+  sold: (id: ProductId) => boolean;
+}
+
+export function usePrices(): Prices {
   const [prices, setPrices] = useState(FALLBACK);
+  const [known, setKnown] = useState<ReadonlySet<ProductId> | null>(null);
   useEffect(() => {
     let alive = true;
     purchases
       .products()
       .then((list) => {
-        if (alive) setPrices({ ...FALLBACK, ...Object.fromEntries(list.map((x) => [x.id, x])) });
+        if (!alive) return;
+        setPrices({ ...FALLBACK, ...Object.fromEntries(list.map((x) => [x.id, x])) });
+        setKnown(new Set(list.map((x) => x.id)));
       })
       .catch(() => {});
     return () => {
       alive = false;
     };
   }, []);
-  return prices;
+  // until the store answers, a real store is assumed to sell everything (no flicker)
+  return { prices, sold: (id) => canPurchase() && (known === null || known.has(id)) };
 }

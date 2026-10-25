@@ -567,6 +567,7 @@ export const en: Strings = {
     oneGem: '+1 gem',
     gemVideosDone: 'You’ve watched all gem videos for today.',
     testMode: 'Test mode: purchases are simulated and cost nothing.',
+    unavailable: 'Purchases are not available right now. Everything else in the shop still works.',
     freezeHeading: 'STREAK FREEZE',
     freezeText: (n, max) => `A streak freeze saves your streak when you miss a day. You have ${n} of ${max}.`,
     freezeBuy: (cost) => `1 streak freeze · ${cost}`,

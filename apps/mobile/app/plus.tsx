@@ -24,8 +24,10 @@ export default function PlusScreen() {
   const router = useRouter();
   const t = useStrings();
   const { from } = useLocalSearchParams<{ from?: string }>();
-  const prices = usePrices();
-  const [plan, setPlan] = useState<ProductId>('plus_year');
+  const { prices, sold } = usePrices();
+  const plans = PLANS.filter(sold);
+  const [chosen, setPlan] = useState<ProductId>('plus_year');
+  const plan = plans.includes(chosen) ? chosen : (plans[0] ?? chosen);
   const [busy, setBusy] = useState(false);
   const shop = useGame((p) => p.shop);
   const active = isPlus(getState(), Date.now());
@@ -83,10 +85,14 @@ export default function PlusScreen() {
               {shop.plusLifetime ? t.plus.activeForever : t.plus.active} {t.plus.thanks}
             </P>
           </Card>
+        ) : !plans.length ? (
+          <Card>
+            <P>{t.shop.unavailable}</P>
+          </Card>
         ) : (
           <>
             <View style={{ gap: 8 }} accessibilityRole="radiogroup">
-              {PLANS.map((id) => {
+              {plans.map((id) => {
                 const selected = plan === id;
                 const text = t.shop.products[id];
                 return (

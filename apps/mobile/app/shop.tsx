@@ -38,6 +38,7 @@ import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
 
 const GEM_PACKS: ProductId[] = ['gems_50', 'gems_150', 'gems_400'];
+const PLUS_PLANS: ProductId[] = ['plus_month', 'plus_year', 'plus_life'];
 
 export default function Shop() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function Shop() {
   // the offers below read the whole state; these keep them current
   useGame((p) => p.energy);
   useGame((p) => p.integrity);
-  const prices = usePrices();
+  const { prices, sold } = usePrices();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => track({ name: 'shop_open', from: from ?? 'dock' }), [from]);
@@ -147,6 +148,8 @@ export default function Shop() {
                 <P>{t.shop.monthlyDone}</P>
               )}
             </>
+          ) : !PLUS_PLANS.some(sold) ? (
+            <P>{t.shop.unavailable}</P>
           ) : (
             <>
               <P style={{ color: colors.text }}>{t.shop.plusPitch(PLUS_MONTHLY.gems, prices.plus_year.price)}</P>
@@ -159,7 +162,7 @@ export default function Shop() {
           )}
         </Card>
 
-        {starterAvailable(s) ? (
+        {starterAvailable(s) && sold('starter') ? (
           <>
             <Text style={styles.section}>{t.shop.starterHeading}</Text>
             <Card style={{ gap: 8, borderColor: colors.gem }}>
@@ -189,7 +192,7 @@ export default function Shop() {
           ) : (
             <P>{t.shop.gemVideosDone}</P>
           )}
-          {GEM_PACKS.map((id) => (
+          {GEM_PACKS.filter(sold).map((id) => (
             <Button
               key={id}
               label={`${t.shop.products[id].title} · ${prices[id].price}`}
@@ -199,6 +202,7 @@ export default function Shop() {
             />
           ))}
           {IS_PROTOTYPE ? <P>{t.shop.testMode}</P> : null}
+          {GEM_PACKS.some(sold) ? null : <P>{t.shop.unavailable}</P>}
         </Card>
 
         <Text style={styles.section}>{t.shop.freezeHeading}</Text>

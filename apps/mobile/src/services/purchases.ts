@@ -1,8 +1,10 @@
 import type { Entitlements, ProductId, Receipt } from '@nexus/shared';
+import { IS_PROTOTYPE } from '../config';
 
 /**
- * Purchase provider interface. Expo Go cannot load StoreKit/RevenueCat, so the default is a mock
- * that confirms every purchase. What a product grants is a rule in shared (`shop.ts`); crediting
+ * Purchase provider interface. Expo Go cannot load StoreKit/RevenueCat, so there the default is a
+ * mock that confirms every purchase; store builds start without purchases until RevenueCat is
+ * configured (`revenuecat.ts`), so nothing is ever granted for free. What a product grants is a rule in shared (`shop.ts`); crediting
  * goes through `applyPurchase`, which never credits a transaction twice.
  */
 export interface StoreProduct {
@@ -69,7 +71,28 @@ export const mockPurchases: PurchaseProvider = {
   },
 };
 
-export let purchases: PurchaseProvider = mockPurchases;
+/** A store build without RevenueCat (no key yet): nothing to buy, the shop hides its prices. */
+const noPurchases: PurchaseProvider = {
+  async products() {
+    return [];
+  },
+  async purchase() {
+    return null;
+  },
+  async restore() {
+    return null;
+  },
+  async entitlements() {
+    return null;
+  },
+};
+
+export let purchases: PurchaseProvider = IS_PROTOTYPE ? mockPurchases : noPurchases;
 export function setPurchaseProvider(p: PurchaseProvider): void {
   purchases = p;
+}
+
+/** False in a store build without a store: the shop shows no buy buttons. */
+export function canPurchase(): boolean {
+  return purchases !== noPurchases;
 }
