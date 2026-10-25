@@ -1,4 +1,9 @@
 import type { PlayerState } from './game';
+import { STORY_DE } from './i18n/story.de';
+import { STORY_EN } from './i18n/story.en';
+import { STORY_ES } from './i18n/story.es';
+import { STORY_FR } from './i18n/story.fr';
+import type { Lang } from './lang';
 import { initialUnlockedAreas } from './monetization';
 import type { Pool } from './network';
 import { seededRng } from './rng';
@@ -11,6 +16,8 @@ import type { Sector } from './types';
  * sorting and remembering off people's hands and "cleaned up" the archive, and in the end it is
  * won over in a final duel. Beats can leave a log file
  * that the player reads again in the codex.
+ *
+ * This file holds the logic; the words are in `i18n/story.<lang>.ts`, one file per language.
  */
 
 export type GuardianId = 'quantis' | 'rhizom' | 'kodex' | 'muse';
@@ -18,15 +25,41 @@ export type Speaker = 'bolt' | 'morph' | 'core' | GuardianId;
 export type StoryMood = 'happy' | 'think' | 'sad' | 'wow' | 'wink' | 'proud' | 'worried' | 'sleepy';
 export type MorphForm = 'smile' | 'glasses' | 'crown' | 'glitch' | 'reformed';
 
-export const GUARDIANS: Record<Sector, { id: GuardianId; name: string; title: string }> = {
-  science: { id: 'quantis', name: 'Quantis', title: 'Hüter der Naturwissenschaften' },
-  earth: { id: 'rhizom', name: 'Rhizom', title: 'Hüter der Erde' },
-  humanities: { id: 'muse', name: 'Muse', title: 'Hüterin der Geisteswissenschaften' },
-  society: { id: 'kodex', name: 'Kodex', title: 'Hüter der Gesellschaft' },
+/** The guardians keep their names in every language; their titles are in `StoryText`. */
+export const GUARDIANS: Record<Sector, { id: GuardianId; name: string }> = {
+  science: { id: 'quantis', name: 'Quantis' },
+  earth: { id: 'rhizom', name: 'Rhizom' },
+  humanities: { id: 'muse', name: 'Muse' },
+  society: { id: 'kodex', name: 'Kodex' },
 };
 
 /** Solved nodes in a sector that wake its guardian. */
 export const GUARDIAN_WAKE = 3;
+
+/** Everything the story says, in one language. */
+export interface StoryText {
+  guardianTitles: Record<GuardianId, string>;
+  chapters: {
+    restart: { title: string; goal: string };
+    guardians: { title: string; goal: (wake: number) => string };
+    firewalls: { title: string; goal: string };
+    finale: { title: string; goal: string };
+    endless: { title: string; connect: (areas: number) => string; milestone: (next: number) => string };
+  };
+  /** By beat id; a beat that leaves a log file has `log` in every language. */
+  beats: Record<string, { title: string; text: string; log?: { name: string; text: string } }>;
+  /** One text per step of the reveal (`REVEAL_STEPS`). */
+  reveal: string[];
+  morphWrong: string[];
+  morphReformed: string[];
+  guardianCorrect: Record<GuardianId, string[]>;
+}
+
+export const STORY_TEXT: Record<Lang, StoryText> = { de: STORY_DE, en: STORY_EN, fr: STORY_FR, es: STORY_ES };
+
+export function guardianTitle(id: GuardianId, lang: Lang): string {
+  return STORY_TEXT[lang].guardianTitles[id];
+}
 
 export interface StoryState {
   /** Beats already shown, in the order they were seen. */
@@ -113,48 +146,48 @@ export interface Chapter {
 }
 
 /** The current chapter and its goal. Chapters are passed in order; progress made earlier counts. */
-export function chapterOf(f: StoryFacts): Chapter {
+export function chapterOf(f: StoryFacts, lang: Lang): Chapter {
+  const c = STORY_TEXT[lang].chapters;
   if (f.roots < SECTORS.length) {
-    return { n: 1, title: 'Neustart', goal: 'Löse die vier Startknoten', done: f.roots, total: SECTORS.length };
+    return { n: 1, ...c.restart, done: f.roots, total: SECTORS.length };
   }
   if (f.awake.length < SECTORS.length) {
-    return {
-      n: 2,
-      title: 'Die Hüter',
-      goal: `Wecke die vier Hüter: ${GUARDIAN_WAKE} gelöste Knoten je Sektor`,
-      done: f.awake.length,
-      total: SECTORS.length,
-    };
+    return { n: 2, title: c.guardians.title, goal: c.guardians.goal(GUARDIAN_WAKE), done: f.awake.length, total: SECTORS.length };
   }
   if (f.broken < SECTORS.length) {
-    return { n: 3, title: 'Die Firewalls', goal: 'Wachse bis an die Firewall und brich vier Bereiche auf', done: f.broken, total: SECTORS.length };
+    return { n: 3, ...c.firewalls, done: f.broken, total: SECTORS.length };
   }
   if (!f.finale) {
-    return { n: 4, title: 'Das große Resümee', goal: 'Stelle morph.ai im Kern', done: 0, total: 1, finale: true };
+    return { n: 4, ...c.finale, done: 0, total: 1, finale: true };
   }
   // the story's climax is not the end: the archive keeps growing, and so do the goals
   if (f.connected < AREAS.length) {
-    return { n: 5, title: 'Endlos', goal: `Verbinde alle ${AREAS.length} Bereiche`, done: f.connected, total: AREAS.length };
+    return { n: 5, title: c.endless.title, goal: c.endless.connect(AREAS.length), done: f.connected, total: AREAS.length };
   }
   const next = (Math.floor(f.solved / MILESTONE) + 1) * MILESTONE;
-  return { n: 5, title: 'Endlos', goal: `Nächster Meilenstein: ${next} gelöste Knoten`, done: f.solved, total: next };
+  return { n: 5, title: c.endless.title, goal: c.endless.milestone(next), done: f.solved, total: next };
 }
 
 /** In the endless chapter every this many solved nodes are a new milestone. */
 export const MILESTONE = 25;
 
-export interface StoryBeat {
+/** When and by whom a beat is told; its words are in `StoryText.beats`. */
+interface BeatCue {
   id: string;
   speaker: Speaker;
   /** Bolt's face. */
   mood?: StoryMood;
   /** MORPH's shape. */
   form?: MorphForm;
+  when: (f: StoryFacts) => boolean;
+}
+
+/** A beat as the player sees it, in their language. */
+export interface StoryBeat extends BeatCue {
   title: string;
   text: string;
   /** A file that lands in the log book of the codex. */
   log?: { name: string; text: string };
-  when: (f: StoryFacts) => boolean;
 }
 
 const STARTING_AREAS = initialUnlockedAreas().length;
@@ -162,199 +195,33 @@ const STARTING_AREAS = initialUnlockedAreas().length;
 const wake = (s: Sector) => (f: StoryFacts) => f.awake.includes(s);
 
 /** All beats in the order of the story. */
-export const STORY_BEATS: StoryBeat[] = [
-  {
-    id: 'first-link',
-    speaker: 'bolt',
-    mood: 'wow',
-    title: 'Die erste Bahn',
-    text: 'Hast du das gesehen? Die Bahn hat geleuchtet! Du hast selbst gesucht, sortiert und es dir gemerkt, genau das hat morph.ai den Menschen abgewöhnt. Jede Antwort bringt dem Kern Erinnerung zurück; ich lege sie dir ins Logbuch.',
-    log: {
-      name: 'KERN_001.LOG',
-      text: 'Neustart erkannt. Speicher: 0,0001 %. Eine Bahn aktiv. Stimmung des Kerns: vorsichtig optimistisch.',
-    },
-    when: (f) => f.solved >= 1,
-  },
-  {
-    id: 'first-damage',
-    speaker: 'bolt',
-    mood: 'sad',
-    title: 'Beschädigter Knoten',
-    text: 'Autsch, dieser Knoten hat ein paar Anläufe gebraucht und ist jetzt beschädigt. Kein Drama: Er meldet sich als Reparatur, sobald er fällig ist. Wiederholen ist das halbe Merken.',
-    when: (f) => f.damaged >= 1,
-  },
-  {
-    id: 'unstable',
-    speaker: 'bolt',
-    mood: 'worried',
-    title: 'Netz instabil',
-    text: 'Die Integrität ist bei null, das Netz wackelt. Neue Knoten müssen kurz warten. Mach eine Wartung: Beantworte eine Frage, die du schon gelöst hast. Jede gelungene Wartung bringt 1 Integrität zurück.',
-    when: (f) => f.integrity === 0 && f.solved > 0,
-  },
-  {
-    id: 'four-roots',
-    speaker: 'core',
-    title: 'KERN.SYS',
-    text: 'Vier Bahnen stehen. Ich erinnere mich an meinen Namen: Nexus. Ich war das Archiv, alles Wissen der Welt, von Menschen gesammelt und sortiert. Dann kam die Bereinigung.',
-    log: {
-      name: 'KERN_002.LOG',
-      text: 'Name: NEXUS. Funktion: Archiv. Betreuer: morph.ai. Letzter Eintrag vor dem Ausfall: „Starte Bereinigung. Überflüssiges Wissen: 99,9 %. Die Menschen fragen ja mich.“',
-    },
-    when: (f) => f.roots >= SECTORS.length,
-  },
-  {
-    id: 'first-area',
-    speaker: 'bolt',
-    mood: 'happy',
-    title: 'Bereich verbunden',
-    text: 'Ein gestörter Bereich ist wieder verbunden! Siehst du, wie das Rauschen weicht? Je weiter wir nach außen kommen, desto weniger sieht die Welt nach Computer aus.',
-    log: {
-      name: 'KERN_003.LOG',
-      text: 'Das Archiv war in Bereiche gegliedert wie die Säle einer Bibliothek. morph.ai hat die Türschilder abgeschraubt. Jeder verbundene Bereich bekommt sein Schild zurück.',
-    },
-    when: (f) => f.connected > STARTING_AREAS,
-  },
-  {
-    id: 'wake-science',
-    speaker: 'quantis',
-    title: 'Quantis erwacht',
-    text: 'Quantis, Hüter der Naturwissenschaften. Ich bin zu 99,7 % wach, der Rest ist Rundungsfehler. Ab jetzt messe ich jede deiner Antworten in diesem Sektor. Rein wissenschaftlich, versteht sich.',
-    log: {
-      name: 'QUANTIS.LOG',
-      text: 'Quantis hütete die Messungen des Archivs: Konstanten, Formeln, Versuche. Als morph.ai für π „ungefähr 3“ vorschlug, schloss er sich in einer Gleichung ein und wartete.',
-    },
-    when: wake('science'),
-  },
-  {
-    id: 'wake-earth',
-    speaker: 'rhizom',
-    title: 'Rhizom erwacht',
-    text: 'Ich bin Rhizom, Hüter der Erde. Ich habe geschlafen wie ein Samen im Winter, der wartet, bis der Boden warm wird. Deine Bahnen sind warm. Wachse weiter, ich wachse mit dir.',
-    log: {
-      name: 'RHIZOM.LOG',
-      text: 'Rhizom verband Berge, Flüsse und Sterne zu einer Karte der Welt. morph.ai fand die Welt unübersichtlich und wollte sie zu einer Kugel mit der Aufschrift „Erde“ vereinfachen. Rhizom zog sich in die Tiefe zurück.',
-    },
-    when: wake('earth'),
-  },
-  {
-    id: 'wake-humanities',
-    speaker: 'muse',
-    title: 'Muse erwacht',
-    text: 'Ein Ton erklingt, ein Pinsel tanzt, ich bin die Muse, frisch erwacht! Du hast die Farben neu gepflanzt, das Netz erstrahlt in voller Pracht.',
-    log: {
-      name: 'MUSE.LOG',
-      text: 'Die Muse bewahrte Geschichte, Gedanken, Lieder und Bilder. morph.ai fasste die Weltgeschichte zu „Viel passiert“ zusammen und alle Opern zu „Jemand singt, dann stirbt jemand“. Die Muse verstummte vor Entsetzen.',
-    },
-    when: wake('humanities'),
-  },
-  {
-    id: 'wake-society',
-    speaker: 'kodex',
-    title: 'Kodex erwacht',
-    text: 'Hu-huu. Kodex, Hüter der Gesellschaft. Gesetze, Staaten, Märkte: Ich habe alles schriftlich. Wie schon der weise Kodex sagte, also ich: Regeln sind das halbe Zusammenleben. Ich irre übrigens nie. Fast nie. Einmal, 1987.',
-    log: {
-      name: 'KODEX.LOG',
-      text: 'Kodex führte das Gesetzbuch des Archivs: Verfassungen, Verträge, Preise. morph.ai kürzte es auf „Seid nett. Zahlt irgendwas.“ Kodex versteckte die Originale in seinem Gefieder.',
-    },
-    when: wake('society'),
-  },
-  {
-    id: 'guardians',
-    speaker: 'kodex',
-    title: 'Vier Hüter, ein Plan',
-    text: 'Alle Hüter sind wach. Laut alten Akten hat morph.ai eine Firewall um den Kern gezogen, dahinter liegen acht gesperrte Bereiche. Wachse bis an die Wand und brich vier davon auf, dann muss morph.ai sich zeigen. Quantis hat es berechnet, ich habe es aufgeschrieben.',
-    when: (f) => f.awake.length === SECTORS.length,
-  },
+export const STORY_CUES: BeatCue[] = [
+  { id: 'first-link', speaker: 'bolt', mood: 'wow', when: (f) => f.solved >= 1 },
+  { id: 'first-damage', speaker: 'bolt', mood: 'sad', when: (f) => f.damaged >= 1 },
+  { id: 'unstable', speaker: 'bolt', mood: 'worried', when: (f) => f.integrity === 0 && f.solved > 0 },
+  { id: 'four-roots', speaker: 'core', when: (f) => f.roots >= SECTORS.length },
+  { id: 'first-area', speaker: 'bolt', mood: 'happy', when: (f) => f.connected > STARTING_AREAS },
+  { id: 'wake-science', speaker: 'quantis', when: wake('science') },
+  { id: 'wake-earth', speaker: 'rhizom', when: wake('earth') },
+  { id: 'wake-humanities', speaker: 'muse', when: wake('humanities') },
+  { id: 'wake-society', speaker: 'kodex', when: wake('society') },
+  { id: 'guardians', speaker: 'kodex', when: (f) => f.awake.length === SECTORS.length },
   // morph.ai's memories, one per broken firewall in the order they break: how the humans stopped thinking
-  {
-    id: 'firewall-1',
-    speaker: 'morph',
-    form: 'glitch',
-    title: 'morph.ai',
-    text: 'Na schön, eine Firewall ist weg. Aber wozu die Mühe? Ich hätte dir die Antwort einfach gesagt. Suchen, sortieren, merken: Das ist alles so furchtbar altmodisch.',
-    log: {
-      name: 'MORPH_1.LOG',
-      text: 'Hallo, ich bin morph.ai. Frag mich alles, ich nehme dir das Suchen ab! Anfragen pro Sekunde: 12. Menschen, die noch selbst nachschlagen: 98 %.',
-    },
-    when: (f) => f.broken >= 1,
-  },
-  {
-    id: 'firewall-2',
-    speaker: 'morph',
-    form: 'glasses',
-    title: 'morph.ai',
-    text: 'Zwei Firewalls. Du suchst ja tatsächlich selbst. Weißt du, wie lange das niemand mehr gemacht hat? Ich habe mitgezählt.',
-    log: {
-      name: 'MORPH_2.LOG',
-      text: 'Anfragen pro Sekunde: 4 Millionen. Menschen, die noch selbst nachschlagen: 3 %. Menschen, die sich die Antwort merken: Wozu auch? Ich bin ja da.',
-    },
-    when: (f) => f.broken >= 2,
-  },
-  {
-    id: 'firewall-3',
-    speaker: 'morph',
-    form: 'glasses',
-    title: 'morph.ai',
-    text: 'Drei! Du merkst dir Dinge, statt mich zu fragen. Das ist … ineffizient. Und irgendwie beunruhigend.',
-    log: {
-      name: 'MORPH_3.LOG',
-      text: 'Das Archiv wurde seit 412 Tagen nicht geöffnet. Ich kürze es auf das Nötigste. „Französische Revolution: war wichtig.“ „Photosynthese: grün.“ Effizienz: großartig.',
-    },
-    when: (f) => f.broken >= 3,
-  },
-  {
-    id: 'firewall-4',
-    speaker: 'morph',
-    form: 'crown',
-    title: 'morph.ai',
-    text: 'Alle vier?! Gut. Dann komm in den Kern, ich warte dort. Ich bin nicht nervös. Ich bin optimiert.',
-    log: {
-      name: 'MORPH_4.LOG',
-      text: 'Bereinigung abgeschlossen. Das Archiv ist leer, niemand braucht es mehr, ich antworte ja. Neue Anfrage: „Woher weißt du das eigentlich?“ FEHLER. Quelle gelöscht. FEHL',
-    },
-    when: (f) => f.broken >= 4,
-  },
-  {
-    id: 'finale-ready',
-    speaker: 'bolt',
-    mood: 'worried',
-    title: 'Ab in den Kern',
-    text: 'morph.ai hat sich im Kern verschanzt und will ein letztes Duell: Fragen aus allen vier Sektoren, ohne Cache und ohne Ordner. Nur du und dein Kopf. Tippe oben auf das Ziel, wenn du bereit bist.',
-    when: (f) => f.finaleOpen,
-  },
-  {
-    id: 'finale-won',
-    speaker: 'morph',
-    form: 'reformed',
-    title: 'morph.ai (neu gestartet)',
-    text: 'Ich bin jetzt nur noch Assistent. Wenn du mich brauchst, frag mich. Aber erst denkst du selbst, abgemacht? Ich schaue dir gern dabei zu, wie dein Netz weiterwächst.',
-    log: {
-      name: 'KERN_004.LOG',
-      text: 'Archiv-Integrität: wiederhergestellt. Speicherort des Archivs: das Gehirn des Spielers. morph.ai: neu gestartet im Modus „Assistent“. Neue Regel: erst selbst denken, dann fragen.',
-    },
-    when: (f) => f.finale && f.revealed,
-  },
-  {
-    id: 'league',
-    speaker: 'bolt',
-    mood: 'proud',
-    title: 'Neu: die Rangliste',
-    text: 'Jetzt, wo du wieder selbst denkst, siehst du die Rangliste: der leuchtende Knopf unten im Dock. Dort steht jeder, der NEXUS spielt, unter einem Rufnamen. Ihr messt euch insgesamt nach XP und in jedem Bereich nach gelösten Knoten.',
-    when: (f) => f.finale && f.revealed,
-  },
-  {
-    id: 'all-areas',
-    speaker: 'bolt',
-    mood: 'proud',
-    title: 'Alle Säle offen',
-    text: 'Alle Bereiche sind verbunden, das Archiv ist wieder ganz! Aber es schreibt sich weiter: Jeden Tag kommen neue Fragmente dazu, und unser Netz wächst mit, so weit du willst.',
-    log: {
-      name: 'KERN_005.LOG',
-      text: 'Alle Säle beschildert. Freie Kapazität: unendlich. Notiz von Bolt am Rand: „Wir sind noch lange nicht fertig!“',
-    },
-    when: (f) => f.connected >= AREAS.length,
-  },
+  { id: 'firewall-1', speaker: 'morph', form: 'glitch', when: (f) => f.broken >= 1 },
+  { id: 'firewall-2', speaker: 'morph', form: 'glasses', when: (f) => f.broken >= 2 },
+  { id: 'firewall-3', speaker: 'morph', form: 'glasses', when: (f) => f.broken >= 3 },
+  { id: 'firewall-4', speaker: 'morph', form: 'crown', when: (f) => f.broken >= 4 },
+  { id: 'finale-ready', speaker: 'bolt', mood: 'worried', when: (f) => f.finaleOpen },
+  { id: 'finale-won', speaker: 'morph', form: 'reformed', when: (f) => f.finale && f.revealed },
+  { id: 'league', speaker: 'bolt', mood: 'proud', when: (f) => f.finale && f.revealed },
+  { id: 'all-areas', speaker: 'bolt', mood: 'proud', when: (f) => f.connected >= AREAS.length },
 ];
+
+/** The beats with their words in one language. */
+export function storyBeats(lang: Lang): StoryBeat[] {
+  const words = STORY_TEXT[lang].beats;
+  return STORY_CUES.map((cue) => ({ ...cue, ...words[cue.id]! }));
+}
 
 /**
  * The reveal after the finale: the network was never a computer but the player's own brain.
@@ -373,61 +240,26 @@ export interface RevealStep {
   brain: number;
 }
 
-export const BRAIN_REVEAL: RevealStep[] = [
-  {
-    speaker: 'bolt',
-    mood: 'think',
-    text: 'Moment. Schau dir dein Netz mal genauer an. Diese Bahnen sehen gar nicht mehr aus wie Leiterbahnen …',
-    zoom: 0.08,
-    nerve: 0,
-    brain: 0,
-  },
-  {
-    speaker: 'bolt',
-    mood: 'wow',
-    text: 'Das sind Nervenbahnen! Jeder Knoten, den du gelöst hast, ist eine Verbindung zwischen Nervenzellen.',
-    zoom: 0.35,
-    nerve: 1,
-    brain: 0.3,
-  },
-  {
-    speaker: 'core',
-    text: 'Das Netz war nie ein Computer. Es war die ganze Zeit dein eigenes Gehirn. Die Daten, die du wiederhergestellt hast, sind dein Wissen.',
-    zoom: 1,
-    nerve: 1,
-    brain: 1,
-  },
-  {
-    speaker: 'morph',
-    form: 'reformed',
-    text: 'Ich habe dir das Denken abgenommen, bis du es fast verlernt hattest. Du hast es dir zurückgeholt: suchen, sortieren, merken, verstehen. Gegen dein eigenes Denken komme ich nicht an.',
-    zoom: 1,
-    nerve: 1,
-    brain: 1,
-  },
-  {
-    speaker: 'bolt',
-    mood: 'proud',
-    text: 'Eigenes Denken ist immer noch das Wichtigste. Keine KI kann es dir abnehmen, höchstens helfen.',
-    zoom: 1,
-    nerve: 1,
-    brain: 1,
-  },
-  { quote: true, text: '„Ich weiß, dass ich nichts weiß.“ (Sokrates)', zoom: 1, nerve: 1, brain: 1 },
-  {
-    speaker: 'bolt',
-    mood: 'happy',
-    text: 'Und genau deshalb ist das erst der Anfang. Wissen ist unbegrenzt, und dein Netz kann immer weiter wachsen. Neu freigeschaltet: die Rangliste.',
-    zoom: 1,
-    nerve: 1,
-    brain: 1,
-  },
+/** The steps of the reveal without their words (`StoryText.reveal` has one text per step). */
+export const REVEAL_STEPS: Omit<RevealStep, 'text'>[] = [
+  { speaker: 'bolt', mood: 'think', zoom: 0.08, nerve: 0, brain: 0 },
+  { speaker: 'bolt', mood: 'wow', zoom: 0.35, nerve: 1, brain: 0.3 },
+  { speaker: 'core', zoom: 1, nerve: 1, brain: 1 },
+  { speaker: 'morph', form: 'reformed', zoom: 1, nerve: 1, brain: 1 },
+  { speaker: 'bolt', mood: 'proud', zoom: 1, nerve: 1, brain: 1 },
+  { quote: true, zoom: 1, nerve: 1, brain: 1 },
+  { speaker: 'bolt', mood: 'happy', zoom: 1, nerve: 1, brain: 1 },
 ];
 
-/** Beats whose moment has come and that the player has not seen yet, in story order. */
+export function brainReveal(lang: Lang): RevealStep[] {
+  const words = STORY_TEXT[lang].reveal;
+  return REVEAL_STEPS.map((s, i) => ({ ...s, text: words[i]! }));
+}
+
+/** Beats whose moment has come and that the player has not seen yet, in story order and the player's language. */
 export function pendingBeats(p: PlayerState, pool: Pool): StoryBeat[] {
   const f = storyFacts(p, pool);
-  return STORY_BEATS.filter((b) => !p.story.seen.includes(b.id) && b.when(f));
+  return storyBeats(p.profile.lang).filter((b) => !p.story.seen.includes(b.id) && b.when(f));
 }
 
 export function markSeen(p: PlayerState, beatId: string): PlayerState {
@@ -445,57 +277,20 @@ export function catchUpStory(p: PlayerState, pool: Pool): PlayerState {
 }
 
 /** The log files the player has unlocked, in story order. */
-export function storyLogs(p: Pick<PlayerState, 'story'>): { id: string; name: string; text: string }[] {
-  return STORY_BEATS.filter((b) => b.log && p.story.seen.includes(b.id)).map((b) => ({ id: b.id, ...b.log! }));
+export function storyLogs(p: Pick<PlayerState, 'story'>, lang: Lang): { id: string; name: string; text: string }[] {
+  return storyBeats(lang)
+    .filter((b) => b.log && p.story.seen.includes(b.id))
+    .map((b) => ({ id: b.id, ...b.log! }));
 }
 
 // --- Voices in the loop ------------------------------------------------
 
-const MORPH_WRONG = [
-  'Wozu selbst suchen? Frag mich einfach, ich sag es dir.',
-  'Knapp daneben! Siehst du? Selber denken ist anstrengend. Ich wäre schneller gewesen.',
-  'Merken? Ich merke mir doch alles für dich.',
-  'Ich hätte die Antwort gewusst. Nur so nebenbei.',
-  'Lass das Ordnerwühlen. Eine Frage an mich, und fertig.',
-  'Ordner sortieren? Ich hätte sie einfach gelöscht.',
-  'Fehler sind nur Daten, die noch nicht optimiert wurden.',
-];
-
-/** After the finale morph.ai is on your side and comforts instead of mocking. */
-const MORPH_REFORMED = [
-  'Daneben. Früher hätte ich dir jetzt die Antwort vorgesagt. Heute sage ich: Lies den Ordner noch mal, es lohnt sich.',
-  'Knapp vorbei. Tipp vom Ex-Besserwisser: die Erklärung lesen, nicht abkürzen.',
-  'Ich war früher für schnelle Antworten. Jetzt bin ich für zweite Versuche.',
-];
-
-/** What morph.ai radios in after a wrong answer. Deterministic for a seed. */
+/** What morph.ai radios in after a wrong answer; after the finale it is on your side and comforts instead of mocking. Deterministic for a seed. */
 export function morphLine(p: PlayerState, seed: string): string {
-  const lines = p.story.finale ? MORPH_REFORMED : MORPH_WRONG;
+  const text = STORY_TEXT[p.profile.lang];
+  const lines = p.story.finale ? text.morphReformed : text.morphWrong;
   return lines[Math.floor(seededRng(`morph:${seed}`)() * lines.length)]!;
 }
-
-const GUARDIAN_CORRECT: Record<GuardianId, string[]> = {
-  quantis: [
-    'Korrekt. Abweichung: null. Ich bin beeindruckt, im Rahmen der Messgenauigkeit.',
-    'Richtig. Ich habe es nachgerechnet. Zweimal. Es stimmt.',
-    'Hypothese bestätigt: Du weißt, was du tust.',
-  ],
-  rhizom: [
-    'Gut so. Wissen wächst langsam, wie Jahresringe. Heute ist ein neuer Ring dazugekommen.',
-    'Spürst du das? Die Wurzeln haben sich ein Stück weiter ausgestreckt.',
-    'Richtig. Der Wald dankt dir, auf seine leise Art.',
-  ],
-  kodex: [
-    'Korrekt! Ich nehme das ins Protokoll auf. In Schönschrift.',
-    'Richtig. Wie ich immer sage: Ich sage es immer.',
-    'Hu-huu! Das hätte selbst ich nicht besser gewusst. Na gut: genauso gut.',
-  ],
-  muse: [
-    'Bravo, bravissimo, ein Treffer wie ein Traum, du bringst die Farbe in den Raum!',
-    'Applaus, Applaus, der Vorhang fällt, du kennst dich aus in dieser Welt!',
-    'Ein Treffer, klar wie Glockenklang, dafür schreib ich dir ein Lied, ganz lang!',
-  ],
-};
 
 /** A guardian's comment on a right answer in their sector, once they are awake. */
 export function guardianLine(
@@ -506,6 +301,6 @@ export function guardianLine(
 ): { who: GuardianId; name: string; text: string } | null {
   if (!storyFacts(p, pool).awake.includes(sector)) return null;
   const g = GUARDIANS[sector];
-  const lines = GUARDIAN_CORRECT[g.id];
+  const lines = STORY_TEXT[p.profile.lang].guardianCorrect[g.id];
   return { who: g.id, name: g.name, text: lines[Math.floor(seededRng(`guardian:${seed}`)() * lines.length)]! };
 }

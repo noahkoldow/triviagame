@@ -1,5 +1,6 @@
 import { footprint } from './footprint';
 import type { PlayerState } from './game';
+import type { Lang } from './lang';
 import type { Pool } from './network';
 import { hashString, seededRng } from './rng';
 import { AREAS } from './taxonomy';
@@ -85,32 +86,71 @@ export function rankEntries<T extends { score: number }>(sorted: T[]): (T & { ra
 
 // --- aliases -----------------------------------------------------------
 
-const ADJECTIVES = [
-  'Flinke', 'Kluge', 'Neugierige', 'Mutige', 'Stille', 'Helle', 'Wache', 'Findige',
-  'Geduldige', 'Schnelle', 'Leuchtende', 'Kühne', 'Fröhliche', 'Listige', 'Sanfte', 'Wilde',
-];
-const NOUNS = [
-  'Eule', 'Diode', 'Platine', 'Spule', 'Welle', 'Linse', 'Feder', 'Schleife',
-  'Rakete', 'Wurzel', 'Note', 'Kerze', 'Antenne', 'Batterie', 'Kugel', 'Flamme',
-];
+/**
+ * The two words of an alias per language, in the order they are written ("Flinke Eule",
+ * "Chouette Agile"). All nouns are feminine, so the adjectives always agree.
+ */
+const ALIAS_WORDS: Record<Lang, { first: string[]; second: string[] }> = {
+  de: {
+    first: [
+      'Flinke', 'Kluge', 'Neugierige', 'Mutige', 'Stille', 'Helle', 'Wache', 'Findige',
+      'Geduldige', 'Schnelle', 'Leuchtende', 'Kühne', 'Fröhliche', 'Listige', 'Sanfte', 'Wilde',
+    ],
+    second: [
+      'Eule', 'Diode', 'Platine', 'Spule', 'Welle', 'Linse', 'Feder', 'Schleife',
+      'Rakete', 'Wurzel', 'Note', 'Kerze', 'Antenne', 'Batterie', 'Kugel', 'Flamme',
+    ],
+  },
+  en: {
+    first: [
+      'Swift', 'Clever', 'Curious', 'Brave', 'Quiet', 'Bright', 'Alert', 'Witty',
+      'Patient', 'Rapid', 'Glowing', 'Bold', 'Cheerful', 'Crafty', 'Gentle', 'Wild',
+    ],
+    second: [
+      'Owl', 'Diode', 'Circuit', 'Coil', 'Wave', 'Lens', 'Feather', 'Loop',
+      'Rocket', 'Root', 'Note', 'Candle', 'Antenna', 'Battery', 'Sphere', 'Flame',
+    ],
+  },
+  fr: {
+    first: [
+      'Chouette', 'Diode', 'Puce', 'Bobine', 'Onde', 'Lentille', 'Plume', 'Boucle',
+      'Fusée', 'Racine', 'Note', 'Bougie', 'Antenne', 'Batterie', 'Sphère', 'Flamme',
+    ],
+    second: [
+      'Agile', 'Rusée', 'Curieuse', 'Brave', 'Calme', 'Claire', 'Vive', 'Habile',
+      'Patiente', 'Rapide', 'Brillante', 'Hardie', 'Joyeuse', 'Maligne', 'Douce', 'Sauvage',
+    ],
+  },
+  es: {
+    first: [
+      'Lechuza', 'Placa', 'Bobina', 'Onda', 'Lente', 'Pluma', 'Espiral', 'Chispa',
+      'Raíz', 'Nota', 'Vela', 'Antena', 'Batería', 'Esfera', 'Llama', 'Brújula',
+    ],
+    second: [
+      'Ágil', 'Lista', 'Curiosa', 'Valiente', 'Tranquila', 'Clara', 'Despierta', 'Ingeniosa',
+      'Paciente', 'Rápida', 'Brillante', 'Audaz', 'Alegre', 'Astuta', 'Suave', 'Salvaje',
+    ],
+  },
+};
 
-/** A few generated aliases to choose from (deterministic for a seed). */
-export function aliasOptions(seed: string, n = 3): string[] {
+/** A few generated aliases to choose from, in the player's language (deterministic for a seed). */
+export function aliasOptions(seed: string, lang: Lang = 'de', n = 3): string[] {
+  const { first, second } = ALIAS_WORDS[lang];
   const rng = seededRng(`alias:${seed}`);
   const out = new Set<string>();
   while (out.size < n) {
-    const a = ADJECTIVES[Math.floor(rng() * ADJECTIVES.length)]!;
-    const b = NOUNS[Math.floor(rng() * NOUNS.length)]!;
+    const a = first[Math.floor(rng() * first.length)]!;
+    const b = second[Math.floor(rng() * second.length)]!;
     out.add(`${a} ${b} ${String(10 + Math.floor(rng() * 90))}`);
   }
   return [...out];
 }
 
-/** Only generated aliases are allowed, so nobody can put free text on the board. */
+/** Only generated aliases are allowed (of any language), so nobody can put free text on the board. */
 export function isAlias(s: unknown): s is string {
   if (typeof s !== 'string') return false;
   const m = s.match(/^(\S+) (\S+) (\d{2})$/);
-  return !!m && ADJECTIVES.includes(m[1]!) && NOUNS.includes(m[2]!);
+  return !!m && Object.values(ALIAS_WORDS).some((w) => w.first.includes(m[1]!) && w.second.includes(m[2]!));
 }
 
 // --- the player's side -------------------------------------------------
@@ -139,7 +179,7 @@ export function aliasSeed(p: PlayerState): string {
   return String(hashString(`${p.profile.name}|${p.profile.birthYear}|${p.stats.solved}`));
 }
 
-/** The alias this save appears under on the ranking. */
+/** The alias this save appears under on the ranking, made of words of the player's language. */
 export function aliasFor(p: PlayerState): string {
-  return aliasOptions(aliasSeed(p), 1)[0]!;
+  return aliasOptions(aliasSeed(p), p.profile.lang, 1)[0]!;
 }

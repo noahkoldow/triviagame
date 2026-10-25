@@ -10,13 +10,13 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import {
-  KIND_LABEL,
   fileSizeKb,
   matchRanges,
   searchFiles,
   type FragmentFile,
   type SearchFolder,
 } from '@nexus/shared';
+import { useStrings } from '../strings';
 import { ChartView } from './ChartView';
 import { Icon, type IconName } from './Icon';
 import { Button, tap } from './ui';
@@ -47,6 +47,7 @@ function Highlighted({ text, query, style }: { text: string; query: string; styl
 
 /** The content of one file: a drawn chart, or the text of a note or article. */
 export function FileView({ file, width, query = '' }: { file: FragmentFile; width: number; query?: string }) {
+  const t = useStrings();
   return (
     <View style={{ gap: 10 }}>
       {file.kind === 'image' && file.chart ? (
@@ -61,7 +62,7 @@ export function FileView({ file, width, query = '' }: { file: FragmentFile; widt
           {(file.text ?? '').split('\n\n').map((p, i) => (
             <Highlighted key={i} text={p} query={query} style={styles.body} />
           ))}
-          {file.source ? <Text style={styles.source}>Quelle: {file.source}</Text> : null}
+          {file.source ? <Text style={styles.source}>{t.explorer.source(file.source)}</Text> : null}
         </>
       )}
     </View>
@@ -157,10 +158,10 @@ export function CacheExplorer({
   folders,
   onClose,
   manage,
-  root = 'Ordner',
+  root: rootName,
   single = false,
   actions,
-  closeLabel = 'Schließen',
+  closeLabel: closeName,
   fileAction,
   fileTag,
 }: {
@@ -180,6 +181,9 @@ export function CacheExplorer({
   /** A short mark in the file list, e.g. "im Cache". */
   fileTag?: (folder: number, file: number) => string | undefined;
 }) {
+  const t = useStrings();
+  const root = rootName ?? t.explorer.folders;
+  const closeLabel = closeName ?? t.common.close;
   const [organizing, setOrganizing] = useState(false);
   const { width, height } = useWindowDimensions();
   const [query, setQuery] = useState('');
@@ -227,31 +231,31 @@ export function CacheExplorer({
             else up();
           }}
           accessibilityRole="button"
-          accessibilityLabel="Eine Ebene nach oben"
+          accessibilityLabel={t.explorer.upA11y}
           style={({ pressed }) => [styles.upBtn, raised, pressed && pressedIn, atTop && !searching && { opacity: 0.4 }]}
         >
-          <Text style={styles.upText}>↑ Hoch</Text>
+          <Text style={styles.upText}>{t.explorer.up}</Text>
         </Pressable>
         <View style={styles.search}>
           <Icon name="search" size={18} />
           <TextInput
             value={query}
-            onChangeText={(t) => {
-              setQuery(t);
-              if (t.trim().length >= 2) setFile(null);
+            onChangeText={(text) => {
+              setQuery(text);
+              if (text.trim().length >= 2) setFile(null);
             }}
-            placeholder={single ? 'Suchen in diesem Ordner …' : `Suchen in ${root} …`}
+            placeholder={single ? t.explorer.searchHere : t.explorer.searchIn(root)}
             placeholderTextColor={WIN.shadow}
             returnKeyType="search"
             autoCorrect={false}
             autoCapitalize="none"
-            accessibilityLabel={single ? 'In diesem Ordner suchen' : `In ${root} suchen`}
+            accessibilityLabel={single ? t.explorer.searchHereA11y : t.explorer.searchInA11y(root)}
             style={styles.searchInput}
           />
         </View>
       </View>
 
-      <View style={styles.address} accessibilityLabel={`Pfad ${path}`}>
+      <View style={styles.address} accessibilityLabel={t.explorer.path(path)}>
         <Text style={styles.addressText} numberOfLines={1}>
           {path}
         </Text>
@@ -263,7 +267,7 @@ export function CacheExplorer({
             <FileView file={current} width={viewW} query={query} />
           ) : searching ? (
             hits.length === 0 ? (
-              <Text style={styles.empty}>Keine Treffer für „{query.trim()}“.</Text>
+              <Text style={styles.empty}>{t.explorer.noHits(query.trim())}</Text>
             ) : (
               hits.map((h) => {
                 const f = folders[h.folder]!;
@@ -287,17 +291,17 @@ export function CacheExplorer({
                 key={x.name}
                 icon={ICON_OF[x.kind]}
                 title={x.name}
-                sub={KIND_LABEL[x.kind]}
+                sub={t.explorer.kinds[x.kind]}
                 right={fileTag?.(folder!, i) ?? `${fileSizeKb(x)} KB`}
                 onPress={() => setFile(i)}
               />
             ))
           ) : folders.length === 0 ? (
-            <Text style={styles.empty}>Noch leer. Leg lose Ordner aus den Trümmerfeldern hier ab.</Text>
+            <Text style={styles.empty}>{t.explorer.empty}</Text>
           ) : grouped && group === null ? (
             groups.map((g) => {
               const n = folders.filter((f) => (f.group ?? '') === g).length;
-              return <Row key={g} icon="folder" title={g} sub={`${n} Ordner`} onPress={() => setGroup(g)} />;
+              return <Row key={g} icon="folder" title={g} sub={t.explorer.folderCount(n)} onPress={() => setGroup(g)} />;
             })
           ) : organizing && manage ? (
             visible.map(({ f, i }, k) => (
@@ -306,20 +310,20 @@ export function CacheExplorer({
                 <Text style={[styles.rowTitle, { flex: 1 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                   {f.name}
                 </Text>
-                <MiniBtn label="▲" hint="Nach oben" disabled={k === 0} onPress={() => manage.onSwap(i, visible[k - 1]!.i)} />
+                <MiniBtn label="▲" hint={t.explorer.moveUp} disabled={k === 0} onPress={() => manage.onSwap(i, visible[k - 1]!.i)} />
                 <MiniBtn
                   label="▼"
-                  hint="Nach unten"
+                  hint={t.explorer.moveDown}
                   disabled={k === visible.length - 1}
                   onPress={() => manage.onSwap(i, visible[k + 1]!.i)}
                 />
                 <MiniBtn
                   label="✕"
-                  hint={`Ordner ${f.name} löschen`}
+                  hint={t.explorer.deleteFolder(f.name)}
                   onPress={() =>
-                    Alert.alert('Ordner löschen?', `„${f.name}“ wird aus deinen Ordnern entfernt. Du kannst ihn später erneut ablegen.`, [
-                      { text: 'Abbrechen', style: 'cancel' },
-                      { text: 'Löschen', style: 'destructive', onPress: () => manage.onDelete(i) },
+                    Alert.alert(t.explorer.deleteTitle, t.explorer.deleteText(f.name), [
+                      { text: t.common.cancel, style: 'cancel' },
+                      { text: t.common.delete, style: 'destructive', onPress: () => manage.onDelete(i) },
                     ])
                   }
                 />
@@ -331,7 +335,7 @@ export function CacheExplorer({
                 key={f.name + i}
                 icon="folder"
                 title={f.name}
-                sub={`${f.files.length} Objekt${f.files.length === 1 ? '' : 'e'}`}
+                sub={t.explorer.objects(f.files.length)}
                 onPress={() => setFolder(i)}
               />
             ))
@@ -344,21 +348,21 @@ export function CacheExplorer({
       {manage && folder === null && !searching && folders.length > 0 && (!grouped || group !== null) ? (
         <View style={styles.manageBar}>
           <View style={{ flex: 1 }}>
-            <Button label={organizing ? 'Fertig' : 'Ordnen'} variant="ghost" onPress={() => setOrganizing((o) => !o)} />
+            <Button label={organizing ? t.explorer.done : t.explorer.organize} variant="ghost" onPress={() => setOrganizing((o) => !o)} />
           </View>
           {organizing ? (
             <>
               <View style={{ flex: 1 }}>
-                <Button label="A–Z" variant="ghost" onPress={manage.onSort} />
+                <Button label={t.explorer.sort} variant="ghost" onPress={manage.onSort} />
               </View>
               <View style={{ flex: 1 }}>
                 <Button
-                  label="Alle löschen"
+                  label={t.explorer.deleteAll}
                   variant="ghost"
                   onPress={() =>
-                    Alert.alert('Alle Ordner löschen?', 'Deine ganze Ordnerstruktur wird geleert.', [
-                      { text: 'Abbrechen', style: 'cancel' },
-                      { text: 'Löschen', style: 'destructive', onPress: manage.onClear },
+                    Alert.alert(t.explorer.deleteAllTitle, t.explorer.deleteAllText, [
+                      { text: t.common.cancel, style: 'cancel' },
+                      { text: t.common.delete, style: 'destructive', onPress: manage.onClear },
                     ])
                   }
                 />
@@ -369,12 +373,12 @@ export function CacheExplorer({
       ) : null}
       <Text style={styles.status} maxFontSizeMultiplier={1.2}>
         {searching
-          ? `${hits.length} Treffer`
+          ? t.explorer.hits(hits.length)
           : open
-            ? `${open.files.length} Objekt${open.files.length === 1 ? '' : 'e'}`
+            ? t.explorer.objects(open.files.length)
             : grouped && group === null
-              ? `${groups.length} Themengebiet${groups.length === 1 ? '' : 'e'}, ${folders.length} Ordner`
-              : `${visible.length} Ordner`}
+              ? t.explorer.areas(groups.length, folders.length)
+              : t.explorer.folderCount(visible.length)}
       </Text>
       {actions}
       <Button label={closeLabel} variant={actions ? 'ghost' : 'primary'} onPress={onClose} />

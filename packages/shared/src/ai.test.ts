@@ -127,7 +127,7 @@ describe('AI drafts: what is rejected', () => {
 describe('AI: prompts and parsing', () => {
   it('asks for the right area, difficulty and type, and shows the shape of that type', () => {
     for (const type of QUESTION_TYPES) {
-      const p = buildGenerationPrompt({ area: 'physics', difficulty: 2, type, count: 3, avoidTopics: ['Schall'] });
+      const p = buildGenerationPrompt({ area: 'physics', difficulty: 2, type, count: 3, avoidTopics: ['Schall'], lang: 'de' });
       expect(p).toContain('Naturwissenschaften');
       expect(p).toContain(`Type: ${type}`);
       expect(p).toContain('Difficulty: 2');
@@ -137,7 +137,7 @@ describe('AI: prompts and parsing', () => {
   });
 
   it('does not hard-wire a model name', () => {
-    const p = buildGenerationPrompt({ area: 'arts', difficulty: 1, type: 'cloze', count: 1 });
+    const p = buildGenerationPrompt({ area: 'arts', difficulty: 1, type: 'cloze', count: 1, lang: 'de' });
     expect(p.toLowerCase()).not.toMatch(/gemini|gpt|claude/);
     // the scope of the area steers the topics
     expect(p).toContain('Renaissance');
@@ -174,6 +174,7 @@ describe('AI: the pipeline', () => {
         difficulty: q.difficulty,
         type,
         count: 2,
+        lang: 'de',
       });
       expect(r.accepted, type).toHaveLength(1);
       expect(r.rejected, type).toHaveLength(1);
@@ -188,6 +189,7 @@ describe('AI: the pipeline', () => {
       difficulty: 1,
       type: 'truefalse',
       count: 1,
+      lang: 'de',
     });
     expect(r.accepted).toHaveLength(0);
     expect(r.rejected[0]!.reasons.join()).toMatch(/area/);
@@ -196,7 +198,7 @@ describe('AI: the pipeline', () => {
   it('drops duplicates and known questions', async () => {
     const q = MOCK_QUESTIONS.find((x) => x.type === 'cloze')!;
     const d = asDraft(q);
-    const req = { area: q.area, difficulty: q.difficulty, type: 'cloze' as const, count: 3 };
+    const req = { area: q.area, difficulty: q.difficulty, type: 'cloze' as const, count: 3, lang: 'de' as const };
     const twice = await generateQuestions(fake(JSON.stringify([d, d])), undefined, req);
     expect(twice.accepted).toHaveLength(1);
     const known = new Set([twice.accepted[0]!.id]);
@@ -207,7 +209,7 @@ describe('AI: the pipeline', () => {
   it('lets the checker veto, and survives a checker that fails', async () => {
     const q = firstOf('match');
     const d = asDraft(q);
-    const req = { area: q.area, difficulty: q.difficulty, type: 'match' as const, count: 1 };
+    const req = { area: q.area, difficulty: q.difficulty, type: 'match' as const, count: 1, lang: 'de' as const };
     const veto: QuestionChecker = { check: async () => ({ ok: false, issues: ['Fakt falsch'] }) };
     const a = await generateQuestions(fake(JSON.stringify([d])), veto, req);
     expect(a.accepted).toHaveLength(0);
@@ -225,7 +227,7 @@ describe('AI: the pipeline', () => {
   });
 
   it('survives a generator that fails or answers nonsense', async () => {
-    const req = { area: 'physics', difficulty: 1 as const, type: 'choice' as const, count: 1 };
+    const req = { area: 'physics', difficulty: 1 as const, type: 'choice' as const, count: 1, lang: 'de' as const };
     const down: QuestionGenerator = {
       generate: async () => {
         throw new Error('no network');

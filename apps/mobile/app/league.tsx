@@ -2,34 +2,34 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AREAS, OVERALL, SECTOR_COLOR, leagueUnlocked } from '@nexus/shared';
+import { AREAS, OVERALL, SECTOR_COLOR, areaName, leagueUnlocked } from '@nexus/shared';
 import { Icon } from '../src/components/Icon';
 import { BackBar, Button, Card, H1, P } from '../src/components/ui';
 import { leagueApi, type BoardEntry, type Standings } from '../src/services/league';
 import { syncRanking } from '../src/state/ranking';
 import { useGame } from '../src/state/store';
+import { useStrings, type Strings } from '../src/strings';
 import { colors } from '../src/theme';
 
 /** Overall by XP, then every area by solved nodes. */
-const BOARDS = [
-  { id: OVERALL, label: 'Gesamt', color: colors.accent },
-  ...AREAS.map((a) => ({ id: a.id, label: a.de, color: SECTOR_COLOR[a.sector] })),
+const boards = (t: Strings) => [
+  { id: OVERALL, label: t.league.overall, color: colors.accent },
+  ...AREAS.map((a) => ({ id: a.id, label: areaName(a.id, t.lang), color: SECTOR_COLOR[a.sector] })),
 ];
 const MEDALS = ['#FFD23F', '#C0C0C0', '#CD7F32'];
 
-const unit = (board: string, n: number) => (board === OVERALL ? `${n} XP` : `${n} gelöst`);
-
 function Row({ e, board }: { e: BoardEntry; board: string }) {
+  const t = useStrings();
   return (
     <View
       accessible
-      accessibilityLabel={`Platz ${e.rank}, ${e.alias}${e.me ? ' (du)' : ''}, ${unit(board, e.score)}`}
+      accessibilityLabel={t.league.rankA11y(e.rank, e.alias, e.me, t.league.score(board === OVERALL, e.score))}
       style={[styles.row, e.rank <= MEDALS.length && { borderLeftColor: MEDALS[e.rank - 1] }, e.me && styles.meRow]}
     >
       <Text style={styles.rank}>{e.rank}</Text>
       <Text style={[styles.alias, e.me && styles.me]} numberOfLines={1}>
         {e.alias}
-        {e.me ? ' (du)' : ''}
+        {e.me ? t.league.you : ''}
       </Text>
       <Text style={[styles.score, e.me && styles.me]}>{e.score}</Text>
     </View>
@@ -39,6 +39,8 @@ function Row({ e, board }: { e: BoardEntry; board: string }) {
 /** The ranking of everybody who plays (D57): overall and per area. */
 export default function League() {
   const router = useRouter();
+  const t = useStrings();
+  const BOARDS = boards(t);
   // right after the brain reveal: a greeting on top
   const welcome = useLocalSearchParams<{ welcome?: string }>().welcome === '1';
   const unlocked = useGame((p) => leagueUnlocked(p));
@@ -54,11 +56,11 @@ export default function League() {
     try {
       setStandings(await syncRanking(b));
     } catch {
-      setError('Die Rangliste ist gerade nicht erreichbar. Versuch es später noch einmal.');
+      setError(t.league.offline);
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -72,30 +74,27 @@ export default function League() {
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <BackBar title="Rangliste" onBack={back} />
+        <BackBar title={t.league.title} onBack={back} />
 
         {!unlocked ? (
           <Card style={{ gap: 8, alignItems: 'center' }}>
             <Icon name="trophy" size={40} muted />
             <P style={{ color: colors.text, textAlign: 'center' }}>
-              Die Rangliste öffnet sich, sobald du morph.ai im Kern besiegt hast. Bis dahin zählt nur eins: selbst denken.
+              {t.league.locked}
             </P>
           </Card>
         ) : !leagueApi.live ? (
           <Card>
-            <P>Ohne Verbindung zum Server gibt es keine Rangliste. Das Spiel selbst läuft weiter.</P>
+            <P>{t.league.noServer}</P>
           </Card>
         ) : (
           <>
             {welcome ? (
               <>
-                <H1>Willkommen in der Rangliste</H1>
+                <H1>{t.league.welcome}</H1>
                 <Card style={{ gap: 8 }}>
-                  <P style={{ color: colors.text }}>
-                    Hier steht jeder, der NEXUS spielt. Ihr messt euch insgesamt nach XP und in jedem Bereich nach gelösten
-                    Knoten.
-                  </P>
-                  <P>Andere sehen nur deinen Rufnamen und deine Punkte. Dein Name und dein Alter bleiben auf dem Gerät.</P>
+                  <P style={{ color: colors.text }}>{t.league.welcomeText}</P>
+                  <P>{t.league.welcomePrivacy}</P>
                 </Card>
               </>
             ) : null}
@@ -121,13 +120,13 @@ export default function League() {
                     <Icon name="trophy" size={28} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.place}>
-                        Platz {shown.me.rank} von {shown.players}
+                        {t.league.place(shown.me.rank, shown.players)}
                       </Text>
                       <Text style={styles.dim}>
                         {shown.me.alias} · {label}
                       </Text>
                     </View>
-                    <Text style={styles.myScore}>{unit(board, shown.me.score)}</Text>
+                    <Text style={styles.myScore}>{t.league.score(board === OVERALL, shown.me.score)}</Text>
                   </View>
                 </Card>
                 <Card style={{ gap: 2 }}>
@@ -145,12 +144,12 @@ export default function League() {
               </>
             ) : busy ? (
               <Card>
-                <P>{welcome && !standings ? 'Du wirst eingeordnet …' : 'Lädt …'}</P>
+                <P>{welcome && !standings ? t.league.placing : t.league.loading}</P>
               </Card>
             ) : null}
 
-            {welcome ? <Button label="Zur Karte" onPress={back} /> : null}
-            <Button label={busy ? 'Lädt …' : 'Aktualisieren'} variant="ghost" disabled={busy} onPress={() => load(board)} />
+            {welcome ? <Button label={t.league.toMap} onPress={back} /> : null}
+            <Button label={busy ? t.league.loading : t.league.refresh} variant="ghost" disabled={busy} onPress={() => load(board)} />
           </>
         )}
 

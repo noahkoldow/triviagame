@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useStrings } from '../strings';
 import { colors } from '../theme';
 import { Icon, type IconName } from './Icon';
 
@@ -59,6 +60,7 @@ export function TitleBar({
   icon?: IconName;
   onClose?: () => void;
 }) {
+  const t = useStrings();
   const id = useId().replace(/:/g, '');
   return (
     <View style={styles.title}>
@@ -79,7 +81,7 @@ export function TitleBar({
         <Pressable
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Schließen"
+          accessibilityLabel={t.common.close}
           hitSlop={{ top: 13, bottom: 13, left: 12, right: 12 }}
           style={({ pressed }) => [styles.closeBtn, raised, pressed && pressedIn]}
         >

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
+  TRUE_FALSE,
   answerText,
+  parseNumber,
   variantBank,
   variantMatch,
   variantOptions,
@@ -11,6 +13,7 @@ import {
   type MatchQuestion,
   type Question,
 } from '@nexus/shared';
+import { useStrings } from '../strings';
 import { colors } from '../theme';
 import { tap } from './ui';
 import { WIN, sunken } from './Win';
@@ -31,6 +34,7 @@ export function QuestionView({
   reveal?: boolean;
   onChange: (a: Answer | null) => void;
 }) {
+  const t = useStrings();
   return (
     <View style={{ gap: 8 }}>
       {q.type === 'choice' ? <ChoiceView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
@@ -41,7 +45,7 @@ export function QuestionView({
       {q.type === 'cloze' ? <ClozeView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
       {reveal && q.type !== 'choice' ? (
         <Text style={styles.rightLine} maxFontSizeMultiplier={1.4}>
-          Richtig: {answerText(q)}
+          {t.question.right(answerText(q, t.lang))}
         </Text>
       ) : null}
     </View>
@@ -88,10 +92,12 @@ function ChoiceView({ q, variant, reveal, onChange }: Props<Extract<Question, { 
 
 // -------------------------------------------------------------------- estimate
 function EstimateView({ q, reveal, onChange }: Props<Extract<Question, { type: 'estimate' }>>) {
+  const t = useStrings();
   const [text, setText] = useState('');
   useEffect(() => {
-    const v = parseFloat(text.replace(/\./g, '').replace(',', '.'));
-    onChange(text.trim().length > 0 && Number.isFinite(v) ? { type: 'estimate', value: v } : null);
+    // read the way the player's language writes numbers ("1.500" is 1500 in German, "1,500" in English)
+    const v = parseNumber(text, t.lang);
+    onChange(v === null ? null : { type: 'estimate', value: v });
   }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <TextInput
@@ -99,16 +105,17 @@ function EstimateView({ q, reveal, onChange }: Props<Extract<Question, { type: '
       onChangeText={setText}
       editable={!reveal}
       keyboardType="numbers-and-punctuation"
-      placeholder={q.unit ? `Deine Schätzung (${q.unit})` : 'Deine Antwort'}
+      placeholder={q.unit ? t.question.estimate(q.unit) : t.question.answer}
       placeholderTextColor={colors.dim}
       style={[styles.input, sunken]}
-      accessibilityLabel="Antwort eingeben"
+      accessibilityLabel={t.question.enter}
     />
   );
 }
 
 // -------------------------------------------------------------------- order
 function OrderView({ q, variant, reveal, onChange }: Props<Extract<Question, { type: 'order' }>> & { variant: number }) {
+  const t = useStrings();
   const items = useMemo(() => variantOrder(q, variant), [q, variant]);
   const [picked, setPicked] = useState<string[]>([]);
   useEffect(() => {
@@ -117,7 +124,7 @@ function OrderView({ q, variant, reveal, onChange }: Props<Extract<Question, { t
   return (
     <>
       <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
-        Tippe die Einträge in der richtigen Reihenfolge an. Tippe einen gewählten Eintrag erneut, um ihn zurückzunehmen.
+        {t.question.orderHint}
       </Text>
       {items.map((it) => {
         const idx = picked.indexOf(it);
@@ -130,7 +137,7 @@ function OrderView({ q, variant, reveal, onChange }: Props<Extract<Question, { t
               setPicked(idx >= 0 ? picked.filter((x) => x !== it) : [...picked, it]);
             }}
             accessibilityRole="button"
-            accessibilityLabel={idx >= 0 ? `${it}, Platz ${idx + 1}` : it}
+            accessibilityLabel={idx >= 0 ? t.question.place(it, idx + 1) : it}
             style={[styles.option, sunken, idx >= 0 && { backgroundColor: WIN.titleA }]}
           >
             <Text style={styles.optionText} maxFontSizeMultiplier={1.4}>
@@ -146,6 +153,7 @@ function OrderView({ q, variant, reveal, onChange }: Props<Extract<Question, { t
 
 // -------------------------------------------------------------------- true / false
 function TrueFalseView({ q, reveal, onChange }: Props<Extract<Question, { type: 'truefalse' }>>) {
+  const t = useStrings();
   const [sel, setSel] = useState<boolean | null>(null);
   useEffect(() => {
     onChange(sel === null ? null : { type: 'truefalse', value: sel });
@@ -171,14 +179,15 @@ function TrueFalseView({ q, reveal, onChange }: Props<Extract<Question, { type: 
   };
   return (
     <View style={{ flexDirection: 'row', gap: 8 }}>
-      {choose(true, 'Stimmt')}
-      {choose(false, 'Stimmt nicht')}
+      {choose(true, TRUE_FALSE[t.lang].yes)}
+      {choose(false, TRUE_FALSE[t.lang].no)}
     </View>
   );
 }
 
 // -------------------------------------------------------------------- matching pairs
 function MatchView({ q, variant, reveal, onChange }: Props<MatchQuestion> & { variant: number }) {
+  const t = useStrings();
   const lefts = q.pairs.map((p) => p[0]);
   const rights = useMemo(() => variantMatch(q, variant), [q, variant]);
   const [pairs, setPairs] = useState<Record<string, string>>({});
@@ -220,7 +229,7 @@ function MatchView({ q, variant, reveal, onChange }: Props<MatchQuestion> & { va
   return (
     <>
       <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
-        Tippe links einen Eintrag an, dann rechts den passenden. Ein Tipp auf ein Paar löst es wieder.
+        {t.question.matchHint}
       </Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1, gap: 8 }}>
@@ -233,7 +242,7 @@ function MatchView({ q, variant, reveal, onChange }: Props<MatchQuestion> & { va
                 disabled={reveal}
                 onPress={() => tapLeft(l)}
                 accessibilityRole="button"
-                accessibilityLabel={paired ? `${l}, verbunden mit ${pairs[l]}` : l}
+                accessibilityLabel={paired ? t.question.pairedWith(l, pairs[l]!) : l}
                 style={[
                   styles.option,
                   sunken,
@@ -258,7 +267,7 @@ function MatchView({ q, variant, reveal, onChange }: Props<MatchQuestion> & { va
                 disabled={reveal}
                 onPress={() => tapRight(r)}
                 accessibilityRole="button"
-                accessibilityLabel={owner ? `${r}, verbunden mit ${owner}` : r}
+                accessibilityLabel={owner ? t.question.pairedWith(r, owner) : r}
                 style={[
                   styles.option,
                   sunken,
@@ -279,6 +288,7 @@ function MatchView({ q, variant, reveal, onChange }: Props<MatchQuestion> & { va
 
 // -------------------------------------------------------------------- gap text
 function ClozeView({ q, variant, reveal, onChange }: Props<ClozeQuestion> & { variant: number }) {
+  const t = useStrings();
   const bank = useMemo(() => variantBank(q, variant), [q, variant]);
   // for every gap the index of the word in the bank (or null)
   const [slots, setSlots] = useState<(number | null)[]>(() => q.answers.map(() => null));
@@ -313,7 +323,7 @@ function ClozeView({ q, variant, reveal, onChange }: Props<ClozeQuestion> & { va
                 disabled={reveal || word === null}
                 onPress={() => clear(gap)}
                 accessibilityRole="button"
-                accessibilityLabel={word ? `Lücke ${gap + 1}: ${word}, antippen zum Leeren` : `Lücke ${gap + 1}, leer`}
+                accessibilityLabel={word ? t.question.gapFilled(gap + 1, word) : t.question.gapEmpty(gap + 1)}
                 style={[styles.gap, word ? { backgroundColor: WIN.titleA } : null]}
               >
                 <Text style={styles.optionText}>{word ?? ' '}</Text>

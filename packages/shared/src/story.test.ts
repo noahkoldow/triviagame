@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   BOSS_QUESTIONS,
-  BRAIN_REVEAL,
+  LANGS,
+  REVEAL_STEPS,
+  STORY_CUES,
+  STORY_TEXT,
+  brainReveal,
+  storyBeats,
   firewallReached,
   REVEAL_ID,
   LEAGUE_NOTICED_ID,
@@ -15,7 +20,6 @@ import {
   MOCK_QUESTIONS,
   Pool,
   SECTORS,
-  STORY_BEATS,
   canStartNode,
   catchUpStory,
   chapterOf,
@@ -44,7 +48,7 @@ const DAY = '2026-10-01';
 function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
   let p = initialPlayer(pool);
   for (let i = 0; i < steps && !until?.(p); i++) {
-    const ch = chapterOf(storyFacts(p, pool));
+    const ch = chapterOf(storyFacts(p, pool), 'de');
     const wall =
       ch.n === 3 ? p.network.firewalls!.find((f) => !f.broken && firewallReached(Object.values(p.network.nodes), f)) : undefined;
     if (wall) {
@@ -65,22 +69,44 @@ function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
 }
 
 describe('story', () => {
-  it('has unique beats with text, and unique log files', () => {
-    const ids = STORY_BEATS.map((b) => b.id);
+  it('has unique beats with text, and unique log files, in every language', () => {
+    const ids = STORY_CUES.map((b) => b.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const logs = STORY_BEATS.flatMap((b) => (b.log ? [b.log.name] : []));
-    expect(new Set(logs).size).toBe(logs.length);
-    for (const b of STORY_BEATS) {
-      expect(b.title.length, b.id).toBeGreaterThan(0);
-      // short enough for one dialog: the story carries charm, never walls of text
-      expect(b.text.length, b.id).toBeLessThanOrEqual(280);
+    const withLog = storyBeats('de').filter((b) => b.log).map((b) => b.id);
+    for (const lang of LANGS) {
+      const text = STORY_TEXT[lang];
+      // exactly the beats of the story, and the same ones leave a log file
+      expect(Object.keys(text.beats).sort(), lang).toEqual([...ids].sort());
+      const beats = storyBeats(lang);
+      expect(beats.filter((b) => b.log).map((b) => b.id), lang).toEqual(withLog);
+      const logs = beats.flatMap((b) => (b.log ? [b.log.name] : []));
+      expect(new Set(logs).size, lang).toBe(logs.length);
+      for (const b of beats) {
+        expect(b.title.length, `${lang} ${b.id}`).toBeGreaterThan(0);
+        // short enough for one dialog: the story carries charm, never walls of text
+        expect(b.text.length, `${lang} ${b.id}`).toBeLessThanOrEqual(280);
+      }
+      expect(text.reveal, lang).toHaveLength(REVEAL_STEPS.length);
+      expect(text.morphWrong.length, lang).toBeGreaterThan(2);
+      expect(text.morphReformed.length, lang).toBeGreaterThan(1);
+      for (const g of Object.values(text.guardianCorrect)) expect(g.length, lang).toBeGreaterThan(1);
     }
+  });
+
+  it('speaks the player’s language', () => {
+    const de = recordCorrect(initialPlayer(pool), pool, 'n0', DAY, 0).player;
+    const fr = { ...de, profile: { ...de.profile, lang: 'fr' as const } };
+    expect(pendingBeats(fr, pool)[0]!.title).toBe(STORY_TEXT.fr.beats['first-link']!.title);
+    expect(pendingBeats(fr, pool)[0]!.text).not.toBe(pendingBeats(de, pool)[0]!.text);
+    expect(storyLogs(markSeen(fr, 'first-link'), 'es').map((l) => l.name)).toEqual(['NUCLEO_001.LOG']);
+    expect(chapterOf(storyFacts(de, pool), 'en').goal).toBe('Solve the four starting nodes');
+    expect(STORY_TEXT.fr.morphWrong).toContain(morphLine(fr, 'x'));
   });
 
   it('starts quiet and opens with chapter one', () => {
     const p = initialPlayer(pool);
     expect(pendingBeats(p, pool)).toEqual([]);
-    expect(chapterOf(storyFacts(p, pool))).toMatchObject({ n: 1, done: 0, total: 4 });
+    expect(chapterOf(storyFacts(p, pool), 'de')).toMatchObject({ n: 1, done: 0, total: 4 });
   });
 
   it('the first right answer brings the first beat and log file', () => {
@@ -89,20 +115,20 @@ describe('story', () => {
     const seen = markSeen(p, 'first-link');
     expect(pendingBeats(seen, pool)).toEqual([]);
     expect(markSeen(seen, 'first-link')).toBe(seen);
-    expect(storyLogs(seen).map((l) => l.name)).toEqual(['KERN_001.LOG']);
+    expect(storyLogs(seen, 'de').map((l) => l.name)).toEqual(['KERN_001.LOG']);
   });
 
   it('can be played from the first node to the ending with the built-in questions', () => {
     const chapters = new Set<number>();
     const p = play(400, (x) => {
-      chapters.add(chapterOf(storyFacts(x, pool)).n);
+      chapters.add(chapterOf(storyFacts(x, pool), 'de').n);
       return x.story.finale;
     });
     expect(p.story.finale).toBe(true);
     expect([...chapters].sort()).toEqual([1, 2, 3, 4, 5]);
     const f = storyFacts(p, pool);
     for (const s of SECTORS) expect(f.bySector[s]).toBeGreaterThanOrEqual(GUARDIAN_WAKE);
-    expect(chapterOf(f).n).toBe(5);
+    expect(chapterOf(f, 'de').n).toBe(5);
     const beats = pendingBeats(p, pool).map((b) => b.id);
     for (const id of ['four-roots', 'guardians', 'firewall-4']) expect(beats).toContain(id);
     // morph.ai's last words and the league wait for the reveal (the network is the player's brain)
@@ -128,11 +154,13 @@ describe('story', () => {
   });
 
   it('tells the reveal in short steps that end on the whole brain', () => {
-    expect(BRAIN_REVEAL.length).toBeGreaterThan(3);
-    for (const s of BRAIN_REVEAL) expect(s.text.length).toBeLessThanOrEqual(280);
-    expect(BRAIN_REVEAL[0]!.zoom).toBeLessThan(0.5);
-    expect(BRAIN_REVEAL[BRAIN_REVEAL.length - 1]).toMatchObject({ zoom: 1, brain: 1 });
-    expect(BRAIN_REVEAL.some((s) => s.text.includes('Ich weiß, dass ich nichts weiß'))).toBe(true);
+    const steps = brainReveal('de');
+    expect(steps.length).toBeGreaterThan(3);
+    for (const lang of LANGS) for (const s of brainReveal(lang)) expect(s.text.length, lang).toBeLessThanOrEqual(280);
+    expect(steps[0]!.zoom).toBeLessThan(0.5);
+    expect(steps[steps.length - 1]).toMatchObject({ zoom: 1, brain: 1 });
+    expect(steps.some((s) => s.text.includes('Ich weiß, dass ich nichts weiß'))).toBe(true);
+    expect(brainReveal('en').some((s) => s.quote && s.text.includes('I know that I know nothing'))).toBe(true);
   });
 
   it('catches old saves up to the latest beat only', () => {

@@ -17,6 +17,7 @@ import {
   type Chapter,
 } from '@nexus/shared';
 import { useGame } from '../state/store';
+import { useStrings } from '../strings';
 import { colors } from '../theme';
 import { Icon, type IconName } from './Icon';
 import { tap } from './ui';
@@ -28,6 +29,7 @@ export const glass = { ...sunken } as const;
 const SEGMENTS = 10;
 
 export function MapHud() {
+  const t = useStrings();
   const xp = useGame((p) => p.xp);
   const gems = useGame((p) => p.gems);
   const bits = useGame((p) => p.bits);
@@ -46,8 +48,8 @@ export function MapHud() {
   return (
     <View style={[styles.bar, raised]} accessibilityRole="summary">
       {/* level with a segmented progress bar, like a copy dialog */}
-      <View style={[styles.pane, sunken, { flex: 1, minWidth: 70 }]} accessible accessibilityLabel={`Level ${lv.level}`}>
-        <Text style={styles.level}>Lv {lv.level}</Text>
+      <View style={[styles.pane, sunken, { flex: 1, minWidth: 70 }]} accessible accessibilityLabel={t.hud.level(lv.level)}>
+        <Text style={styles.level}>{t.hud.levelShort(lv.level)}</Text>
         <View style={styles.segments}>
           {Array.from({ length: SEGMENTS }).map((_, i) => (
             <View key={i} style={[styles.segment, i < filled && { backgroundColor: '#000080' }]} />
@@ -59,14 +61,14 @@ export function MapHud() {
         icon="bolt"
         value={wait === null ? `${energy}/${MAX_ENERGY}` : `${energy}/${MAX_ENERGY}`}
         color="#FFC800"
-        label={`Energie ${energy} von ${MAX_ENERGY}`}
+        label={t.hud.energy(energy, MAX_ENERGY)}
       />
       <Stat
         icon="heart"
         value={`${integrity}`}
         muted={integrity === 0}
         color={integrity === 0 ? colors.dim : colors.bad}
-        label={`Integrität ${integrity} von ${MAX_INTEGRITY}`}
+        label={t.hud.integrity(integrity, MAX_INTEGRITY)}
       />
       <Stat icon="bit" value={`${bits}`} color={colors.bit} />
       <Stat icon="gem" value={`${gems}`} color={colors.gem} />
@@ -97,21 +99,22 @@ function Stat({
 
 /** The chapter goal under the HUD: where the story goes next. In chapter 4 it starts the final duel. */
 export function GoalBar({ chapter, onFinale }: { chapter: Chapter; onFinale: () => void }) {
-  const label = `Kapitel ${chapter.n}: ${chapter.title}. ${chapter.goal}${chapter.finale ? '' : `, ${chapter.done} von ${chapter.total}`}`;
+  const t = useStrings();
+  const label = `${t.goal.label(chapter.n, chapter.title, chapter.goal)}${chapter.finale ? '' : `, ${t.goal.progress(chapter.done, chapter.total)}`}`;
   // dark text on the pink finale button, light text on the dark pane
   const ink = chapter.finale ? { color: WIN.black } : null;
   const body = (
     <>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.goalChapter, ink]} maxFontSizeMultiplier={1.3}>
-          KAPITEL {chapter.n} · {chapter.title.toUpperCase()}
+          {t.goal.chapter(chapter.n, chapter.title)}
         </Text>
         <Text style={[styles.goalText, ink]} maxFontSizeMultiplier={1.3} numberOfLines={2}>
           {chapter.goal}
         </Text>
       </View>
       {chapter.finale ? (
-        <Text style={styles.goalGo}>Antreten ›</Text>
+        <Text style={styles.goalGo}>{t.goal.go}</Text>
       ) : (
         <Text style={styles.goalCount}>
           {Math.min(chapter.done, chapter.total)}/{chapter.total}
@@ -133,7 +136,7 @@ export function GoalBar({ chapter, onFinale }: { chapter: Chapter; onFinale: () 
         onFinale();
       }}
       accessibilityRole="button"
-      accessibilityLabel={`${label}. Finale starten`}
+      accessibilityLabel={`${label}. ${t.goal.startFinale}`}
       style={({ pressed }) => [styles.goal, raised, styles.goalFinale, pressed && pressedIn]}
     >
       {body}
@@ -155,9 +158,10 @@ export function CacheBar({
   /** E.g. "2/3 Physik & Chemie" while a debris field is open, else the number of files. */
   cacheLabel?: string;
 }) {
+  const t = useStrings();
   const folders = useGame((p) => p.archive.length);
   const files = useGame((p) => p.cache.length);
-  const cache = cacheLabel ?? (files === 0 ? 'leer' : `${files} Datei${files === 1 ? '' : 'en'}`);
+  const cache = cacheLabel ?? (files === 0 ? t.cacheBar.empty : t.cacheBar.files(files));
   return (
     <View style={styles.cacheRow}>
       <Pressable
@@ -166,14 +170,14 @@ export function CacheBar({
           onFolders();
         }}
         accessibilityRole="button"
-        accessibilityLabel={folders === 0 ? 'Ordner öffnen, leer' : `Ordner öffnen, ${folders} Ordner`}
+        accessibilityLabel={t.cacheBar.openFolders(folders)}
         style={({ pressed }) => [styles.cache, raised, pressed && pressedIn]}
       >
         <Icon name={folders > 0 ? 'folder' : 'folder-empty'} size={22} />
-        <Text style={styles.cacheTitle}>Ordner</Text>
+        <Text style={styles.cacheTitle}>{t.cacheBar.folders}</Text>
         <View style={[styles.cacheCount, sunken]}>
           <Text style={styles.cacheCountText} maxFontSizeMultiplier={1.3}>
-            {folders === 0 ? 'leer' : folders}
+            {folders === 0 ? t.cacheBar.empty : folders}
           </Text>
         </View>
       </Pressable>
@@ -183,11 +187,11 @@ export function CacheBar({
           onCache();
         }}
         accessibilityRole="button"
-        accessibilityLabel={`Cache öffnen, ${cache}`}
+        accessibilityLabel={t.cacheBar.openCache(cache)}
         style={({ pressed }) => [styles.cache, raised, pressed && pressedIn]}
       >
         <Icon name="cache" size={22} />
-        <Text style={styles.cacheTitle}>Cache</Text>
+        <Text style={styles.cacheTitle}>{t.cacheBar.cache}</Text>
         <View style={[styles.cacheCount, sunken]}>
           <Text style={styles.cacheCountText} numberOfLines={1} maxFontSizeMultiplier={1.3}>
             {cache}
@@ -224,6 +228,7 @@ export function Dock({
 }: {
   items: { label: string; icon: IconName; onPress: () => void; tint?: string; glow?: boolean; badge?: boolean }[];
 }) {
+  const t = useStrings();
   return (
     <View style={[styles.dock, raised]}>
       {items.map((it) => (
@@ -234,7 +239,7 @@ export function Dock({
             it.onPress();
           }}
           accessibilityRole="button"
-          accessibilityLabel={it.glow || it.badge ? `${it.label}, neu` : it.label}
+          accessibilityLabel={it.glow || it.badge ? t.dock.newA11y(it.label) : it.label}
           style={({ pressed }) => [styles.dockItem, raised, pressed && pressedIn]}
         >
           {it.glow ? <DockGlow /> : null}
@@ -243,7 +248,7 @@ export function Dock({
           <Text style={styles.dockLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
             {it.label}
           </Text>
-          {it.glow ? <Text style={styles.dockNew}>NEU</Text> : null}
+          {it.glow ? <Text style={styles.dockNew}>{t.dock.new}</Text> : null}
         </Pressable>
       ))}
     </View>

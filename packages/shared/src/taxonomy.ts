@@ -1,3 +1,4 @@
+import type { Lang } from './lang';
 import type { Sector } from './types';
 
 /** The four sectors in their ring order around the core; neighbours share a firewall. */
@@ -23,7 +24,9 @@ export interface Area {
   sector: Sector;
   de: string;
   en: string;
-  /** What belongs to the area; the AI picks its topics inside this scope. */
+  fr: string;
+  es: string;
+  /** What belongs to the area (in English, as the model prompts are); the AI picks its topics inside this scope. */
   scope: string;
 }
 
@@ -34,84 +37,108 @@ export const AREAS: Area[] = [
     sector: 'science',
     de: 'Naturwissenschaften',
     en: 'Natural sciences',
-    scope: 'Relativitätstheorie, Aufbau der Atome, Periodensystem, physikalische Grundgesetze wie die Gravitation, Licht und Schall, chemische Reaktionen',
+    fr: 'Sciences naturelles',
+    es: 'Ciencias naturales',
+    scope: 'relativity, the structure of atoms, the periodic table, basic laws of physics such as gravity, light and sound, chemical reactions',
   },
   {
     id: 'biomedicine',
     sector: 'science',
     de: 'Biologie & Medizin',
     en: 'Biology & medicine',
-    scope: 'Aufbau des menschlichen Körpers (Organe, Genetik), Evolution, Ökosysteme, Tiere und Pflanzen, Grundlagen der Gesundheit',
+    fr: 'Biologie & médecine',
+    es: 'Biología y medicina',
+    scope: 'the human body (organs, genetics), evolution, ecosystems, animals and plants, basics of health',
   },
   {
     id: 'technology',
     sector: 'science',
     de: 'Technologie & IT',
     en: 'Technology & IT',
-    scope: 'Funktionsweise des Internets, Künstliche Intelligenz, Digitalisierung, wichtige Erfindungen der Menschheit',
+    fr: 'Technologie & informatique',
+    es: 'Tecnología e informática',
+    scope: 'how the internet works, artificial intelligence, digitalisation, major inventions of humankind',
   },
   {
     id: 'geography',
     sector: 'earth',
     de: 'Topographie',
     en: 'Topography',
-    scope: 'Kontinente, Ozeane, die längsten Flüsse, die höchsten Gebirge, Hauptstädte und Ländergrenzen weltweit',
+    fr: 'Topographie',
+    es: 'Topografía',
+    scope: 'continents, oceans, the longest rivers, the highest mountain ranges, capitals and borders around the world',
   },
   {
     id: 'climate',
     sector: 'earth',
     de: 'Klima & Umwelt',
     en: 'Climate & environment',
-    scope: 'Klimazonen, Klimawandel, Plattentektonik (Erdbeben, Vulkane), Nachhaltigkeit',
+    fr: 'Climat & environnement',
+    es: 'Clima y medio ambiente',
+    scope: 'climate zones, climate change, plate tectonics (earthquakes, volcanoes), sustainability',
   },
   {
     id: 'astronomy',
     sector: 'earth',
     de: 'Astronomie',
     en: 'Astronomy',
-    scope: 'Unser Sonnensystem, Planeten, Sterne, Galaxien, Entstehung des Universums',
+    fr: 'Astronomie',
+    es: 'Astronomía',
+    scope: 'our solar system, planets, stars, galaxies, the origin of the universe',
   },
   {
     id: 'history',
     sector: 'humanities',
     de: 'Geschichte',
     en: 'History',
-    scope: 'Große Epochen (Antike, Mittelalter, Neuzeit), Weltkriege, Französische Revolution, wichtige historische Persönlichkeiten',
+    fr: 'Histoire',
+    es: 'Historia',
+    scope: 'the great eras (antiquity, middle ages, modern times), the world wars, the French Revolution, important historical figures',
   },
   {
     id: 'arts',
     sector: 'humanities',
     de: 'Kunst, Literatur & Musik',
     en: 'Art, literature & music',
-    scope: 'Klassische Epochen (Renaissance, Barock, Romantik), weltberühmte Werke (Goethe, Shakespeare, Da Vinci), Geschichte der Musik, Sprachen',
+    fr: 'Art, littérature & musique',
+    es: 'Arte, literatura y música',
+    scope: 'classical periods (Renaissance, Baroque, Romanticism), world-famous works (Goethe, Shakespeare, Cervantes, Molière, Da Vinci), the history of music, languages',
   },
   {
     id: 'philosophy',
     sector: 'humanities',
     de: 'Philosophie & Religion',
     en: 'Philosophy & religion',
-    scope: 'Die großen Weltreligionen, antike Denker (Sokrates, Platon), moderne Strömungen (Aufklärung, Existenzialismus)',
+    fr: 'Philosophie & religion',
+    es: 'Filosofía y religión',
+    scope: 'the major world religions, ancient thinkers (Socrates, Plato), modern movements (Enlightenment, existentialism)',
   },
   {
     id: 'politics',
     sector: 'society',
     de: 'Politik & Staatskunde',
     en: 'Politics & civics',
-    scope: 'Demokratische Grundwerte, Staatsformen, Aufbau der EU, Vereinte Nationen, Grundzüge geopolitischer Konflikte',
+    fr: 'Politique & institutions',
+    es: 'Política e instituciones',
+    scope: 'democratic values, forms of government, the structure of the EU, the United Nations, outlines of geopolitical conflicts',
   },
   {
     id: 'economy',
     sector: 'society',
     de: 'Wirtschaft & Finanzen',
     en: 'Economy & finance',
-    scope: 'Angebot und Nachfrage, Inflation, Globalisierung, Steuer- und Geldsystem',
+    fr: 'Économie & finance',
+    es: 'Economía y finanzas',
+    scope: 'supply and demand, inflation, globalisation, tax and monetary systems',
   },
   {
     id: 'law',
     sector: 'society',
     de: 'Recht & Gesellschaft',
     en: 'Law & society',
-    scope: 'Grundrechte, Aufbau des Rechtssystems, wichtige gesellschaftliche und soziologische Entwicklungen',
+    fr: 'Droit & société',
+    es: 'Derecho y sociedad',
+    scope: 'fundamental rights, the structure of the legal system, important social and sociological developments',
   },
 ];
 
@@ -121,6 +148,11 @@ export function areaById(id: string): Area {
   const a = BY_ID.get(id);
   if (!a) throw new Error(`Unknown area: ${id}`);
   return a;
+}
+
+/** The name of an area in the player's language. */
+export function areaName(id: string, lang: Lang): string {
+  return areaById(id)[lang];
 }
 
 export function isArea(id: string): boolean {

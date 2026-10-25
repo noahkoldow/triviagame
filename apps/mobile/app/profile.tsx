@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SECTORS, areaById, footprint, levelFromXp } from '@nexus/shared';
+import { SECTORS, areaName, footprint, levelFromXp } from '@nexus/shared';
 import { useWindowDimensions } from 'react-native';
 import { Bolt } from '../src/components/Bolt';
 import { Radar } from '../src/components/Radar';
@@ -9,26 +9,12 @@ import { BackBar, Button, Card, H1, P } from '../src/components/ui';
 import { pool } from '../src/services/content';
 import { leagueApi } from '../src/services/league';
 import { getState, resetGame, useGame } from '../src/state/store';
-import { de } from '../src/strings';
+import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
-
-/** Short axis labels, so sixteen of them fit around the chart. */
-const SHORT: Record<string, string> = {
-  physics: 'Physik',
-  biomedicine: 'Bio',
-  technology: 'Technik',
-  geography: 'Topo',
-  climate: 'Klima',
-  astronomy: 'Astro',
-  arts: 'Kunst',
-  philosophy: 'Philo',
-  politics: 'Politik',
-  economy: 'Wirtschaft',
-  law: 'Recht',
-};
 
 export default function Profile() {
   const router = useRouter();
+  const t = useStrings();
   const profile = useGame((p) => p.profile);
   const xp = useGame((p) => p.xp);
   const streak = useGame((p) => p.streak);
@@ -41,7 +27,8 @@ export default function Profile() {
   const state = useGame((p) => p);
   const areas = footprint(state, pool);
   const axes = areas.map((x) => ({
-    label: SHORT[x.area] ?? areaById(x.area).de,
+    // short axis labels, so all areas fit around the chart
+    label: t.profile.short[x.area] ?? areaName(x.area, t.lang),
     color: colors.sector[x.sector],
     depth: x.depth,
     coverage: x.coverage,
@@ -50,32 +37,30 @@ export default function Profile() {
     const mine = areas.filter((x) => x.sector === sec);
     const solved = mine.reduce((t, x) => t + x.solved, 0);
     const deepest = mine.reduce((m, x) => Math.max(m, x.depth), 0);
-    return `${de.sectors[sec]}: ${solved} Knoten gelöst, Tiefe ${Math.round(deepest * 5)} von 5`;
+    return t.profile.sectorLine(t.sectors[sec], solved, Math.round(deepest * 5));
   });
 
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <BackBar title="Profil" onBack={() => router.back()} />
+        <BackBar title={t.profile.title} onBack={() => router.back()} />
         <View style={{ alignItems: 'center', gap: 6 }}>
           <Bolt size={90} mood="happy" />
           <H1>{profile.name}</H1>
-          <P>
-            Level {lv.level} · {xp} XP · Serie {streak.count} Tage · {streak.freezes} Streak-Schutz
-          </P>
+          <P>{t.profile.stats(lv.level, xp, streak.count, streak.freezes)}</P>
         </View>
 
         <Card style={{ gap: 10, alignItems: 'center' }}>
-          <Text style={[styles.title, { alignSelf: 'flex-start' }]}>Dein Wissens-Fußabdruck</Text>
-          <Radar axes={axes} size={chartSize} summary={`Wissens-Fußabdruck. ${summary.join('. ')}`} />
+          <Text style={[styles.title, { alignSelf: 'flex-start' }]}>{t.profile.footprint}</Text>
+          <Radar axes={axes} size={chartSize} summary={t.profile.footprintA11y(summary.join('. '))} />
           <View style={styles.legend}>
             <View style={styles.legendItem}>
               <View style={[styles.swatch, { backgroundColor: colors.accent, opacity: 0.6 }]} />
-              <Text style={styles.legendText}>Tiefe: schwerster gelöster Knoten</Text>
+              <Text style={styles.legendText}>{t.profile.depthLegend}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.swatch, { borderWidth: 1.5, borderColor: '#FFFFFF', borderStyle: 'dashed' }]} />
-              <Text style={styles.legendText}>Abdeckung: Anteil gelöster Fragen</Text>
+              <Text style={styles.legendText}>{t.profile.coverageLegend}</Text>
             </View>
           </View>
           {SECTORS.map((sec, i) => (
@@ -86,34 +71,29 @@ export default function Profile() {
         </Card>
 
         <Card>
-          <Text style={styles.title}>Statistik</Text>
-          <P>
-            Richtig: {stats.correct} · Daneben: {stats.wrong} · Knoten gelöst: {stats.solved}
-          </P>
+          <Text style={styles.title}>{t.profile.statistics}</Text>
+          <P>{t.profile.statsLine(stats.correct, stats.wrong, stats.solved)}</P>
         </Card>
 
         <Card style={{ gap: 6 }}>
-          <Text style={styles.title}>Werbung & Datenschutz</Text>
-          <P>
-            Alter: {profile.ageGroup === 'adult' ? '16 oder älter' : 'unter 16'} · Personalisierte
-            Werbung: {profile.ageGroup === 'adult' && profile.consent ? 'an' : 'aus'}
-          </P>
+          <Text style={styles.title}>{t.profile.adsPrivacy}</Text>
+          <P>{t.profile.ageLine(profile.ageGroup === 'adult', profile.ageGroup === 'adult' && profile.consent)}</P>
         </Card>
 
-        <Button label="Einstellungen" variant="ghost" onPress={() => router.push('/settings')} />
-        <Button label="Datenschutz & Info" variant="ghost" onPress={() => router.push('/privacy')} />
+        <Button label={t.profile.settings} variant="ghost" onPress={() => router.push('/settings')} />
+        <Button label={t.profile.privacy} variant="ghost" onPress={() => router.push('/privacy')} />
 
         <Button
-          label="Spielstand zurücksetzen"
+          label={t.profile.reset}
           variant="danger"
           onPress={() =>
             Alert.alert(
-              'Wirklich zurücksetzen?',
-              'Dein Netz und alle Fortschritte werden gelöscht.',
+              t.profile.resetTitle,
+              t.profile.resetText,
               [
-                { text: 'Abbrechen', style: 'cancel' },
+                { text: t.common.cancel, style: 'cancel' },
                 {
-                  text: 'Zurücksetzen',
+                  text: t.profile.resetConfirm,
                   style: 'destructive',
                   onPress: async () => {
                     // the ranking entry on the server goes too, so nothing of this save stays behind

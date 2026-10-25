@@ -10,7 +10,7 @@ import {
   HEAL_COST,
   dailyBonusDue,
   rewardedOffer,
-  areaById,
+  areaName,
   buildField,
   canStartNode,
   CACHE_FILES_PER_AREA,
@@ -70,11 +70,13 @@ import { watchRewarded } from '../src/state/monetize';
 import { getHint, takeDebrisReturn, takeRecentlySpawned } from '../src/state/session';
 import { syncRankingQuietly } from '../src/state/ranking';
 import { getState, today, update, useGame } from '../src/state/store';
-import { de } from '../src/strings';
+import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
 
 export default function Home() {
   const router = useRouter();
+  const t = useStrings();
+  const area = (id: string) => areaName(id, t.lang);
   const network = useGame((p) => p.network);
   const cache = useGame((p) => p.cache);
   const archive = useGame((p) => p.archive);
@@ -105,7 +107,7 @@ export default function Home() {
   const due = dueReviews(getState(), today());
   const player = useGame((p) => p);
   const facts = useMemo(() => storyFacts(player, pool), [player]);
-  const chapter = chapterOf(facts);
+  const chapter = chapterOf(facts, t.lang);
   const unstableNow = isUnstable(player, today());
   const maintain = maintenanceTargets(player, today());
   // story beats wait until the map is on screen and nothing else is open
@@ -160,8 +162,8 @@ export default function Home() {
       if (spawned.length) {
         setHighlight(spawned);
         focus(spawned[0]!);
-        const t = setTimeout(() => setHighlight([]), 6000);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => setHighlight([]), 6000);
+        return () => clearTimeout(timer);
       }
       return undefined;
     }, []),
@@ -199,7 +201,7 @@ export default function Home() {
   const filed = !!shardEntry && archiveHas(getState(), shardEntry);
 
   // the folder structure, grouped by topic area; free to read, order and delete on the map
-  const structure = useMemo(() => structureView(getState()), [archive]);
+  const structure = useMemo(() => structureView(getState()), [archive, t.lang]); // eslint-disable-line react-hooks/exhaustive-deps
   const manageStructure = {
     onSwap: (a: number, b: number) => update((p) => archiveSwap(p, structure.entries[a]!, structure.entries[b]!)),
     onSort: () =>
@@ -207,7 +209,7 @@ export default function Home() {
         archiveReorder(
           p,
           [...structure.entries.keys()]
-            .sort((a, b) => structure.folders[a]!.name.localeCompare(structure.folders[b]!.name, 'de'))
+            .sort((a, b) => structure.folders[a]!.name.localeCompare(structure.folders[b]!.name, t.lang))
             .map((i) => structure.entries[i]!),
         ),
       ),
@@ -222,7 +224,7 @@ export default function Home() {
   const debrisFree = debrisQ ? cacheFreeSlots(getState(), pool, debrisQ.area) : 0;
 
   const firewall = firewallId ? firewalls.find((f) => f.id === firewallId) : undefined;
-  const wallArea = firewall ? areaById(firewall.area).de : '';
+  const wallArea = firewall ? area(firewall.area) : '';
   const wallCost = firewall ? areaCost(firewall.area) : 0;
 
   const debrisProp = useMemo(
@@ -325,7 +327,7 @@ export default function Home() {
             <View style={styles.bannerRow}>
               <Icon name="heart" size={18} />
               <Text style={[styles.bannerText, { color: colors.bad, flex: 1 }]}>
-                Netz instabil: neue Knoten warten. Tippe hier für eine Wartung.
+                {t.map.unstableBanner}
               </Text>
             </View>
           </Pressable>
@@ -339,7 +341,7 @@ export default function Home() {
             <View style={styles.bannerRow}>
               <Icon name="warn" size={18} />
               <Text style={[styles.bannerText, { flex: 1 }]}>
-                {due.length} beschädigte{due.length > 1 ? ' Knoten' : 'r Knoten'} zur Reparatur fällig
+                {t.map.dueBanner(due.length)}
               </Text>
             </View>
           </Pressable>
@@ -347,12 +349,9 @@ export default function Home() {
       </SafeAreaView>
 
       {tip && !debrisId ? (
-        <Pressable style={[styles.tip, glass]} onPress={() => setTip(false)} accessibilityLabel="Tipp von Bolt schließen">
+        <Pressable style={[styles.tip, glass]} onPress={() => setTip(false)} accessibilityLabel={t.map.closeTip}>
           <Bolt size={52} mood={openCount > 0 ? 'happy' : 'think'} />
-          <Text style={styles.tipText}>
-            {name ? `${name}, ` : ''}
-            tippe einen leuchtenden Knoten an. Um ihn liegen lose Ordner: Lies sie, leg Nützliches in deine Ordner ab und nimm bis zu {CACHE_FILES_PER_AREA} Dateien pro Thema in den Cache. In der Frage ist der Cache gratis, deine Ordner kosten Blitze.
-          </Text>
+          <Text style={styles.tipText}>{t.map.tip(name, CACHE_FILES_PER_AREA)}</Text>
         </Pressable>
       ) : null}
 
@@ -366,16 +365,16 @@ export default function Home() {
           {debrisNode && debrisQ ? (
             <Window title={debrisQ.topic} icon="folder" onClose={() => setDebrisId(null)}>
               <View style={styles.row}>
-                <Pill label={areaById(debrisQ.area).de} color={debrisColor} />
-                <Pill label={de.difficulty[debrisQ.difficulty]!} color={colors.warn} />
+                <Pill label={area(debrisQ.area)} color={debrisColor} />
+                <Pill label={t.difficulty[debrisQ.difficulty]!} color={colors.warn} />
               </View>
               {debrisQ.intro ? <Text style={styles.debrisText}>{debrisQ.intro}</Text> : null}
-              {hint ? <Text style={styles.debrisHint}>Bolt: {hint}</Text> : null}
+              {hint ? <Text style={styles.debrisHint}>{t.map.boltHint(hint)}</Text> : null}
               <View style={styles.row}>
-                <Button label="Zurück" variant="ghost" style={{ flex: 1 }} onPress={() => setDebrisId(null)} />
+                <Button label={t.common.back} variant="ghost" style={{ flex: 1 }} onPress={() => setDebrisId(null)} />
                 <Button
-                  label={debrisNode.state === 'damaged' ? 'Reparieren' : 'Frage starten'}
-                  sub="In der Frage: Cache gratis, Ordner kosten ⚡"
+                  label={debrisNode.state === 'damaged' ? t.map.repair : t.map.startQuestion}
+                  sub={t.map.startSub}
                   style={{ flex: 2 }}
                   onPress={startQuestion}
                 />
@@ -386,20 +385,20 @@ export default function Home() {
             onFolders={() => setExplorerOpen(true)}
             onCache={() => setCacheOpen(true)}
             cacheLabel={
-              debrisQ ? `${CACHE_FILES_PER_AREA - debrisFree}/${CACHE_FILES_PER_AREA} ${areaById(debrisQ.area).de}` : undefined
+              debrisQ ? `${CACHE_FILES_PER_AREA - debrisFree}/${CACHE_FILES_PER_AREA} ${area(debrisQ.area)}` : undefined
             }
           />
           {!debrisNode ? (
             <Dock
               items={[
-                { label: 'Codex', icon: 'book', onPress: () => router.push('/codex') },
-                { label: 'Shop', icon: 'gem', tint: colors.gem, badge: dailyDue, onPress: () => router.push('/shop') },
-                { label: 'Knoten', icon: 'shard', onPress: () => setListOpen(true) },
+                { label: t.dock.codex, icon: 'book', onPress: () => router.push('/codex') },
+                { label: t.dock.shop, icon: 'gem', tint: colors.gem, badge: dailyDue, onPress: () => router.push('/shop') },
+                { label: t.dock.nodes, icon: 'shard', onPress: () => setListOpen(true) },
                 // the ranking shows once morph.ai is beaten; right after the reveal its button glows
                 ...(leagueUnlocked(player)
                   ? [
                       {
-                        label: 'Rangliste',
+                        label: t.dock.league,
                         icon: 'trophy' as const,
                         glow: leagueIsNew(player),
                         onPress: () => {
@@ -409,7 +408,7 @@ export default function Home() {
                       },
                     ]
                   : []),
-                { label: 'Profil', icon: 'user', onPress: () => router.push('/profile') },
+                { label: t.dock.profile, icon: 'user', onPress: () => router.push('/profile') },
               ]}
             />
           ) : null}
@@ -424,31 +423,27 @@ export default function Home() {
               <CacheExplorer
                 key={shard.id}
                 folders={[{ name: shard.hint, files: fragmentFiles(shard) }]}
-                root="Trümmerfeld"
+                root={t.map.debrisRoot}
                 single
-                closeLabel="Schließen"
                 onClose={() => setShardId(null)}
                 fileAction={(_, i) =>
-                  cacheActionFor(getState(), shardEntry, debrisQ.area, fragmentFiles(shard)[i]!.name, addFile, dropFile)
+                  cacheActionFor(getState(), t, shardEntry, debrisQ.area, fragmentFiles(shard)[i]!.name, addFile, dropFile)
                 }
                 fileTag={(_, i) =>
-                  cacheHasFile(getState(), { ...shardEntry, file: fragmentFiles(shard)[i]!.name }) ? 'im Cache' : undefined
+                  cacheHasFile(getState(), { ...shardEntry, file: fragmentFiles(shard)[i]!.name }) ? t.map.inCache : undefined
                 }
                 actions={
                   <>
-                    <Text style={styles.winNote}>
-                      Öffne eine Datei, um sie in den Cache zu nehmen ({CACHE_FILES_PER_AREA} pro Thema, in der Frage gratis).
-                      Den ganzen Ordner legst du in deinen Ordnern ab; die kosten in der Frage Blitze.
-                    </Text>
+                    <Text style={styles.winNote}>{t.map.shardNote(CACHE_FILES_PER_AREA)}</Text>
                     {filed ? (
                       <Button
-                        label="Aus meinen Ordnern nehmen"
+                        label={t.map.unfile}
                         variant="ghost"
                         onPress={() => update((p) => archiveDrop(p, shardEntry))}
                       />
                     ) : (
                       <Button
-                        label="In meinen Ordnern ablegen"
+                        label={t.map.file}
                         onPress={() => {
                           tap('success');
                           update((p) => archiveAdd(p, shardEntry));
@@ -474,6 +469,7 @@ export default function Home() {
               fileAction={(f, i) =>
                 cacheActionFor(
                   getState(),
+                  t,
                   structure.entries[f]!,
                   structure.areas[f]!,
                   structure.folders[f]!.files[i]!.name,
@@ -483,7 +479,7 @@ export default function Home() {
               }
               fileTag={(f, i) =>
                 cacheHasFile(getState(), { ...structure.entries[f]!, file: structure.folders[f]!.files[i]!.name })
-                  ? 'im Cache'
+                  ? t.map.inCache
                   : undefined
               }
             />
@@ -497,7 +493,7 @@ export default function Home() {
           <Pressable onPress={() => undefined}>
             <CacheFiles
               items={cacheItems(getState())}
-              note={`Bis zu ${CACHE_FILES_PER_AREA} Dateien pro Themengebiet. In einer Frage öffnest du die Dateien ihres Gebiets gratis; nach dem Versuch ist dieser Teil des Caches wieder leer.`}
+              note={t.map.cacheNote(CACHE_FILES_PER_AREA)}
               onRemove={(key) => {
                 const hit = getState().cache.find((c) => cacheKey(c) === key);
                 if (hit) dropFile(hit);
@@ -511,33 +507,25 @@ export default function Home() {
       {/* a firewall (boss) */}
       <Modal transparent animationType="fade" visible={!!firewall} onRequestClose={() => setFirewallId(null)}>
         <Pressable style={styles.center} onPress={() => setFirewallId(null)}>
-          <Dialog title="Firewall" icon="warn" onClose={() => setFirewallId(null)}>
+          <Dialog title={t.map.firewall} icon="warn" onClose={() => setFirewallId(null)}>
             {firewall ? (
               <>
                 <Text style={styles.topic}>{wallArea}</Text>
                 {firewall.broken ? (
-                  <Text style={styles.fragText}>
-                    Diese Firewall ist durchbrochen. Durch die Lücke wächst dein Netz in {wallArea}.
-                  </Text>
+                  <Text style={styles.fragText}>{t.map.wallBroken(wallArea)}</Text>
                 ) : !firewallReached(nodes, firewall) ? (
                   // the network has to grow right up to the wall first
-                  <Text style={styles.fragText}>
-                    Hinter dieser Wand liegt {wallArea}. morph.ai hat sie hochgezogen. Wachse bis direkt an die Wand, dann
-                    kannst du sie angreifen. Entfernung: etwa {firewallSteps(nodes, firewall)} Schritte.
-                  </Text>
+                  <Text style={styles.fragText}>{t.map.wallFar(wallArea, firewallSteps(nodes, firewall))}</Text>
                 ) : (
                   <>
                     <Text style={styles.fragText}>
-                      Dein Netz steht an der Wand. Um durchzubrechen, beantwortest du {BOSS_QUESTIONS} Fragen, je zur Hälfte aus{' '}
-                      {areaById(fightFrom(pool, nodes, firewall)).de} und {wallArea}. {BOSS_PASS} müssen stimmen. Es gibt keinen
-                      Cache, nur dein Wissen.
+                      {t.map.wallText(BOSS_QUESTIONS, area(fightFrom(pool, nodes, firewall)), wallArea, BOSS_PASS)}
                     </Text>
                     <Text style={styles.cardSub}>
-                      Belohnung: {BOSS_REWARD.gems} Gems, {BOSS_REWARD.bits} Bits, {BOSS_REWARD.xp} XP, und die Wand bricht an dieser
-                      Stelle auf: {wallArea} öffnet sich.
+                      {t.map.wallReward(BOSS_REWARD.gems, BOSS_REWARD.bits, BOSS_REWARD.xp, wallArea)}
                     </Text>
                     <Button
-                      label={integrity === 0 ? 'Netz instabil' : 'Angreifen'}
+                      label={integrity === 0 ? t.map.unstable : t.map.attack}
                       disabled={integrity === 0}
                       onPress={() => {
                         const id = firewall.id;
@@ -551,9 +539,9 @@ export default function Home() {
                   // as with every area, gems open it at once (the story only counts fights)
                   <Button
                     variant="gem"
-                    label={`Sofort öffnen · ${wallCost}`}
+                    label={t.map.openNow(wallCost)}
                     icon="gem"
-                    sub={`Du hast ${gems} Gems`}
+                    sub={t.common.youHaveGems(gems)}
                     disabled={gems < wallCost}
                     onPress={() => {
                       const area = firewall.area;
@@ -562,7 +550,7 @@ export default function Home() {
                     }}
                   />
                 ) : null}
-                <Button label="Schließen" variant="ghost" onPress={() => setFirewallId(null)} />
+                <Button label={t.common.close} variant="ghost" onPress={() => setFirewallId(null)} />
               </>
             ) : null}
           </Dialog>
@@ -572,38 +560,35 @@ export default function Home() {
       {/* integrity 0: the network is unstable */}
       <Modal transparent animationType="fade" visible={unstable} onRequestClose={() => setUnstable(false)}>
         <Pressable style={styles.center} onPress={() => setUnstable(false)}>
-          <Dialog title="Netz instabil" icon="warn" onClose={() => setUnstable(false)}>
-            <Text style={styles.fragText}>
-              Zu viele Störungen: Neue Knoten warten. Mach eine Wartung: Beantworte eine schon gelöste Frage aus dem
-              Gedächtnis, ohne Cache. Jede gelungene Wartung oder fällige Reparatur gibt 1 Integrität zurück.
-            </Text>
+          <Dialog title={t.map.unstable} icon="warn" onClose={() => setUnstable(false)}>
+            <Text style={styles.fragText}>{t.map.unstableText}</Text>
             {maintain.length > 0 ? (
               <Button
-                label="Wartung starten"
-                sub={`Heute noch an ${maintain.length} Knoten möglich, je Knoten einmal am Tag`}
+                label={t.map.startMaintenance}
+                sub={t.map.maintenanceSub(maintain.length)}
                 onPress={startMaintenance}
               />
             ) : null}
             {integrityVideo.left > 0 ? (
               <Button
-                label={integrityVideo.instant ? '+1 Integrität (Plus)' : 'Video ansehen: +1 Integrität'}
-                sub={`Heute noch ${integrityVideo.left}`}
+                label={integrityVideo.instant ? t.map.integrityPlus : t.map.watchVideo}
+                sub={t.map.leftToday(integrityVideo.left)}
                 variant="ghost"
                 onPress={() => void watchRewarded('integrity')}
               />
             ) : null}
             <Button
               variant="gem"
-              label={`Netz heilen · ${HEAL_COST}`}
+              label={t.map.heal(HEAL_COST)}
               icon="gem"
-              sub={`Du hast ${gems} Gems`}
+              sub={t.common.youHaveGems(gems)}
               disabled={gems < HEAL_COST || integrity >= 5}
               onPress={() => {
                 update((p) => healIntegrity(p));
                 setUnstable(false);
               }}
             />
-            <Button label="Schließen" onPress={() => setUnstable(false)} />
+            <Button label={t.common.close} onPress={() => setUnstable(false)} />
           </Dialog>
         </Pressable>
       </Modal>
@@ -611,11 +596,11 @@ export default function Home() {
       {/* the node list (dock → "Knoten"): the map's actions for screen readers and small screens */}
       <Modal transparent animationType="slide" visible={listOpen} onRequestClose={() => setListOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setListOpen(false)}>
-          <Dialog title={`Knoten (${listed.length})`} icon="shard" onClose={() => setListOpen(false)}>
+          <Dialog title={t.map.listTitle(listed.length)} icon="shard" onClose={() => setListOpen(false)}>
             <ScrollView style={{ maxHeight: size.height * 0.6 }} contentContainerStyle={{ gap: 6 }}>
               {chapter.finale ? (
                 <Button
-                  label="Finale: morph.ai im Kern stellen"
+                  label={t.map.finaleButton}
                   onPress={() => {
                     setListOpen(false);
                     router.push({ pathname: '/boss/[id]', params: { id: FINALE_ID } });
@@ -623,12 +608,12 @@ export default function Home() {
                 />
               ) : null}
               {listed.map(({ n, q, dueNow }) => {
-                const status = n.state === 'open' ? 'offen' : dueNow ? 'Reparatur fällig' : 'beschädigt';
+                const status = n.state === 'open' ? t.map.statusOpen : dueNow ? t.map.statusDue : t.map.statusDamaged;
                 return (
                   <Pressable
                     key={n.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${q.topic}, ${areaById(q.area).de}, ${status}`}
+                    accessibilityLabel={`${q.topic}, ${area(q.area)}, ${status}`}
                     onPress={() => {
                       setListOpen(false);
                       onSelect(n.id);
@@ -639,7 +624,7 @@ export default function Home() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.listTopic}>{q.topic}</Text>
                       <Text style={styles.listSub}>
-                        {areaById(q.area).de} · {status}
+                        {area(q.area)} · {status}
                       </Text>
                     </View>
                   </Pressable>
@@ -650,7 +635,7 @@ export default function Home() {
                 <Pressable
                   key={sign.firewall}
                   accessibilityRole="button"
-                  accessibilityLabel={`Firewall vor ${areaById(sign.area).de}, ${sign.reached ? 'erreicht' : 'noch nicht erreicht'}`}
+                  accessibilityLabel={t.map.wallA11y(area(sign.area), sign.reached ? t.map.reached : t.map.notReached)}
                   onPress={() => {
                     setListOpen(false);
                     setFirewallId(sign.firewall);
@@ -659,16 +644,16 @@ export default function Home() {
                 >
                   <Icon name="warn" size={16} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.listTopic}>Firewall</Text>
+                    <Text style={styles.listTopic}>{t.map.firewall}</Text>
                     <Text style={styles.listSub}>
-                      {areaById(sign.area).de} ·{' '}
-                      {sign.reached ? 'erreicht' : `noch etwa ${firewallSteps(nodes, firewalls.find((f) => f.id === sign.firewall)!)} Schritte`}
+                      {area(sign.area)} ·{' '}
+                      {sign.reached ? t.map.reached : t.map.stepsLeft(firewallSteps(nodes, firewalls.find((f) => f.id === sign.firewall)!))}
                     </Text>
                   </View>
                 </Pressable>
               ))}
             </ScrollView>
-            <Button label="Schließen" variant="ghost" onPress={() => setListOpen(false)} />
+            <Button label={t.common.close} variant="ghost" onPress={() => setListOpen(false)} />
           </Dialog>
         </Pressable>
       </Modal>
@@ -678,28 +663,26 @@ export default function Home() {
       {/* locked debris field or an already restored node */}
       <Modal transparent animationType="slide" visible={!!selected} onRequestClose={() => setSel(null)}>
         <Pressable style={styles.backdrop} onPress={() => setSel(null)}>
-          <Dialog title={selQ ? areaById(selQ.area).de : ''} icon="folder" onClose={() => setSel(null)}>
+          <Dialog title={selQ ? area(selQ.area) : ''} icon="folder" onClose={() => setSel(null)}>
             {selected && selQ ? (
               <>
                 <View style={styles.row}>
-                  <Pill label={de.sectorsShort[sectorOfArea(selQ.area)]} color={colors.sector[sectorOfArea(selQ.area)]} />
-                  <Pill label={de.kinds[selected.kind]} color={colors.dim} />
+                  <Pill label={t.sectorsShort[sectorOfArea(selQ.area)]} color={colors.sector[sectorOfArea(selQ.area)]} />
+                  <Pill label={t.kinds[selected.kind]} color={colors.dim} />
                 </View>
                 {selected.locked ? (
                   <>
-                    <Text style={styles.sheetText}>
-                      Ein verschlüsseltes Trümmerfeld mit seltenen Fragmenten und dreifachen Bits. Öffne es mit Gems.
-                    </Text>
+                    <Text style={styles.sheetText}>{t.map.lockedDebris}</Text>
                     <Button
                       variant="gem"
-                      label={`Öffnen für ${DEBRIS_COST} Gems`}
-                      sub={`Du hast ${gems} Gems`}
+                      label={t.map.openFor(DEBRIS_COST)}
+                      sub={t.common.youHaveGems(gems)}
                       disabled={gems < DEBRIS_COST}
                       onPress={() => update((p) => openDebris(p, selected.id))}
                     />
                     {gems < DEBRIS_COST ? (
                       <Button
-                        label="Zum Shop"
+                        label={t.map.toShop}
                         variant="ghost"
                         onPress={() => {
                           setSel(null);
@@ -709,11 +692,9 @@ export default function Home() {
                     ) : null}
                   </>
                 ) : (
-                  <Text style={styles.sheetText}>
-                    Wiederhergestellt. Die gesammelten Fragmente findest du im Codex.
-                  </Text>
+                  <Text style={styles.sheetText}>{t.map.restored}</Text>
                 )}
-                <Button label="Schließen" variant="ghost" onPress={() => setSel(null)} />
+                <Button label={t.common.close} variant="ghost" onPress={() => setSel(null)} />
               </>
             ) : null}
           </Dialog>

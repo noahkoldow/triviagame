@@ -1,3 +1,4 @@
+import type { Lang } from './lang';
 import type { ChartSpec, FileKind, Fragment, FragmentFile } from './types';
 
 /**
@@ -7,10 +8,21 @@ import type { ChartSpec, FileKind, Fragment, FragmentFile } from './types';
  * has to look and search.
  */
 
-/** The files of a fragment; a fragment without files has one plain note with its fact. */
+/** The name of the plain note in a folder without files, per language. */
+export const NOTE_FILE: Record<Lang, string> = {
+  de: 'Notiz.txt',
+  en: 'Note.txt',
+  fr: 'Note.txt',
+  es: 'Nota.txt',
+};
+
+/**
+ * The files of a fragment; a fragment without files has one plain note with its fact. The note
+ * is named in German unless `localizeQuestion` already gave the fragment its files.
+ */
 export function fragmentFiles(f: Fragment): FragmentFile[] {
   if (f.files && f.files.length > 0) return f.files;
-  return [{ name: 'Notiz.txt', kind: 'note', text: f.text }];
+  return [{ name: NOTE_FILE.de, kind: 'note', text: f.text }];
 }
 
 /** All readable words of a chart: what the search looks through and screen readers can speak. */
@@ -33,13 +45,6 @@ export function fileText(file: FragmentFile): string {
   if (file.chart) parts.push(chartText(file.chart));
   return parts.join('\n');
 }
-
-/** A short label for the kind of a file, as an old file manager would show it. */
-export const KIND_LABEL: Record<FileKind, string> = {
-  note: 'Textdokument',
-  article: 'Artikel',
-  image: 'Bild',
-};
 
 /** A believable size for the file list (bytes of its text, at least 1 KB). */
 export function fileSizeKb(file: FragmentFile): number {

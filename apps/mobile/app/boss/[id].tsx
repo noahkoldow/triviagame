@@ -8,7 +8,7 @@ import {
   FINALE_ID,
   FINALE_PASS,
   FINALE_REWARD,
-  areaById,
+  areaName,
   bossQuestions,
   fightFrom,
   finaleQuestions,
@@ -28,13 +28,14 @@ import { WIN, Window } from '../../src/components/Win';
 import { pool } from '../../src/services/content';
 import { setRecentlySpawned } from '../../src/state/session';
 import { getState, update, useGame } from '../../src/state/store';
-import { de } from '../../src/strings';
+import { useStrings } from '../../src/strings';
 import { colors } from '../../src/theme';
 
 /** A firewall on a sector border, or (id `core`) the final duel against MORPH. */
 export default function BossScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const t = useStrings();
   const fw = useGame((p) => p.network.firewalls?.find((f) => f.id === id));
   const integrity = useGame((p) => p.integrity);
   const finaleOpen = useGame((p) => storyFacts(p, pool).finaleOpen);
@@ -42,28 +43,28 @@ export default function BossScreen() {
 
   const closed = isFinale
     ? !finaleOpen
-      ? 'Das Finale öffnet sich erst, wenn alle Startknoten gelöst, alle Hüter wach und alle Firewalls gebrochen sind.'
+      ? t.boss.finaleClosed
       : null
     : !fw
-      ? 'Diese Firewall gibt es nicht.'
+      ? t.boss.noFirewall
       : fw.broken
-        ? 'Diese Firewall ist bereits gebrochen.'
+        ? t.boss.alreadyBroken
         : !firewallReached(Object.values(getState().network.nodes), fw)
-          ? 'Dein Netz steht noch nicht an dieser Wand. Wachse bis direkt an sie heran, dann kannst du sie angreifen.'
+          ? t.boss.notReached
           : null;
   // decided once when the screen opens: winning breaks the firewall (or ends the finale) and
   // losing can drop integrity to 0, but the outcome of this fight must stay on screen
   const [reason] = useState(
-    closed ?? (integrity === 0 ? 'Das Netz ist instabil. Repariere zuerst Knoten oder mach eine Wartung.' : null),
+    closed ?? (integrity === 0 ? t.boss.unstable : null),
   );
 
   if (reason) {
     return (
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
-          <Window title={isFinale ? 'Kern' : 'Firewall'} icon="warn" onClose={() => router.back()}>
+          <Window title={isFinale ? t.boss.core : t.boss.firewall} icon="warn" onClose={() => router.back()}>
             <P>{reason}</P>
-            <Button label="Zurück" onPress={() => router.back()} />
+            <Button label={t.common.back} onPress={() => router.back()} />
           </Window>
         </ScrollView>
       </SafeAreaView>
@@ -74,6 +75,7 @@ export default function BossScreen() {
 
 function Fight({ fwId }: { fwId?: string }) {
   const router = useRouter();
+  const t = useStrings();
   const fw = useGame((p) => (fwId ? p.network.firewalls!.find((f) => f.id === fwId) : undefined));
   const finaleAttempts = useGame((p) => p.story.finaleAttempts);
   const finale = !fwId;
@@ -102,7 +104,7 @@ function Fight({ fwId }: { fwId?: string }) {
 
   const q = questions[i];
   const sector = q ? sectorOfArea(q.area) : fw ? sectorOfArea(fw.area) : 'science';
-  const title = fw ? `Firewall: ${areaById(fw.area).de}` : 'Kern: morph.ai';
+  const title = fw ? t.boss.title(areaName(fw.area, t.lang)) : t.boss.coreTitle;
 
   const check = () => {
     if (!q || !answer) return;
@@ -135,17 +137,17 @@ function Fight({ fwId }: { fwId?: string }) {
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
           <Window
-            title={outcome.passed ? (finale ? 'morph.ai besiegt' : 'Firewall gebrochen') : finale ? 'morph.ai hält stand' : 'Die Firewall hält'}
+            title={outcome.passed ? (finale ? t.boss.beaten : t.boss.broken) : finale ? t.boss.morphHolds : t.boss.wallHolds}
             icon={outcome.passed ? 'check' : 'warn'}
             onClose={() => router.back()}
           >
             {outcome.passed ? (
               <>
-                <H1>Durch!</H1>
+                <H1>{t.boss.through}</H1>
                 <P style={{ color: colors.text }}>
                   {finale
-                    ? `${right} von ${questions.length} richtig, ganz aus eigener Kraft. morph.ai ist ganz still geworden. Und das Netz um dich herum … sieht plötzlich anders aus.`
-                    : `${right} von ${questions.length} richtig. Die Wand bricht auf, dahinter öffnet sich ${areaById(fw!.area).de}.`}
+                    ? t.boss.finaleWon(right, questions.length)
+                    : t.boss.wallWon(right, questions.length, areaName(fw!.area, t.lang))}
                 </P>
                 <View style={styles.row}>
                   <Chip label={`+${reward.xp} XP`} color={colors.accent} />
@@ -154,7 +156,7 @@ function Fight({ fwId }: { fwId?: string }) {
                 </View>
                 {outcome.areas.map((a) => (
                   <Card key={a} style={{ borderColor: colors.primary }}>
-                    <P style={{ color: colors.primary }}>Neuer Bereich verbunden: {areaById(a).de}</P>
+                    <P style={{ color: colors.primary }}>{t.common.newArea(areaName(a, t.lang))}</P>
                   </Card>
                 ))}
               </>
@@ -163,19 +165,17 @@ function Fight({ fwId }: { fwId?: string }) {
                 <View style={{ alignItems: 'center' }}>
                   <Morph size={90} form="crown" />
                 </View>
-                <H1>Nicht genug.</H1>
+                <H1>{t.boss.notEnough}</H1>
                 <P style={{ color: colors.text }}>
-                  {right} von {questions.length} richtig, nötig waren {pass}.{' '}
-                  {finale ? 'morph.ai: „Siehst du? Mich zu fragen wäre schneller gewesen.“' : 'morph.ai: „Hübsch versucht.“'} Die
-                  Integrität sinkt um 1 (jetzt {g.integrity}). Beim nächsten Versuch kommen andere Fragen.
+                  {t.boss.lost(right, questions.length, pass, finale, g.integrity)}
                 </P>
               </>
             )}
             {finale && outcome.passed ? (
               // the network is about to show what it really is
-              <Button label="Weiter" onPress={() => router.replace('/brain')} />
+              <Button label={t.common.next} onPress={() => router.replace('/brain')} />
             ) : (
-              <Button label="Zurück zur Karte" onPress={() => router.back()} />
+              <Button label={t.boss.toMap} onPress={() => router.back()} />
             )}
           </Window>
         </ScrollView>
@@ -187,9 +187,9 @@ function Fight({ fwId }: { fwId?: string }) {
     return (
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
-          <Window title={finale ? 'Kern' : 'Firewall'} icon="warn" onClose={() => router.back()}>
-            <P>Dafür gibt es noch nicht genug Fragen.</P>
-            <Button label="Zurück" onPress={() => router.back()} />
+          <Window title={finale ? t.boss.core : t.boss.firewall} icon="warn" onClose={() => router.back()}>
+            <P>{t.boss.tooFew}</P>
+            <Button label={t.common.back} onPress={() => router.back()} />
           </Window>
         </ScrollView>
       </SafeAreaView>
@@ -202,7 +202,7 @@ function Fight({ fwId }: { fwId?: string }) {
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Window title={title} icon="warn" onClose={() => router.back()}>
           {/* progress as blocks, like an old copy dialog */}
-          <View style={styles.segments} accessible accessibilityLabel={`Frage ${i + 1} von ${questions.length}`}>
+          <View style={styles.segments} accessible accessibilityLabel={t.boss.progressA11y(i + 1, questions.length)}>
             {questions.map((_, k) => (
               <View
                 key={k}
@@ -215,17 +215,17 @@ function Fight({ fwId }: { fwId?: string }) {
             ))}
           </View>
           <View style={styles.row}>
-            <Pill label={de.sectorsShort[sector]} color={colors.sector[sector]} />
-            <Pill label={areaById(q.area).de} color={colors.dim} />
-            <Pill label={`${right} / ${pass} nötig`} color={colors.warn} />
+            <Pill label={t.sectorsShort[sector]} color={colors.sector[sector]} />
+            <Pill label={areaName(q.area, t.lang)} color={colors.dim} />
+            <Pill label={t.boss.needed(right, pass)} color={colors.warn} />
           </View>
           {i === 0 && !checked ? (
             <View style={styles.intro}>
               {finale ? <Morph size={56} form="crown" /> : null}
               <P style={{ color: colors.dim, flex: 1 }}>
                 {finale
-                  ? `morph.ai: „Acht Fragen, alle vier Sektoren, kein Cache, keine Ordner. Ich wette, am Ende fragst du doch mich.“ ${pass} müssen stimmen.`
-                  : 'morph.ai: „Hier kommst du nicht durch. Es sei denn, du weißt wirklich etwas.“ Kein Cache, keine Ordner, nur dein Kopf.'}
+                  ? t.boss.finaleIntro(pass)
+                  : t.boss.wallIntro}
               </P>
             </View>
           ) : null}
@@ -243,9 +243,9 @@ function Fight({ fwId }: { fwId?: string }) {
           ) : null}
 
           {!checked ? (
-            <Button label="Antworten" disabled={answer === null} onPress={check} />
+            <Button label={t.boss.answer} disabled={answer === null} onPress={check} />
           ) : (
-            <Button label={isLast ? 'Ergebnis' : 'Weiter >'} onPress={next} />
+            <Button label={isLast ? t.boss.result : t.boss.nextQuestion} onPress={next} />
           )}
         </Window>
       </ScrollView>

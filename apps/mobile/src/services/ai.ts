@@ -1,7 +1,7 @@
 import { acceptServed, type PoolRequest, type Question } from '@nexus/shared';
 
 /**
- * The content API: the app asks our backend for questions by area and level and never sends a
+ * The content API: the app asks our backend for questions by area, level and language and never sends a
  * prompt. The backend answers from its shared pool of checked questions and writes new ones
  * with the model only when needed. Every question that comes back is validated here again
  * (`acceptServed`), so nothing malformed can reach the game.
@@ -25,12 +25,12 @@ export function httpQuestionApi(base: string, doFetch: Fetch = fetch as unknown 
       const res = await doFetch(`${base}/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ area: req.area, difficulty: req.difficulty, count: req.count, have: req.have }),
+        body: JSON.stringify({ area: req.area, difficulty: req.difficulty, count: req.count, have: req.have, lang: req.lang }),
       });
       if (!res.ok) throw new Error(`backend answered ${res.status}`);
       const data = (await res.json()) as { questions?: unknown };
       if (!Array.isArray(data.questions)) throw new Error('backend answer has no questions');
-      return data.questions.map(acceptServed).filter((q): q is Question => q !== null);
+      return data.questions.map((q) => acceptServed(q, req.lang)).filter((q): q is Question => q !== null);
     },
   };
 }

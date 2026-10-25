@@ -9,6 +9,15 @@ describe('chart layout', () => {
     expect(formatNumber(2.5)).toBe('2,5');
   });
 
+  it('writes numbers the way the player\'s language does', () => {
+    expect(formatNumber(8849, 'en')).toBe('8,849');
+    expect(formatNumber(2.5, 'en')).toBe('2.5');
+    expect(formatNumber(8849, 'fr')).toBe('8\u202F849');
+    expect(formatNumber(13.8, 'fr')).toBe('13,8');
+    expect(formatNumber(8849, 'es')).toBe('8849');
+    expect(formatNumber(300000, 'es')).toBe('300\u00A0000');
+  });
+
   it('draws bars in proportion, the largest at full width', () => {
     const b = barLayout([{ label: 'a', value: 100 }, { label: 'b', value: 50 }, { label: 'c', value: 0 }], 200);
     expect(b[0]!.width).toBe(200);

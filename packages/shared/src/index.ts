@@ -1,3 +1,4 @@
+export * from './lang';
 export * from './types';
 export * from './rng';
 export * from './taxonomy';
@@ -25,3 +26,4 @@ export * from './migrate';
 export * from './serve';
 export * from './league';
 export * from './shop';
+export * from './localize';

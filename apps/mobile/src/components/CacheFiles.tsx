@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { CACHE_FILES_PER_AREA, type FragmentFile } from '@nexus/shared';
+import { useStrings } from '../strings';
 import { FileView, Row } from './CacheExplorer';
 import { Button } from './ui';
 import { WIN, Window } from './Win';
@@ -31,6 +32,7 @@ export function CacheFiles({
   /** A line above the list, e.g. what the cache is for. */
   note?: string;
 }) {
+  const t = useStrings();
   const { width, height } = useWindowDimensions();
   const [open, setOpen] = useState<string | null>(null);
   const current = items.find((it) => it.key === open);
@@ -39,7 +41,7 @@ export function CacheFiles({
 
   return (
     <Window
-      title={current ? current.file.name : 'Cache'}
+      title={current ? current.file.name : t.cacheFiles.title}
       icon="cache"
       tone="light"
       onClose={onClose}
@@ -51,13 +53,13 @@ export function CacheFiles({
           {current ? (
             <View style={{ gap: 8 }}>
               <Text style={styles.path}>
-                Cache\{current.area}\{current.folder}
+                {`${t.cacheFiles.title}\\${current.area}\\${current.folder}`}
               </Text>
               <FileView file={current.file} width={viewW} />
             </View>
           ) : items.length === 0 ? (
             <Text style={styles.empty}>
-              Leer. Öffne einen Ordner und nimm bis zu {CACHE_FILES_PER_AREA} Dateien pro Themengebiet mit.
+              {t.cacheFiles.empty(CACHE_FILES_PER_AREA)}
             </Text>
           ) : (
             areas.map((a) => {
@@ -80,7 +82,7 @@ export function CacheFiles({
         <>
           {onRemove ? (
             <Button
-              label="Aus dem Cache nehmen"
+              label={t.cacheFiles.remove}
               variant="ghost"
               onPress={() => {
                 onRemove(current.key);
@@ -88,10 +90,10 @@ export function CacheFiles({
               }}
             />
           ) : null}
-          <Button label="↑ Zurück zur Liste" variant="ghost" onPress={() => setOpen(null)} />
+          <Button label={t.cacheFiles.backToList} variant="ghost" onPress={() => setOpen(null)} />
         </>
       ) : null}
-      <Button label="Schließen" onPress={onClose} />
+      <Button label={t.common.close} onPress={onClose} />
     </Window>
   );
 }

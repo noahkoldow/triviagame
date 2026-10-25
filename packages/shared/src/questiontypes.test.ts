@@ -77,6 +77,12 @@ describe('question types', () => {
   });
 
   it('describes the right answer in words', () => {
-    for (const q of MOCK_QUESTIONS) expect(answerText(q).length, q.id).toBeGreaterThan(0);
+    for (const q of MOCK_QUESTIONS) expect(answerText(q, 'de').length, q.id).toBeGreaterThan(0);
+    const tf = byType<TrueFalseQuestion>('truefalse').find((q) => q.answer)!;
+    expect(answerText(tf, 'de')).toBe('Stimmt');
+    expect(answerText(tf, 'es')).toBe('Verdadero');
+    const estimate = MOCK_QUESTIONS.find((q) => q.id === 'ear-universe')!;
+    expect(answerText(estimate, 'de')).toBe('13,8 Mrd. Jahre');
+    expect(answerText(estimate, 'en')).toBe('13.8 Mrd. Jahre');
   });
 });

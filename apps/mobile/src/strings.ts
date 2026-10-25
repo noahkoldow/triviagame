@@ -1,20 +1,25 @@
-/** German UI strings (English follows). Keep all user-facing text here. */
-export const de = {
-  appName: 'NEXUS',
-  tagline: 'Baue das Netz des Wissens wieder auf.',
-  sectors: {
-    science: 'Naturwissenschaften, Technik & Medizin',
-    earth: 'Geographie & Erde',
-    humanities: 'Geisteswissenschaften & Kultur',
-    society: 'Gesellschaft, Politik & Wirtschaft',
-  },
-  /** Short sector names where space is tight (pills, firewall titles). */
-  sectorsShort: {
-    science: 'Naturwissenschaften',
-    earth: 'Erde',
-    humanities: 'Geisteswissenschaften',
-    society: 'Gesellschaft',
-  },
-  difficulty: ['', 'Leicht', 'Einfach', 'Mittel', 'Knifflig', 'Schwer'],
-  kinds: { root: 'Startknoten', deepen: 'Vertiefung', bridge: 'Brücke', debris: 'Trümmerfeld' },
-};
+import type { Lang } from '@nexus/shared';
+import { de, type Strings } from './i18n/de';
+import { en } from './i18n/en';
+import { es } from './i18n/es';
+import { fr } from './i18n/fr';
+import { useGame } from './state/store';
+
+/**
+ * UI texts in the player's language. German (`i18n/de.ts`) is the source and the shape; English,
+ * French and Spanish fill the same keys. Story texts and built-in questions are translated in
+ * `packages/shared` (`i18n/`), area names in the taxonomy (`areaName`).
+ */
+export { de, type Strings };
+
+const ALL: Record<Lang, Strings> = { de, en, fr, es };
+
+export function stringsFor(lang: Lang): Strings {
+  return ALL[lang] ?? de;
+}
+
+/** The texts of the player's current language; screens re-render when it changes. */
+export function useStrings(): Strings {
+  return stringsFor(useGame((p) => p.profile.lang));
+}
+

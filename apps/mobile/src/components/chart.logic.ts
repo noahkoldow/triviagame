@@ -1,10 +1,22 @@
+import type { Lang } from '@nexus/shared';
+
 /** Layout of the little charts; pure, so it can be tested. */
 
-/** 8849 → "8.849" (German thousands separator); decimals stay as they are. */
-export function formatNumber(n: number): string {
+/** How each language groups thousands and writes decimals; `min` is the length from which digits are grouped. */
+const NUMBERS: Record<Lang, { group: string; decimal: string; min: number }> = {
+  de: { group: '.', decimal: ',', min: 4 },
+  en: { group: ',', decimal: '.', min: 4 },
+  fr: { group: '\u202F', decimal: ',', min: 4 },
+  es: { group: '\u00A0', decimal: ',', min: 5 },
+};
+
+/** 8849 → "8.849" in German, "8,849" in English, "8 849" in French, "8849" in Spanish; decimals stay as they are. */
+export function formatNumber(n: number, lang: Lang = 'de'): string {
+  const { group, decimal, min } = NUMBERS[lang];
   const [int, dec] = String(n).split('.');
-  const grouped = int!.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return dec ? `${grouped},${dec}` : grouped;
+  const digits = int!.replace('-', '');
+  const grouped = digits.length >= min ? int!.replace(/\B(?=(\d{3})+(?!\d))/g, group) : int!;
+  return dec ? `${grouped}${decimal}${dec}` : grouped;
 }
 
 /** Bar widths in proportion to the value; a bar with a value is always visible. */

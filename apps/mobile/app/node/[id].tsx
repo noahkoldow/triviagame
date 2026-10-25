@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   answerText,
-  areaById,
+  areaName,
   CACHE_FILES_PER_AREA,
   structureOpenCost,
   fragmentFiles,
@@ -39,7 +39,7 @@ import { track } from '../../src/services/analytics';
 import { pool } from '../../src/services/content';
 import { clearHint, getHint, setDebrisReturn, setHint, setRecentlySpawned } from '../../src/state/session';
 import { getState, today, update, useGame } from '../../src/state/store';
-import { de } from '../../src/strings';
+import { useStrings } from '../../src/strings';
 import { colors } from '../../src/theme';
 
 type Phase = 'question' | 'result';
@@ -47,6 +47,7 @@ type Phase = 'question' | 'result';
 export default function NodeScreen() {
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
   const router = useRouter();
+  const t = useStrings();
   const node = useGame((p) => p.network.nodes[id ?? '']);
   const energy = useGame((p) => p.energy);
   // the node's state when the screen opened: answering changes it (open → solved or damaged),
@@ -59,8 +60,8 @@ export default function NodeScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <Card>
-          <P>Dieser Knoten ist nicht verfügbar.</P>
-          <Button label="Zurück" onPress={() => router.back()} />
+          <P>{t.node.unavailable}</P>
+          <Button label={t.common.back} onPress={() => router.back()} />
         </Card>
       </SafeAreaView>
     );
@@ -80,6 +81,8 @@ function NodeGame({
   energy: number;
 }) {
   const router = useRouter();
+  const t = useStrings();
+  const area = (id: string) => areaName(id, t.lang);
   const node = useGame((p) => p.network.nodes[nodeId])!;
   const q = pool.get(node.questionId);
   const sector = sectorOfArea(q.area);
@@ -219,15 +222,15 @@ function NodeGame({
       <Pressable
         onPress={leave}
         accessibilityRole="button"
-        accessibilityLabel="Zurück zum Netz"
+        accessibilityLabel={t.node.backA11y}
         hitSlop={12}
         style={({ pressed }) => [styles.close, raised, pressed && pressedIn]}
       >
         <Icon name="close" size={14} color={WIN.black} />
       </Pressable>
       <View style={styles.headerPills}>
-        <Pill label={areaById(q.area).de} color={color} />
-        <Pill label={de.difficulty[q.difficulty]!} color={colors.warn} />
+        <Pill label={area(q.area)} color={color} />
+        <Pill label={t.difficulty[q.difficulty]!} color={colors.warn} />
       </View>
     </View>
   );
@@ -243,8 +246,8 @@ function NodeGame({
               <Icon name={maintain ? 'lock' : 'cache'} size={20} />
               <Text style={styles.lock}>
                 {maintain
-                  ? 'Wartung: aus dem Gedächtnis, ohne Cache und Ordner'
-                  : `Cache: ${cached.length} von ${CACHE_FILES_PER_AREA} Dateien zu ${areaById(q.area).de}, gratis`}
+                  ? t.node.maintainLock
+                  : t.node.cacheLock(cached.length, CACHE_FILES_PER_AREA, area(q.area))}
               </Text>
             </View>
           </View>
@@ -253,36 +256,36 @@ function NodeGame({
           </Card>
           {hint ? (
             <Card style={{ borderColor: colors.accent }}>
-              <P style={{ color: colors.text }}>Bolt-Hinweis: {hint}</P>
+              <P style={{ color: colors.text }}>{t.node.boltHint(hint)}</P>
             </Card>
           ) : null}
 
           <QuestionView q={q} variant={variant} onChange={setAnswer} />
 
           <View style={{ gap: 8, marginTop: 4 }}>
-            <Button label="Antwort prüfen" disabled={!canSubmit} onPress={submit} />
+            <Button label={t.node.check} disabled={!canSubmit} onPress={submit} />
             {maintain ? null : (
               <>
                 <Button
-                  label="Cache öffnen"
+                  label={t.node.openCache}
                   icon="cache"
                   variant="ghost"
-                  sub={cached.length ? 'Gratis: deine mitgenommenen Dateien zu diesem Thema.' : 'Leer: Du hast keine Datei zu diesem Thema mitgenommen.'}
+                  sub={cached.length ? t.node.cacheFree : t.node.cacheEmpty}
                   disabled={cached.length === 0}
                   onPress={() => setCacheOpen(true)}
                 />
                 <Button
-                  label={rewinds > 0 ? 'Ordner wieder öffnen' : 'Blitz: Ordner öffnen'}
+                  label={rewinds > 0 ? t.node.reopenFolders : t.node.openFolders}
                   icon="bolt"
                   variant="ghost"
                   sub={
                     structure.folders.length === 0
-                      ? 'Du hast noch keine Ordner abgelegt.'
+                      ? t.node.noFolders
                       : rewinds > 0
-                        ? 'Schon bezahlt: in dieser Frage frei zugänglich.'
+                        ? t.node.paid
                         : energy >= openCost
-                          ? `Deine ganze Ordnerstruktur durchsuchen. Kostet ${openCost} Energie (du hast ${energy}).`
-                          : `Zu wenig Energie: ${openCost} nötig, du hast ${energy}. Sie füllt sich mit der Zeit.`
+                          ? t.node.canPay(openCost, energy)
+                          : t.node.cannotPay(openCost, energy)
                   }
                   disabled={structure.folders.length === 0 || (rewinds === 0 && energy < openCost)}
                   onPress={rewind}
@@ -326,18 +329,18 @@ function NodeGame({
           <View style={{ alignItems: 'center' }}>
             <Bolt size={100} mood={r.correct ? 'wow' : 'sad'} color={color} />
           </View>
-          <H1 style={{ textAlign: 'center' }}>{r.correct ? 'Gewartet!' : 'Noch wackelig'}</H1>
+          <H1 style={{ textAlign: 'center' }}>{r.correct ? t.node.maintained : t.node.shaky}</H1>
           <Card>
             <P style={{ color: colors.text }}>
               {r.correct
-                ? 'Sitzt noch. +1 Integrität, das Netz wird wieder stabiler.'
-                : `Richtig wäre: ${answerText(q)}. Dieser Knoten ist für heute gewartet, probier einen anderen.`}
+                ? t.node.maintainedText
+                : t.node.maintainFailed(answerText(q, t.lang))}
             </P>
           </Card>
           <Card>
             <P style={{ color: colors.text }}>{q.explanation}</P>
           </Card>
-          <Button label="Zurück zum Netz" onPress={leave} />
+          <Button label={t.common.backToMap} onPress={leave} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -357,7 +360,7 @@ function NodeGame({
 
         {r.correct ? (
           <>
-            <H1 style={{ textAlign: 'center' }}>{review ? 'Repariert!' : 'Verbindung steht!'}</H1>
+            <H1 style={{ textAlign: 'center' }}>{review ? t.node.repaired : t.node.connected}</H1>
             <Card>
               <P style={{ color: colors.text }}>{q.explanation}</P>
             </Card>
@@ -373,8 +376,7 @@ function NodeGame({
             {review && r.early ? (
               <Card style={{ borderColor: colors.warn }}>
                 <P style={{ color: colors.warn }}>
-                  Noch nicht fällig: Die fehlenden Wege wachsen trotzdem. Integrität und Belohnung gibt es, wenn die
-                  Reparatur dran ist, dann rückt der Knoten auch der Heilung näher.
+                  {t.node.early}
                 </P>
               </Card>
             ) : null}
@@ -382,40 +384,40 @@ function NodeGame({
               <View style={styles.rewards}>
                 <Chip label={`+${r.reward.xp} XP`} color={colors.accent} />
                 <Chip icon="bit" label={`+${r.reward.bits}`} color={colors.bit} />
-                {r.prepared ? <Chip icon="check" label="Gut vorbereitet" color={colors.primary} /> : null}
+                {r.prepared ? <Chip icon="check" label={t.node.prepared} color={colors.primary} /> : null}
                 {r.reward.gems > 0 ? <Chip icon="gem" label={`+${r.reward.gems}`} color={colors.gem} /> : null}
               </View>
             ) : null}
             {!review && r.attempts === 2 ? (
               <Card style={{ borderColor: colors.warn }}>
                 <P style={{ color: colors.warn }}>
-                  Erst im zweiten Anlauf: Nur die Vertiefung wächst. Der Knoten ist beschädigt. Repariere ihn, dann folgt die Brücke.
+                  {t.node.secondTry}
                 </P>
               </Card>
             ) : null}
             {!review && r.attempts >= 3 ? (
               <Card style={{ borderColor: colors.bad }}>
                 <P style={{ color: colors.bad }}>
-                  Mehrere Fehlversuche: Der Knoten ist beschädigt und lässt nichts Neues wachsen, bis du ihn repariert hast.
+                  {t.node.manyTries}
                 </P>
               </Card>
             ) : null}
             {(r.reachedWalls ?? []).map((a) => (
               <Card key={a} style={{ borderColor: colors.bad }}>
                 <P style={{ color: colors.bad }}>
-                  Firewall erreicht: Dein Netz steht an der Wand vor {areaById(a).de}. Tippe sie auf der Karte an, um sie anzugreifen.
+                  {t.node.wallReached(area(a))}
                 </P>
               </Card>
             ))}
             {r.starter ? (
               <Card style={{ borderColor: colors.gem, gap: 8 }}>
                 <P style={{ color: colors.gem }}>
-                  Startpaket freigeschaltet: 100 Gems und 3 Streak-Schutz zum Einstiegspreis. Einmalig, bleibt im Shop.
+                  {t.node.starter}
                 </P>
                 <Button
                   variant="gem"
                   icon="gem"
-                  label="Ansehen"
+                  label={t.node.view}
                   onPress={() => router.push({ pathname: '/shop', params: { from: 'starter' } })}
                 />
               </Card>
@@ -423,44 +425,44 @@ function NodeGame({
             {r.closedCircle ? (
               <Card style={{ borderColor: colors.gem }}>
                 <P style={{ color: colors.gem }}>
-                  Kreis geschlossen! Dein Netz hat sich mit einem anderen Zweig verbunden. Bonus!
+                  {t.node.circle}
                 </P>
               </Card>
             ) : null}
             {spawnedNodes.length > 0 ? (
               <Card style={{ gap: 6 }}>
-                <Text style={styles.cacheLabel}>NEUE WEGE</Text>
+                <Text style={styles.cacheLabel}>{t.node.newPaths}</Text>
                 {spawnedNodes.map((n) => {
                   const nq = pool.get(n.questionId);
                   return (
                     <View key={n.id} style={styles.pathRow}>
                       <Icon name={n.kind === 'deepen' ? 'down' : n.kind === 'bridge' ? 'link' : 'shard'} size={18} color={colors.accent} />
                       <Text style={styles.pathLine}>
-                        {n.kind === 'deepen' ? 'Vertiefung' : n.kind === 'bridge' ? 'Brücke' : 'Trümmerfeld'} · {areaById(nq.area).de}
+                        {t.kinds[n.kind]} · {area(nq.area)}
                       </Text>
                     </View>
                   );
                 })}
               </Card>
             ) : null}
-            <Button label="Zurück zum Netz" onPress={leave} />
+            <Button label={t.common.backToMap} onPress={leave} />
           </>
         ) : (
           <>
-            <H1 style={{ textAlign: 'center' }}>{review ? 'Noch wackelig' : 'Glitch!'}</H1>
+            <H1 style={{ textAlign: 'center' }}>{review ? t.node.shaky : t.node.glitch}</H1>
             <Card>
-              <Text style={styles.speaker}>morph.ai funkt dazwischen</Text>
+              <Text style={styles.speaker}>{t.node.morphRadios}</Text>
               <P style={{ color: colors.text }}>{r.morph}</P>
             </Card>
             {review ? (
               <Card>
                 <P style={{ color: colors.text }}>
-                  Richtig wäre: {answerText(q)}. {q.explanation}
+                  {t.common.rightWouldBe(answerText(q, t.lang))} {q.explanation}
                 </P>
               </Card>
             ) : (
               <P style={{ textAlign: 'center' }}>
-                Der Knoten flackert, aber er hält. Versuch {r.attempts} · Integrität sinkt. Jeder weitere Fehler bremst das Wachstum: ab dem zweiten Treffer wächst weniger.
+                {t.node.flicker(r.attempts)}
               </P>
             )}
             {!review ? (
@@ -469,8 +471,8 @@ function NodeGame({
                   <>
                     <Button
                       variant="gem"
-                      label={second.instant ? 'Reparatur-Funk (Plus)' : 'Reparatur-Funk (Video ansehen)'}
-                      sub={`Zweite Chance: +1 Integrität und ein Hinweis von Bolt · heute noch ${second.left}`}
+                      label={second.instant ? t.node.adRepairPlus : t.node.adRepair}
+                      sub={t.node.adRepairSub(second.left)}
                       disabled={adBusy}
                       onPress={watchForSecondChance}
                     />
@@ -480,25 +482,25 @@ function NodeGame({
                         hitSlop={8}
                         onPress={() => router.push({ pathname: '/plus', params: { from: 'secondChance' } })}
                       >
-                        <Text style={styles.plusLink}>Ohne Video und ohne Werbung: NEXUS Plus</Text>
+                        <Text style={styles.plusLink}>{t.node.plusLink}</Text>
                       </Pressable>
                     )}
                   </>
                 ) : null}
-                <Button label="Zurück ins Trümmerfeld" onPress={retry} />
+                <Button label={t.node.backToDebris} onPress={retry} />
                 {r.attempts >= 3 ? (
                   <Card style={{ gap: 8 }}>
-                    <P>Du kannst den Knoten später noch einmal angehen. Richtig wäre gewesen:</P>
-                    <Text style={styles.stem}>{answerText(q)}</Text>
+                    <P>{t.node.laterText}</P>
+                    <Text style={styles.stem}>{answerText(q, t.lang)}</Text>
                     <P>{q.explanation}</P>
-                    <Button label="Später wiederkommen" variant="ghost" onPress={leave} />
+                    <Button label={t.node.later} variant="ghost" onPress={leave} />
                   </Card>
                 ) : (
-                  <Button label="Zurück zum Netz" variant="ghost" onPress={leave} />
+                  <Button label={t.common.backToMap} variant="ghost" onPress={leave} />
                 )}
               </>
             ) : (
-              <Button label="Zurück zum Netz" onPress={leave} />
+              <Button label={t.common.backToMap} onPress={leave} />
             )}
           </>
         )}

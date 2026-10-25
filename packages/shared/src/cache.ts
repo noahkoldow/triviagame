@@ -2,7 +2,7 @@ import { fragmentFiles } from './files';
 import type { PlayerState } from './game';
 import type { Pool } from './network';
 import { seededRng } from './rng';
-import type { Fragment, FragmentFile } from './types';
+import type { Fragment, FragmentFile, Question } from './types';
 
 /**
  * Two places for what the player gathers from the loose folders of a debris field (D49):
@@ -148,6 +148,27 @@ export function cacheContents(
     const file = fragment && fragmentFiles(fragment).find((x) => x.name === entry.file);
     if (!q || !fragment || !file || (area && q.area !== area)) return [];
     return [{ entry, area: q.area, folder: fragment.hint, file }];
+  });
+}
+
+/**
+ * After a change of language: file names are words of the language, so every carried file is
+ * renamed to the file at the same place in its folder (`before` and `after` look questions up in
+ * the old and the new language). Files that cannot be found are dropped.
+ */
+export function relinkCacheFiles(
+  cache: CacheFile[],
+  before: (questionId: string) => Question | undefined,
+  after: (questionId: string) => Question | undefined,
+): CacheFile[] {
+  const filesOf = (q: Question | undefined, fragmentId: string) => {
+    const fragment = q?.fragments.find((x) => x.id === fragmentId);
+    return fragment ? fragmentFiles(fragment) : [];
+  };
+  return cache.flatMap((c) => {
+    const at = filesOf(before(c.questionId), c.fragmentId).findIndex((x) => x.name === c.file);
+    const file = at >= 0 ? filesOf(after(c.questionId), c.fragmentId)[at] : undefined;
+    return file ? [{ ...c, file: file.name }] : [];
   });
 }
 

@@ -22,7 +22,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import {
-  areaById,
+  areaName,
   breachesOf,
   type Firewall,
   sectorOfArea,
@@ -33,6 +33,7 @@ import {
   type Pool,
   type Sector,
 } from '@nexus/shared';
+import { useStrings } from '../strings';
 import { colors, mix } from '../theme';
 import {
   ANCHOR_Y,
@@ -107,6 +108,8 @@ function NetMapBase({
   onDismiss,
   onSelect,
 }: Props) {
+  // area names on the map follow the player's language
+  const t = useStrings();
   const cx = useSharedValue(0);
   const cy = useSharedValue(0);
   const zoom = useSharedValue(0.9);
@@ -153,10 +156,10 @@ function NetMapBase({
       for (const [s, w] of Object.entries(q.side ?? {}) as [Sector, number][]) {
         if (w) ring = mix(ring, SECTOR_COLOR[s], Math.min(0.6, w * 1.6));
       }
-      out[n.id] = { node: n, color, ring, label: areaById(q.area).de, sector };
+      out[n.id] = { node: n, color, ring, label: areaName(q.area, t.lang), sector };
     }
     return out;
-  }, [placed, pool]);
+  }, [placed, pool, t.lang]);
 
   const sites = useMemo<Site[]>(() => {
     const real = placed.map<Site>((n) => {
@@ -444,7 +447,7 @@ function NetMapBase({
       style={{ width, height, backgroundColor: colors.bg }}
       {...responder.panHandlers}
       accessible
-      accessibilityLabel="Netzkarte. Ziehen zum Verschieben, zwei Finger zum Zoomen, Knoten antippen."
+      accessibilityLabel={t.a11y.map}
     >
       <Canvas style={{ width, height }} pointerEvents="none">
         <Rect x={0} y={0} width={width} height={height}>
@@ -509,7 +512,7 @@ function NetMapBase({
                 key={`w-${b.sign.firewall}`}
                 x={b.sign.x}
                 y={b.sign.y}
-                label={areaById(b.sign.area).de}
+                label={areaName(b.sign.area, t.lang)}
                 reached={b.sign.reached}
                 font={font}
               />

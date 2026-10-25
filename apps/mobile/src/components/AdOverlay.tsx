@@ -4,10 +4,12 @@ import { subscribeMockAds, type MockAdRequest } from '../services/ads';
 import { colors, radius } from '../theme';
 import { Button } from './ui';
 import { IS_PROTOTYPE } from '../config';
+import { useStrings } from '../strings';
 import { Window } from './Win';
 
 /** Stand-in for AdMob in Expo Go. */
 export function AdOverlay() {
+  const t = useStrings();
   const [req, setReq] = useState<MockAdRequest | null>(null);
   const [left, setLeft] = useState(0);
 
@@ -24,24 +26,21 @@ export function AdOverlay() {
   return (
     <Modal transparent animationType="fade" visible onRequestClose={() => req.resolve(false)}>
       <View style={styles.backdrop}>
-        <Window title={IS_PROTOTYPE ? 'Werbung (Test)' : 'Werbung'} icon="warn">
-          {IS_PROTOTYPE ? <Text style={styles.badge}>TESTWERBUNG · {rewarded ? 'Belohnung' : 'Anzeige'}</Text> : null}
+        <Window title={IS_PROTOTYPE ? t.ads.titleTest : t.ads.title} icon="warn">
+          {IS_PROTOTYPE ? <Text style={styles.badge}>{t.ads.badge(rewarded)}</Text> : null}
           <Text style={styles.title}>
-            {rewarded ? 'Reparatur-Funk' : req.kind === 'appOpen' ? 'Willkommen zurück' : 'Kurze Unterbrechung'}
+            {rewarded ? t.ads.rewardedTitle : req.kind === 'appOpen' ? t.ads.welcomeBack : t.ads.breakTitle}
           </Text>
-          <Text style={styles.body}>
-            Hier würde AdMob eine {rewarded ? 'Video-Anzeige' : 'Anzeige'} zeigen.
-            {req.personalized ? ' (personalisiert)' : ' (nicht personalisiert)'}
-          </Text>
-          {rewarded ? null : <Text style={styles.body}>Werbung hält NEXUS kostenlos. Ohne Werbung: NEXUS Plus im Shop.</Text>}
+          <Text style={styles.body}>{t.ads.body(rewarded, req.personalized)}</Text>
+          {rewarded ? null : <Text style={styles.body}>{t.ads.keepsFree}</Text>}
           <Button
-            label={left > 0 ? `Noch ${left} s …` : rewarded ? 'Belohnung abholen' : 'Weiter'}
+            label={left > 0 ? t.ads.wait(left) : rewarded ? t.ads.claim : t.common.next}
             disabled={left > 0}
             onPress={() => req.resolve(true)}
           />
           {rewarded ? (
             <Button
-              label="Abbrechen"
+              label={t.common.cancel}
               variant="ghost"
               onPress={() => req.resolve(false)}
               style={{ marginTop: 8 }}

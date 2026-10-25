@@ -1,3 +1,5 @@
+import type { Lang } from './lang';
+
 export type Sector = 'science' | 'earth' | 'humanities' | 'society';
 
 export type FragmentKind = 'key' | 'context' | 'decoy';
@@ -40,6 +42,11 @@ interface QuestionBase {
   id: string;
   /** Taxonomy area, e.g. "physics". Its sector is the main sector. */
   area: string;
+  /**
+   * The language a question from the server is written in. Built-in questions have none: they
+   * exist in every language under the same id (German source, translations in `i18n/`).
+   */
+  lang?: Lang;
   /** Secondary sector weights (0..1), e.g. medicine → { nature: 0.25 }. */
   side?: Partial<Record<Sector, number>>;
   /** Short keyword shown before the question ("Lichtgeschwindigkeit"); it must not give the answer away. */

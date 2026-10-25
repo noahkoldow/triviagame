@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { chartText, type ChartSpec } from '@nexus/shared';
+import { useStrings } from '../strings';
 import { barLayout, formatNumber, timelineLayout } from './chart.logic';
 
 const INK = '#101820';
@@ -23,6 +24,7 @@ export function ChartView({ chart, width, alt }: { chart: ChartSpec; width: numb
 }
 
 function Bars({ chart, width }: { chart: Extract<ChartSpec, { chart: 'bars' }>; width: number }) {
+  const t = useStrings();
   const labelW = 92;
   const valueW = 70;
   const rows = barLayout(chart.items, Math.max(40, width - labelW - valueW - 8));
@@ -35,11 +37,11 @@ function Bars({ chart, width }: { chart: Extract<ChartSpec, { chart: 'bars' }>; 
           </Text>
           <View style={[styles.bar, { width: r.width, backgroundColor: BAR[i % BAR.length] }]} />
           <Text style={styles.value} maxFontSizeMultiplier={1.2}>
-            {formatNumber(r.value)}
+            {formatNumber(r.value, t.lang)}
           </Text>
         </View>
       ))}
-      {chart.unit ? <Text style={styles.unit}>Angaben in {chart.unit}</Text> : null}
+      {chart.unit ? <Text style={styles.unit}>{t.explorer.chartUnit(chart.unit)}</Text> : null}
     </View>
   );
 }

@@ -84,7 +84,18 @@ function Emblem({ size, spin, jitter, opacity }: { size: number; spin: number; j
  * The opening scene: a hexagon network (the map) that MORPH corrupts with noise
  * and then destroys. `stage` 0 = intact, 1 = MORPH attacks, 2 = ruins with one spark left.
  */
-export function MorphScene({ stage, width, height }: { stage: 0 | 1 | 2; width: number; height: number }) {
+export function MorphScene({
+  stage,
+  width,
+  height,
+  label,
+}: {
+  stage: 0 | 1 | 2;
+  width: number;
+  height: number;
+  /** What the picture shows, for screen readers (in the player's language). */
+  label: string;
+}) {
   const reduced = useReducedMotion();
   const cells = useMemo(() => buildCells(), []);
   const links = useMemo(() => buildLinks(cells), [cells]);
@@ -129,7 +140,7 @@ export function MorphScene({ stage, width, height }: { stage: 0 | 1 | 2; width: 
   const spin = reduced ? 0 : now / 2200;
 
   return (
-    <Canvas style={{ width, height }} accessible accessibilityLabel={SCENE_LABEL[stage]}>
+    <Canvas style={{ width, height }} accessible accessibilityLabel={label}>
       <Rect x={0} y={0} width={width} height={height}>
         <LinearGradient start={vec(0, 0)} end={vec(0, height)} colors={['#050A14', '#0B1626']} />
       </Rect>
@@ -205,9 +216,3 @@ export function MorphScene({ stage, width, height }: { stage: 0 | 1 | 2; width: 
     </Canvas>
   );
 }
-
-const SCENE_LABEL = [
-  'Das Nexus-Netz aus Sechsecken leuchtet.',
-  'morph.ai, ein verschlungenes Emblem, löscht das Netz und lässt nur Rauschen zurück.',
-  'Das Netz liegt in Trümmern. Nur im Kern glimmt noch ein Funke.',
-];

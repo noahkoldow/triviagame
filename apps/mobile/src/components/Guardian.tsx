@@ -26,25 +26,23 @@ import {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { guardianTitle } from '@nexus/shared';
+import { useStrings } from '../strings';
 
 export type GuardianId = 'quantis' | 'rhizom' | 'kodex' | 'muse';
 
-const LABEL: Record<GuardianId, string> = {
-  quantis: 'Quantis, Hüter der Naturwissenschaften',
-  rhizom: 'Rhizom, Hüter der Erde',
-  kodex: 'Kodex, Hüter der Gesellschaft',
-  muse: 'Muse, Hüterin der Geisteswissenschaften',
-};
+const NAME: Record<GuardianId, string> = { quantis: 'Quantis', rhizom: 'Rhizom', kodex: 'Kodex', muse: 'Muse' };
 
 /** Portrait of a sector guardian, drawn on the same 100×100 grid as Bolt. */
 export function Guardian({ who, size = 96 }: { who: GuardianId; size?: number }) {
+  const t = useStrings();
   const Art = ART[who];
   return (
     <View
       style={{ width: size, height: size }}
       accessible
       accessibilityRole="image"
-      accessibilityLabel={LABEL[who]}
+      accessibilityLabel={t.a11y.guardian(NAME[who], guardianTitle(who, t.lang))}
     >
       <Canvas style={{ width: size, height: size }}>
         <Group transform={[{ scale: size / 100 }]}>

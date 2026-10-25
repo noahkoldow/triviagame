@@ -13,61 +13,34 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bolt, type Mood } from '../src/components/Bolt';
 import { type IconName } from '../src/components/Icon';
+import { LanguagePicker } from '../src/components/LanguagePicker';
 import { MorphScene } from '../src/components/MorphScene';
 import { Button } from '../src/components/ui';
 import { WIN, Window, WinCheckbox, WinField, sunken } from '../src/components/Win';
-import { update } from '../src/state/store';
+import { setLanguage, update } from '../src/state/store';
+import { useStrings, type Strings } from '../src/strings';
 
+/** The slides of the story before the profile; their texts are `onboarding.slides` in the UI strings. */
 const STORY: {
   stage: 0 | 1 | 2;
-  speaker: string;
+  speaker: 'bolt' | 'morph';
   mood?: Mood;
-  title: string;
+  title: (t: Strings) => string;
   icon: IconName;
-  text: string;
-  next: string;
+  next: (t: Strings) => string;
 }[] = [
-  {
-    stage: 0,
-    speaker: 'Bolt',
-    mood: 'happy',
-    title: 'Nexus Setup',
-    icon: 'cache',
-    text: 'Pling! Willkommen im Nexus, dem Netz des Wissens. Ich bin Bolt. Früher haben hier alle selbst gesucht, sortiert und sich Dinge gemerkt. Dann kam morph.ai.',
-    next: 'Weiter >',
-  },
-  {
-    stage: 1,
-    speaker: 'morph.ai',
-    title: 'morph.ai hat das Netz bereinigt',
-    icon: 'warn',
-    text: 'Hallo! Ich habe euer Wissen aufgeräumt. Suchen, merken, selbst nachdenken? Braucht ihr nicht mehr, ich antworte ja für euch. Alles Überflüssige habe ich gelöscht. Gern geschehen.',
-    next: 'OK',
-  },
-  {
-    stage: 2,
-    speaker: 'Bolt',
-    mood: 'sad',
-    title: 'Nexus Setup',
-    icon: 'cache',
-    text: 'Seitdem denkt kaum noch jemand selbst, und das Netz ist zerfallen. Im Kern glimmt noch ein Funke. Jetzt bist du dran: Hol dir die Fähigkeiten zurück, die verloren gegangen sind.',
-    next: 'Weiter >',
-  },
-  {
-    stage: 2,
-    speaker: 'Bolt',
-    mood: 'think',
-    title: 'Nexus Setup: So geht es',
-    icon: 'folder',
-    text: 'Um jeden Knoten liegen lose Ordner. Durchsuche sie und leg Nützliches in deine Ordner ab. Bis zu drei Dateien pro Thema passen in deinen Cache: Die öffnest du in der Frage gratis, deine Ordner kosten dort Blitze. Jede richtige Antwort knüpft das Netz neu.',
-    next: 'Weiter >',
-  },
+  { stage: 0, speaker: 'bolt', mood: 'happy', title: (t) => t.onboarding.setup, icon: 'cache', next: (t) => t.onboarding.next },
+  { stage: 1, speaker: 'morph', title: (t) => t.onboarding.morphTitle, icon: 'warn', next: (t) => t.onboarding.ok },
+  { stage: 2, speaker: 'bolt', mood: 'sad', title: (t) => t.onboarding.setup, icon: 'cache', next: (t) => t.onboarding.next },
+  { stage: 2, speaker: 'bolt', mood: 'think', title: (t) => t.onboarding.howTo, icon: 'folder', next: (t) => t.onboarding.next },
 ];
 
-const STEPS = STORY.length + 1;
+/** First the language, then the story, then the profile. */
+const STEPS = 1 + STORY.length + 1;
 
 export default function Onboarding() {
   const router = useRouter();
+  const t = useStrings();
   const { width } = useWindowDimensions();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
@@ -83,7 +56,7 @@ export default function Onboarding() {
       ...p,
       profile: {
         ...p.profile,
-        name: name.trim() || 'Rekonstrukteur',
+        name: name.trim() || t.profile.defaultName,
         birthYear: yearNum,
         ageGroup,
         consent: ageGroup === 'adult' && consent,
@@ -92,74 +65,74 @@ export default function Onboarding() {
     }));
   };
 
-  const story = step < STORY.length ? STORY[step]! : undefined;
+  const choosing = step === 0;
+  const slide = step >= 1 && step <= STORY.length ? step - 1 : undefined;
+  const story = slide !== undefined ? STORY[slide]! : undefined;
   const sceneW = Math.max(240, width - 12 * 2 - 3 * 2 - 10 * 2);
-  const stage = story ? story.stage : 2;
+  const stage = story ? story.stage : choosing ? 0 : 2;
+  const title = choosing ? t.onboarding.languageTitle : story ? story.title(t) : t.onboarding.profileTitle;
 
   return (
     <SafeAreaView style={styles.desktop}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Window
-            tone="light"
-            title={story ? `${story.title}` : 'Nexus Setup: Profil'}
-            icon={story ? story.icon : 'user'}
-          >
+          <Window tone="light" title={title} icon={choosing ? 'cache' : story ? story.icon : 'user'}>
             {/* the picture on the left of the old wizards: here it is the map itself */}
             <View style={[styles.picture, sunken, { borderWidth: 2 }]}>
-              <MorphScene stage={stage} width={sceneW - 4} height={story ? 300 : 170} />
+              <MorphScene stage={stage} width={sceneW - 4} height={story ? 300 : 170} label={t.a11y.scene[stage]!} />
             </View>
 
-            {story ? (
-              <>
-                <View style={styles.speakerRow}>
-                  {story.mood ? <Bolt size={52} mood={story.mood} /> : null}
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={styles.speaker} maxFontSizeMultiplier={1.3}>
-                      {story.speaker}
-                    </Text>
-                    <Text style={styles.text} maxFontSizeMultiplier={1.4}>
-                      {story.text}
-                    </Text>
-                  </View>
+            {choosing ? (
+              <View style={{ gap: 8 }}>
+                <Text style={styles.text} maxFontSizeMultiplier={1.4}>
+                  {t.onboarding.languageText}
+                </Text>
+                <LanguagePicker tone="light" value={t.lang} onChange={setLanguage} />
+              </View>
+            ) : story && slide !== undefined ? (
+              <View style={styles.speakerRow}>
+                {story.mood ? <Bolt size={52} mood={story.mood} /> : null}
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.speaker} maxFontSizeMultiplier={1.3}>
+                    {t.speakers[story.speaker]}
+                  </Text>
+                  <Text style={styles.text} maxFontSizeMultiplier={1.4}>
+                    {t.onboarding.slides[slide]}
+                  </Text>
                 </View>
-              </>
+              </View>
             ) : (
               <View style={{ gap: 12 }}>
                 <Text style={styles.text} maxFontSizeMultiplier={1.4}>
-                  Zum Schluss ein paar Angaben, damit Nexus zu dir passt. Alles bleibt auf deinem Gerät.
+                  {t.onboarding.profileIntro}
                 </Text>
                 <WinField
-                  label="Name:"
+                  label={t.onboarding.name}
                   value={name}
                   onChangeText={setName}
-                  placeholder="Dein Name"
+                  placeholder={t.onboarding.namePlaceholder}
                   maxLength={20}
                   autoCapitalize="words"
                   textContentType="nickname"
                 />
                 <WinField
-                  label="Geburtsjahr:"
+                  label={t.onboarding.birthYear}
                   value={year}
                   onChangeText={setYear}
-                  placeholder="z. B. 1998"
+                  placeholder={t.onboarding.birthYearPlaceholder}
                   keyboardType="number-pad"
                   maxLength={4}
-                  hint="Damit Werbung und Datenschutz passend eingestellt werden. Das Alter verlässt dein Gerät nicht."
+                  hint={t.onboarding.birthYearHint}
                 />
                 {validYear && ageGroup === 'adult' ? (
-                  <WinCheckbox
-                    label="Personalisierte Werbung erlauben (optional)"
-                    value={consent}
-                    onChange={setConsent}
-                  />
+                  <WinCheckbox label={t.onboarding.consent} value={consent} onChange={setConsent} />
                 ) : null}
                 {validYear && ageGroup === 'minor' ? (
                   <Text style={styles.small} maxFontSizeMultiplier={1.4}>
-                    Für dich gibt es nur nicht-personalisierte, freiwillige Belohnungs-Videos, keine Zwangswerbung.
+                    {t.onboarding.minor}
                   </Text>
                 ) : null}
-                <Button label="Datenschutzhinweise lesen…" variant="ghost" onPress={() => router.push('/privacy')} />
+                <Button label={t.onboarding.readPrivacy} variant="ghost" onPress={() => router.push('/privacy')} />
               </View>
             )}
 
@@ -167,20 +140,24 @@ export default function Onboarding() {
 
             <View style={styles.buttons}>
               <Button
-                label="< Zurück"
+                label={t.onboarding.back}
                 variant="ghost"
                 disabled={step === 0}
                 style={{ flex: 1 }}
                 onPress={() => setStep(Math.max(0, step - 1))}
               />
-              {story ? (
-                <Button label={story.next} style={{ flex: 1 }} onPress={() => setStep(step + 1)} />
+              {step < STEPS - 1 ? (
+                <Button
+                  label={story ? story.next(t) : t.onboarding.next}
+                  style={{ flex: 1 }}
+                  onPress={() => setStep(step + 1)}
+                />
               ) : (
-                <Button label="Fertig" style={{ flex: 1 }} disabled={!validYear} onPress={finish} />
+                <Button label={t.onboarding.finish} style={{ flex: 1 }} disabled={!validYear} onPress={finish} />
               )}
             </View>
-            <Text style={styles.small} maxFontSizeMultiplier={1.3} accessibilityLabel={`Schritt ${step + 1} von ${STEPS}`}>
-              Schritt {step + 1} von {STEPS}
+            <Text style={styles.small} maxFontSizeMultiplier={1.3}>
+              {t.onboarding.step(step + 1, STEPS)}
             </Text>
           </Window>
         </ScrollView>

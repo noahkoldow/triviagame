@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Easing, useDerivedValue, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BRAIN_REVEAL, REVEAL_ID, SECTOR_COLOR, markSeen, sectorOfArea, type Sector } from '@nexus/shared';
+import { REVEAL_ID, SECTOR_COLOR, brainReveal, markSeen, sectorOfArea, type Sector } from '@nexus/shared';
 import {
   BRAIN_CENTER,
   CEREBELLUM,
@@ -17,13 +17,13 @@ import {
   pathways,
   type Curve,
 } from '../src/components/brain.logic';
-import { Portrait } from '../src/components/StoryDialog';
+import { Portrait, speakerName } from '../src/components/StoryDialog';
 import { Button } from '../src/components/ui';
 import { pool } from '../src/services/content';
 import { getState, update } from '../src/state/store';
+import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
 
-const NAMES = { bolt: 'Bolt', morph: 'morph.ai', core: 'Kern' } as Record<string, string>;
 const SECTORS_OF_NET: Sector[] = ['science', 'earth', 'humanities', 'society'];
 
 const svg = (d: string): SkPath => Skia.Path.MakeFromSVGString(d) ?? Skia.PathBuilder.Make().detach();
@@ -57,8 +57,10 @@ export default function BrainReveal() {
   const { width, height } = useWindowDimensions();
   const reduced = useReducedMotion();
   const [step, setStep] = useState(0);
-  const s = BRAIN_REVEAL[step]!;
-  const last = step === BRAIN_REVEAL.length - 1;
+  const t = useStrings();
+  const steps = useMemo(() => brainReveal(t.lang), [t.lang]);
+  const s = steps[step]!;
+  const last = step === steps.length - 1;
 
   // the first time after the finale the league follows; a replay from the settings just goes back
   const [first] = useState(() => {
@@ -141,7 +143,7 @@ export default function BrainReveal() {
       <Canvas
         style={{ width, height: viewH + 48 }}
         accessible
-        accessibilityLabel="Dein Wissensnetz wird zu Nervenbahnen, die Ansicht zoomt heraus, bis ein Gehirn erscheint."
+        accessibilityLabel={t.brain.a11y}
       >
         <Group transform={transform}>
           {/* the brain around the network */}
@@ -180,13 +182,13 @@ export default function BrainReveal() {
           <View style={styles.row}>
             {s.speaker ? <Portrait speaker={s.speaker} mood={s.mood} form={s.form} size={56} /> : null}
             <View style={{ flex: 1, gap: 4 }}>
-              {s.speaker ? <Text style={styles.speaker}>{NAMES[s.speaker] ?? s.speaker}</Text> : null}
+              {s.speaker ? <Text style={styles.speaker}>{speakerName(s.speaker, t)}</Text> : null}
               <Text style={styles.text}>{s.text}</Text>
             </View>
           </View>
         )}
-        <Button label={last ? 'Weiter wachsen' : 'Weiter'} onPress={() => (last ? done() : setStep(step + 1))} />
-        {!last ? <Button label="Überspringen" variant="ghost" onPress={done} /> : null}
+        <Button label={last ? t.brain.keepGrowing : t.common.next} onPress={() => (last ? done() : setStep(step + 1))} />
+        {!last ? <Button label={t.brain.skip} variant="ghost" onPress={done} /> : null}
       </View>
     </SafeAreaView>
   );

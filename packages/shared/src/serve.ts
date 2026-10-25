@@ -1,4 +1,5 @@
 import { QUESTION_TYPES, validateDraft } from './ai';
+import { DEFAULT_LANG, LANGS, isLang, type Lang } from './lang';
 import { isArea } from './taxonomy';
 import type { Question, QuestionType } from './types';
 
@@ -15,12 +16,19 @@ export interface PoolRequest {
   count: number;
   /** Ids of the questions of this area the app already has. */
   have: string[];
+  /** The language the questions are written in; every language has its own pool. */
+  lang: Lang;
 }
 
 export const POOL_MAX_COUNT = 3;
 export const POOL_MAX_HAVE = 400;
 const ID = /^[a-z0-9-]{1,64}$/;
-const FIELDS = ['area', 'difficulty', 'count', 'have'];
+const FIELDS = ['area', 'difficulty', 'count', 'have', 'lang'];
+
+/** The document of the shared pool for an area in a language (`poolIndex/{key}`). */
+export function poolKey(area: string, lang: Lang): string {
+  return `${lang}_${area}`;
+}
 
 /** Strict check of a request body; anything else (a prompt, extra fields) is refused. */
 export function parsePoolRequest(body: unknown): { ok: true; req: PoolRequest } | { ok: false; error: string } {
@@ -39,7 +47,10 @@ export function parsePoolRequest(body: unknown): { ok: true; req: PoolRequest } 
   if (!Array.isArray(have) || have.length > POOL_MAX_HAVE || !have.every((x) => typeof x === 'string' && ID.test(x))) {
     return { ok: false, error: `have must be up to ${POOL_MAX_HAVE} question ids` };
   }
-  return { ok: true, req: { area: b.area, difficulty: d as PoolRequest['difficulty'], count: c as number, have } };
+  // apps from before the language picker do not send one: they play in German
+  const lang = b.lang ?? DEFAULT_LANG;
+  if (!isLang(lang)) return { ok: false, error: `lang must be one of ${LANGS.join(', ')}` };
+  return { ok: true, req: { area: b.area, difficulty: d as PoolRequest['difficulty'], count: c as number, have, lang } };
 }
 
 /** What the server keeps per question in the index of an area. */
@@ -82,10 +93,12 @@ export function avoidTopicsOf(entries: PoolEntry[], n = 30): string[] {
  * Checks a question that came from the server (or local storage) before it joins the game:
  * it must pass the same validation as a model draft and keep its id.
  */
-export function acceptServed(item: unknown): Question | null {
+export function acceptServed(item: unknown, lang?: Lang): Question | null {
   if (!item || typeof item !== 'object' || typeof (item as { id?: unknown }).id !== 'string') return null;
   const v = validateDraft(item);
   if (!v.ok || v.question.id !== (item as { id: string }).id) return null;
+  // asked for one language, a question in another one is no use
+  if (lang && (v.question.lang ?? DEFAULT_LANG) !== lang) return null;
   const raw = item as { deepen?: unknown; bridge?: unknown };
   const ids = (x: unknown) => (Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string' && ID.test(s)) : []);
   return { ...v.question, deepen: ids(raw.deepen), bridge: ids(raw.bridge) };

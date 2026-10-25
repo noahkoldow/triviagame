@@ -29,15 +29,18 @@ export interface PurchaseProvider {
   entitlements(): Promise<Entitlements | null>;
 }
 
-/** Fallback texts until the store answers. Prices are placeholders, the store's own win (see docs/MONETIZATION.md). */
-export const PRODUCT_TEXT: Record<ProductId, { title: string; price: string; amount: number; per?: string }> = {
-  gems_50: { title: '50 Gems', price: '0,99 €', amount: 0.99 },
-  gems_150: { title: '150 Gems', price: '2,49 €', amount: 2.49 },
-  gems_400: { title: '400 Gems', price: '5,99 €', amount: 5.99 },
-  starter: { title: 'Startpaket', price: '1,99 €', amount: 1.99 },
-  plus_month: { title: 'Monatlich', price: '4,99 €', amount: 4.99, per: 'pro Monat' },
-  plus_year: { title: 'Jährlich', price: '29,99 €', amount: 29.99, per: 'pro Jahr' },
-  plus_life: { title: 'Für immer', price: '59,99 €', amount: 59.99, per: 'einmalig' },
+/**
+ * Fallback prices until the store answers. They are placeholders, the store's own win (see
+ * docs/MONETIZATION.md). Product names are UI text (`shop.products` in the UI strings).
+ */
+export const PRODUCT_TEXT: Record<ProductId, { price: string; amount: number }> = {
+  gems_50: { price: '0,99 €', amount: 0.99 },
+  gems_150: { price: '2,49 €', amount: 2.49 },
+  gems_400: { price: '5,99 €', amount: 5.99 },
+  starter: { price: '1,99 €', amount: 1.99 },
+  plus_month: { price: '4,99 €', amount: 4.99 },
+  plus_year: { price: '29,99 €', amount: 29.99 },
+  plus_life: { price: '59,99 €', amount: 59.99 },
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;

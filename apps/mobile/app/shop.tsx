@@ -12,6 +12,7 @@ import {
   PLUS_MONTHLY,
   SECTORS,
   areaCost,
+  areaName,
   areasOfSector,
   buyCosmetic,
   buyFreeze,
@@ -31,21 +32,16 @@ import { BackBar, Button, Card, Chip, P, tap } from '../src/components/ui';
 import { track } from '../src/services/analytics';
 import { pool } from '../src/services/content';
 import { IS_PROTOTYPE } from '../src/config';
-import { PRODUCT_TEXT } from '../src/services/purchases';
 import { buy as buyProduct, restorePurchases, usePrices, watchRewarded } from '../src/state/monetize';
 import { getState, today, update, useGame } from '../src/state/store';
-import { de } from '../src/strings';
+import { useStrings } from '../src/strings';
 import { colors } from '../src/theme';
 
 const GEM_PACKS: ProductId[] = ['gems_50', 'gems_150', 'gems_400'];
 
-function dateText(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
-}
-
 export default function Shop() {
   const router = useRouter();
+  const t = useStrings();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const gems = useGame((p) => p.gems);
   const bits = useGame((p) => p.bits);
@@ -90,29 +86,26 @@ export default function Shop() {
     const ok = await restorePurchases();
     setBusy(false);
     const back = isPlus(getState(), Date.now());
-    Alert.alert(
-      'Käufe wiederherstellen',
-      ok && back ? 'NEXUS Plus ist wieder aktiv.' : 'Es gab nichts wiederherzustellen.',
-    );
+    Alert.alert(t.shop.restore, ok && back ? t.shop.plusBack : t.shop.nothingToRestore);
   };
 
-  const videoLabel = (instant: boolean, what: string) => (instant ? `${what} (Plus)` : `Video ansehen: ${what}`);
+  const videoLabel = (instant: boolean, what: string) => (instant ? t.shop.instant(what) : t.shop.video(what));
 
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body}>
-        <BackBar title="Shop" onBack={() => router.back()} />
+        <BackBar title={t.shop.title} onBack={() => router.back()} />
         <View style={styles.balance}>
           <Chip icon="gem" label={`${gems}`} color={colors.gem} />
           <Chip icon="bit" label={`${bits}`} color={colors.bit} />
-          <Chip label={`${freezes}× Streak-Schutz`} color={colors.warn} />
+          <Chip label={t.shop.freezes(freezes)} color={colors.warn} />
         </View>
 
-        <Text style={styles.section}>TAGESFUNK</Text>
+        <Text style={styles.section}>{t.shop.dailyHeading}</Text>
         <Card style={{ gap: 8 }}>
           {dailyBonusDue(s, day) ? (
             <Button
-              label={`Tagesbonus abholen: +${DAILY_BONUS.bits} Bits, +${DAILY_BONUS.gems} Gem`}
+              label={t.shop.claimDaily(DAILY_BONUS.bits, DAILY_BONUS.gems)}
               icon="gem"
               disabled={busy}
               onPress={() => {
@@ -122,47 +115,44 @@ export default function Shop() {
           ) : dailyVideo.left > 0 ? (
             <Button
               variant="gem"
-              label={videoLabel(dailyVideo.instant, 'Bonus verdoppeln')}
-              sub={`Noch einmal +${DAILY_BONUS.bits} Bits und +${DAILY_BONUS.gems} Gem`}
+              label={videoLabel(dailyVideo.instant, t.shop.doubleBonus)}
+              sub={t.shop.doubleBonusSub(DAILY_BONUS.bits, DAILY_BONUS.gems)}
               disabled={busy}
               onPress={() => watch('daily')}
             />
           ) : (
-            <P>Heute abgeholt. Morgen gibt es den nächsten Tagesbonus.</P>
+            <P>{t.shop.dailyDone}</P>
           )}
         </Card>
 
-        <Text style={styles.section}>NEXUS PLUS</Text>
+        <Text style={styles.section}>{t.shop.plusHeading}</Text>
         <Card style={[{ gap: 8 }, !plus && { borderColor: colors.gem }]}>
           {plus ? (
             <>
               <P style={{ color: colors.text }}>
                 {shop.plusLifetime
-                  ? 'Plus ist für immer aktiv. Danke, dass du NEXUS unterstützt!'
-                  : `Plus ist aktiv bis ${dateText(shop.plusUntil ?? now)}. Danke, dass du NEXUS unterstützt!`}
+                  ? t.shop.plusForever
+                  : t.shop.plusUntil(t.shop.date(new Date(shop.plusUntil ?? now)))}
               </P>
               {plusBonusDue(s, day, now) ? (
                 <Button
                   variant="gem"
                   icon="gem"
-                  label={`Monatsbonus abholen: +${PLUS_MONTHLY.gems} Gems, +${PLUS_MONTHLY.freezes} Streak-Schutz`}
+                  label={t.shop.claimMonthly(PLUS_MONTHLY.gems, PLUS_MONTHLY.freezes)}
                   onPress={() => {
                     if (update((p) => claimPlusBonus(p, day, Date.now()))) tap('success');
                   }}
                 />
               ) : (
-                <P>Monatsbonus für diesen Monat abgeholt.</P>
+                <P>{t.shop.monthlyDone}</P>
               )}
             </>
           ) : (
             <>
-              <P style={{ color: colors.text }}>
-                Keine Werbung, jede Video-Belohnung ohne Video und jeden Monat {PLUS_MONTHLY.gems} Gems. Ab{' '}
-                {prices.plus_year.price} im Jahr.
-              </P>
+              <P style={{ color: colors.text }}>{t.shop.plusPitch(PLUS_MONTHLY.gems, prices.plus_year.price)}</P>
               <Button
                 variant="gem"
-                label="Plus ansehen"
+                label={t.shop.seePlus}
                 onPress={() => router.push({ pathname: '/plus', params: { from: 'shop' } })}
               />
             </>
@@ -171,15 +161,13 @@ export default function Shop() {
 
         {starterAvailable(s) ? (
           <>
-            <Text style={styles.section}>STARTPAKET · EINMALIG</Text>
+            <Text style={styles.section}>{t.shop.starterHeading}</Text>
             <Card style={{ gap: 8, borderColor: colors.gem }}>
-              <P style={{ color: colors.text }}>
-                100 Gems und 3 Streak-Schutz zum Einstiegspreis. Gibt es nur einmal pro Spielstand.
-              </P>
+              <P style={{ color: colors.text }}>{t.shop.starterText}</P>
               <Button
                 variant="gem"
                 icon="gem"
-                label={`Startpaket · ${prices.starter.price}`}
+                label={t.shop.starterBuy(prices.starter.price)}
                 disabled={busy}
                 onPress={() => buy('starter')}
               />
@@ -187,39 +175,39 @@ export default function Shop() {
           </>
         ) : null}
 
-        <Text style={styles.section}>GEMS</Text>
+        <Text style={styles.section}>{t.shop.gemsHeading}</Text>
         <Card style={{ gap: 8 }}>
           {gemVideo.left > 0 ? (
             <Button
-              label={videoLabel(gemVideo.instant, '+1 Gem')}
-              sub={`Heute noch ${gemVideo.left}`}
+              label={videoLabel(gemVideo.instant, t.shop.oneGem)}
+              sub={t.shop.leftToday(gemVideo.left)}
               icon="gem"
               variant="ghost"
               disabled={busy}
               onPress={() => watch('gems')}
             />
           ) : (
-            <P>Für heute sind alle Gem-Videos geschaut.</P>
+            <P>{t.shop.gemVideosDone}</P>
           )}
           {GEM_PACKS.map((id) => (
             <Button
               key={id}
-              label={`${PRODUCT_TEXT[id].title} · ${prices[id].price}`}
+              label={`${t.shop.products[id].title} · ${prices[id].price}`}
               variant="gem"
               disabled={busy}
               onPress={() => buy(id)}
             />
           ))}
-          {IS_PROTOTYPE ? <P>Testmodus: Käufe sind simuliert und kosten nichts.</P> : null}
+          {IS_PROTOTYPE ? <P>{t.shop.testMode}</P> : null}
         </Card>
 
-        <Text style={styles.section}>STREAK-SCHUTZ</Text>
+        <Text style={styles.section}>{t.shop.freezeHeading}</Text>
         <Card style={{ gap: 8 }}>
-          <P>Ein Streak-Schutz rettet deine Serie, wenn du einen Tag nicht spielst. Du hast {freezes} von {FREEZE_MAX}.</P>
+          <P>{t.shop.freezeText(freezes, FREEZE_MAX)}</P>
           <Button
             variant="gem"
             icon="gem"
-            label={`1 Streak-Schutz · ${FREEZE_COST}`}
+            label={t.shop.freezeBuy(FREEZE_COST)}
             disabled={busy || gems < FREEZE_COST || freezes >= FREEZE_MAX}
             onPress={() => {
               if (update(buyFreeze)) tap('success');
@@ -227,36 +215,36 @@ export default function Shop() {
           />
         </Card>
 
-        <Text style={styles.section}>ENERGIE</Text>
+        <Text style={styles.section}>{t.shop.energyHeading}</Text>
         <Card style={{ gap: 8 }}>
           {energyVideo.left > 0 ? (
             <Button
-              label={videoLabel(energyVideo.instant, `+${ENERGY_PER_VIDEO} Energie`)}
-              sub={`Heute noch ${energyVideo.left}`}
+              label={videoLabel(energyVideo.instant, t.shop.energyVideo(ENERGY_PER_VIDEO))}
+              sub={t.shop.leftToday(energyVideo.left)}
               variant="ghost"
               disabled={busy}
               onPress={() => watch('energy')}
             />
           ) : (
-            <P>Energie ist voll oder für heute aufgefüllt. Sie lädt sich von selbst wieder auf.</P>
+            <P>{t.shop.energyDone}</P>
           )}
         </Card>
 
-        <Text style={styles.section}>BEREICHE FREISCHALTEN</Text>
-        <P>Gems öffnen neue Bereiche sofort. Sie öffnen sich auch, wenn dein Netz dorthin wächst.</P>
+        <Text style={styles.section}>{t.shop.unlockAreas}</Text>
+        <P>{t.shop.unlockText}</P>
         {SECTORS.map((sector) => (
           <Card key={sector} style={{ gap: 8 }}>
-            <Text style={[styles.sectorTitle, { color: colors.sector[sector] }]}>{de.sectors[sector]}</Text>
+            <Text style={[styles.sectorTitle, { color: colors.sector[sector] }]}>{t.sectors[sector]}</Text>
             {areasOfSector(sector).map((a) => {
               const isOpen = unlocked.includes(a.id);
               const cost = areaCost(a.id);
               return (
                 <View key={a.id} style={styles.row}>
-                  <Text style={styles.rowText}>{a.de}</Text>
+                  <Text style={styles.rowText}>{areaName(a.id, t.lang)}</Text>
                   {isOpen ? (
                     <View style={styles.openRow}>
                       <Icon name="check" size={16} />
-                      <Text style={styles.open}>offen</Text>
+                      <Text style={styles.open}>{t.shop.open}</Text>
                     </View>
                   ) : (
                     <Button
@@ -274,17 +262,17 @@ export default function Shop() {
           </Card>
         ))}
 
-        <Text style={styles.section}>FARBEN FÜR DEINEN LEUCHTPUNKT</Text>
+        <Text style={styles.section}>{t.shop.colors}</Text>
         <Card style={{ gap: 8 }}>
           {COSMETICS.map((c) => {
             const has = owned.includes(c.id);
             return (
               <View key={c.id} style={styles.row}>
                 <View style={[styles.dot, { backgroundColor: c.color }]} />
-                <Text style={[styles.rowText, { flex: 1 }]}>{c.de}</Text>
+                <Text style={[styles.rowText, { flex: 1 }]}>{t.shop.cosmetics[c.id] ?? c.de}</Text>
                 {has ? (
                   <Button
-                    label={active === c.id ? 'Aktiv' : 'Nutzen'}
+                    label={active === c.id ? t.shop.active : t.shop.use}
                     variant="ghost"
                     disabled={active === c.id}
                     onPress={() => update((p) => ({ ...p, activeCosmetic: c.id }))}
@@ -304,9 +292,9 @@ export default function Shop() {
           })}
         </Card>
 
-        <P>Alles hier ist auch erspielbar, Gems sparen nur Zeit. Kein Vorteil bei Antworten oder in der Rangliste.</P>
-        <Button label="Käufe wiederherstellen" variant="ghost" disabled={busy} onPress={restore} />
-        <Text style={{ color: colors.dim, fontSize: 12 }}>{AREAS.length} Bereiche insgesamt.</Text>
+        <P>{t.shop.fair}</P>
+        <Button label={t.shop.restore} variant="ghost" disabled={busy} onPress={restore} />
+        <Text style={{ color: colors.dim, fontSize: 12 }}>{t.shop.areasTotal(AREAS.length)}</Text>
       </ScrollView>
     </SafeAreaView>
   );

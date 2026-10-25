@@ -1,4 +1,5 @@
 import { validateFiles } from './files';
+import { DEFAULT_LANG, LANG_IN_ENGLISH, isLang, type Lang } from './lang';
 import { hashString } from './rng';
 import { AREAS, SECTORS, areaById } from './taxonomy';
 import type { Fragment, FragmentKind, Question, QuestionType, Sector } from './types';
@@ -22,6 +23,8 @@ export interface GenerationRequest {
   count: number;
   /** Topics that already exist in this area, to avoid. */
   avoidTopics?: string[];
+  /** The language every player-facing text is written in. */
+  lang: Lang;
 }
 
 /** The model returns text; the validator decides what is usable. */
@@ -52,16 +55,26 @@ const SHAPES: Record<QuestionType, string> = {
   cloze: '{ "type": "cloze", "text": "… {0} … {1} …", "answers": ["…", "…"], "bank": ["…", …] }   // gaps {0}, {1}; bank holds all answers plus wrong words',
 };
 
+/** File names the prompt shows as examples, so the model names files in the right language. */
+const FILE_EXAMPLES: Record<Lang, { note: string; article: string; image: string }> = {
+  de: { note: 'Notizen.txt', article: 'Artikel.txt', image: 'Diagramm.png' },
+  en: { note: 'Notes.txt', article: 'Article.txt', image: 'Chart.png' },
+  fr: { note: 'Notes.txt', article: 'Article.txt', image: 'Diagramme.png' },
+  es: { note: 'Notas.txt', article: 'Articulo.txt', image: 'Grafico.png' },
+};
+
 export function buildGenerationPrompt(req: GenerationRequest): string {
   const area = areaById(req.area);
+  const language = LANG_IN_ENGLISH[req.lang];
+  const files = FILE_EXAMPLES[req.lang];
   return [
-    'You write quiz questions for a German-language knowledge game. Answer with JSON only: an array of questions, no prose, no code fences.',
-    `Topic area: ${area.de} (${area.en}). It covers: ${area.scope}. Pick varied topics across this whole scope.`,
+    `You write quiz questions for a knowledge game played in ${language}. Answer with JSON only: an array of questions, no prose, no code fences.`,
+    `Topic area: ${area.en} (shown to players as "${area[req.lang]}"). It covers: ${area.scope}. Pick varied topics across this whole scope.`,
     `Difficulty: ${req.difficulty} of 5. Type: ${req.type}. Number of questions: ${req.count}.`,
     req.avoidTopics?.length ? `Do not repeat these topics: ${req.avoidTopics.join(', ')}.` : '',
     '',
     'Every question has these common fields:',
-    '{ "area": "' + req.area + '", "difficulty": ' + req.difficulty + ', "topic": "<keyword, 3-40 chars, does NOT give the answer>",',
+    '{ "area": "' + req.area + '", "lang": "' + req.lang + '", "difficulty": ' + req.difficulty + ', "topic": "<keyword, 3-40 chars, does NOT give the answer>",',
     '  "intro": "<1-2 sentences about the topic, 20-160 chars, does NOT give the answer>", "stem": "<the question or statement, max 220 chars>",',
     '  "explanation": "<why the answer is right, 10-400 chars>",',
     '  "fragments": [ { "kind": "key" | "context" | "decoy", "hint": "<label, max 18 chars>", "text": "<one fact, max 200 chars>", "files": [ <optional, see below> ] } ],',
@@ -70,16 +83,18 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
     `Type fields: ${SHAPES[req.type]}`,
     '',
     'Rules:',
-    '- Write in German. Facts must be correct and checkable; if unsure, leave the question out.',
+    `- Write every text the player reads in ${language}: topic, intro, stem, explanation, options, items, pairs, cloze text, answers and bank, unit, fragment hints and texts, file names, file texts, chart titles and labels, alt texts and sources. Write numbers and dates the way ${language} writes them. Only the JSON keys and the values of "type", "kind" and "chart" stay as shown.`,
+    `- Prefer knowledge that matters internationally or to ${language}-speaking players; avoid trivia that only makes sense in one country.`,
+    '- Facts must be correct and checkable; if unsure, leave the question out.',
     '- The answer must be unambiguous and exactly one answer is right.',
     '- 4 to 6 fragments: 1 to 3 "key" fragments (together they let a player solve the question), 1 or 2 "context", at least 1 "decoy" (plausible, true or false, but irrelevant to the answer). Hints are short labels and must not reveal the answer.',
     '- No fragment, topic or intro may state the answer outright where it would make the question trivial: key fragments contain the knowledge, not the literal solution word.',
     '- Neutral, family-friendly content. No people from the news, no medical or legal advice.',
     '',
     'Files (optional, for key and context fragments): the folder of a fragment can hold 1 to 5 files that the player has to search. The fact of the fragment must be in at least one file; other files add context or are plausible but irrelevant. Each file:',
-    '  { "name": "Notizen.txt", "kind": "note", "text": "<10-400 chars>" }',
-    '  { "name": "Artikel.txt", "kind": "article", "text": "<3-4 short paragraphs separated by a blank line, max 900 chars; the fact sits inside, not in a headline>", "source": "<where it is from>" }',
-    '  { "name": "Diagramm.png", "kind": "image", "alt": "<what it shows, 10-200 chars>", "chart": <one of:',
+    `  { "name": "${files.note}", "kind": "note", "text": "<10-400 chars>" }`,
+    `  { "name": "${files.article}", "kind": "article", "text": "<3-4 short paragraphs separated by a blank line, max 900 chars; the fact sits inside, not in a headline>", "source": "<where it is from>" }`,
+    `  { "name": "${files.image}", "kind": "image", "alt": "<what it shows, 10-200 chars>", "chart": <one of:`,
     '      { "chart": "bars", "title": "…", "unit": "…", "items": [ { "label": "…", "value": <number> } ] }   // 2-6 bars',
     '      { "chart": "timeline", "title": "…", "events": [ { "label": "…", "year": <whole number> } ] }   // 2-6 events',
     '      { "chart": "table", "title": "…", "columns": ["…", "…"], "rows": [ ["…", "…"] ] }   // 2-5 columns, 1-6 rows',
@@ -90,11 +105,12 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
     .join('\n');
 }
 
-/** The prompt for the checker pass. */
+/** The prompt for the checker pass, in the language the question is written in. */
 export function buildCheckPrompt(q: Question): string {
+  const language = LANG_IN_ENGLISH[q.lang ?? DEFAULT_LANG];
   return [
-    'You check a quiz question for a German-language knowledge game. Answer with JSON only: { "ok": true | false, "issues": ["…"] }.',
-    'Check: 1) Is every stated fact correct? 2) Is exactly one answer right, unambiguously? 3) Are the decoy fragments irrelevant or wrong, and do the key fragments really allow solving the question? 4) Do topic, intro and hints avoid giving the answer away?',
+    `You check a quiz question for a knowledge game played in ${language}. Answer with JSON only: { "ok": true | false, "issues": ["…"] }.`,
+    `Check: 1) Is every stated fact correct? 2) Is exactly one answer right, unambiguously? 3) Are the decoy fragments irrelevant or wrong, and do the key fragments really allow solving the question? 4) Do topic, intro and hints avoid giving the answer away? 5) Is every text the player reads written in correct, natural ${language}?`,
     'Question:',
     JSON.stringify(q),
   ].join('\n');
@@ -169,7 +185,7 @@ function mentions(text: string, secret: string): boolean {
  * Checks a draft from the model against the schema and the content rules and turns it into a
  * question. Everything that is wrong is reported, not just the first problem.
  */
-export function validateDraft(raw: unknown, expect?: { area?: string; type?: QuestionType }): Validation {
+export function validateDraft(raw: unknown, expect?: { area?: string; type?: QuestionType; lang?: Lang }): Validation {
   const errors: string[] = [];
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, errors: ['not an object'] };
   const d = raw as Record<string, unknown>;
@@ -177,6 +193,11 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
   const area = clean(d['area']);
   if (!AREAS.some((a) => a.id === area)) errors.push(`unknown area "${area}"`);
   if (expect?.area && area !== expect.area) errors.push(`area is "${area}", asked for "${expect.area}"`);
+
+  // a draft that names no language is in the one asked for; built-in questions have none
+  const lang = d['lang'] === undefined ? expect?.lang : d['lang'];
+  if (lang !== undefined && !isLang(lang)) errors.push(`unknown language "${String(lang)}"`);
+  if (expect?.lang && lang !== expect.lang) errors.push(`language is "${String(lang)}", asked for "${expect.lang}"`);
 
   const type = d['type'] as QuestionType;
   if (!QUESTION_TYPES.includes(type)) errors.push(`unknown type "${String(d['type'])}"`);
@@ -311,6 +332,7 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
   const question = {
     id,
     area,
+    ...(lang ? { lang: lang as Lang } : {}),
     side,
     topic,
     intro,
@@ -353,7 +375,7 @@ export async function generateQuestions(
   const drafts = parseDrafts(text);
   if (drafts.length === 0) return { accepted: [], rejected: [{ reasons: ['no JSON in the model answer'] }] };
   for (const draft of drafts.slice(0, Math.max(1, req.count))) {
-    const v = validateDraft(draft, { area: req.area, type: req.type });
+    const v = validateDraft(draft, { area: req.area, type: req.type, lang: req.lang });
     if (!v.ok) {
       out.rejected.push({ reasons: v.errors });
       continue;

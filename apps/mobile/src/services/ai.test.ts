@@ -18,15 +18,15 @@ function fakeFetch(answer: unknown, status = 200) {
   return { f, calls };
 }
 
-const req = { area: 'physics', difficulty: 2 as const, count: 2, have: ['sci-light'] };
+const req = { area: 'physics', difficulty: 2 as const, count: 2, have: ['sci-light'], lang: 'de' as const };
 
 describe('content API client', () => {
-  it('asks by area and level only: no prompt, nothing about the player', async () => {
+  it('asks by area, level and language only: no prompt, nothing about the player', async () => {
     const { f, calls } = fakeFetch({ questions: [served('match')] });
     const qs = await httpQuestionApi('https://api.test', f).fetch(req);
     expect(qs).toHaveLength(1);
     expect(calls[0]!.url).toBe('https://api.test/questions');
-    expect(Object.keys(calls[0]!.body).sort()).toEqual(['area', 'count', 'difficulty', 'have']);
+    expect(Object.keys(calls[0]!.body).sort()).toEqual(['area', 'count', 'difficulty', 'have', 'lang']);
     expect(calls[0]!.headers['Authorization']).toBeUndefined();
   });
 
@@ -34,6 +34,16 @@ describe('content API client', () => {
     const good = served('cloze');
     const { f } = fakeFetch({ questions: [good, { ...good, id: 'forged' }, { nope: 1 }, 'x'] });
     expect((await httpQuestionApi('https://api.test', f).fetch(req)).map((q) => q.id)).toEqual([good.id]);
+  });
+
+  it('keeps only questions in the asked language', async () => {
+    const fr = { ...served('match'), lang: 'fr' };
+    const v = validateDraft(fr);
+    if (!v.ok) throw new Error('must validate');
+    const { f, calls } = fakeFetch({ questions: [v.question, served('cloze')] });
+    const qs = await httpQuestionApi('https://api.test', f).fetch({ ...req, lang: 'fr' });
+    expect(calls[0]!.body.lang).toBe('fr');
+    expect(qs.map((q) => q.lang)).toEqual(['fr']);
   });
 
   it('throws on a broken backend so the caller can back off', async () => {

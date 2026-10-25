@@ -2,6 +2,7 @@ import { Canvas, Rect } from '@shopify/react-native-skia';
 import { useEffect, useMemo, useState } from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 import { seededRng } from '@nexus/shared';
+import { useStrings } from '../strings';
 
 const N = 12;
 /** At most three changes per second (flash rule); the reformed MORPH is calmer still. */
@@ -81,14 +82,6 @@ const COLOR: Record<MorphForm, string> = {
   reformed: '#9B8CFF',
 };
 
-const LABEL: Record<MorphForm, string> = {
-  smile: 'morph.ai, die KI, die das Wissensnetz bereinigt hat',
-  glasses: 'morph.ai, die KI, die das Wissensnetz bereinigt hat, mit Pixelbrille und hochgezogener Braue',
-  crown: 'morph.ai, die KI, die das Wissensnetz bereinigt hat, mit Pixelkrone und breitem Grinsen',
-  glitch: 'morph.ai, die KI, die das Wissensnetz bereinigt hat, zerfällt in Störungen',
-  reformed: 'morph.ai, jetzt nur noch Assistent, mit ruhigem Lächeln',
-};
-
 type Cell = { x: number; y: number; dx: number; o: number };
 
 const lit = (face: readonly string[], x: number, y: number) => face[y]?.[x] === '#';
@@ -129,6 +122,7 @@ function frame(form: MorphForm, tick: number): Cell[] {
 
 /** MORPH: a face made of flickering noise that keeps re-forming. An explicit `color` overrides the form's colour. */
 export function Morph({ size = 120, color, form = 'smile' }: { size?: number; color?: string; form?: MorphForm }) {
+  const strings = useStrings();
   const reduced = useReducedMotion();
   const [tick, setTick] = useState(0);
   const calm = form === 'reformed';
@@ -143,7 +137,7 @@ export function Morph({ size = 120, color, form = 'smile' }: { size?: number; co
   const cell = size / N;
   const fill = color ?? COLOR[form];
   return (
-    <Canvas style={{ width: size, height: size }} accessible accessibilityRole="image" accessibilityLabel={LABEL[form]}>
+    <Canvas style={{ width: size, height: size }} accessible accessibilityRole="image" accessibilityLabel={strings.a11y.morph[form]}>
       {cells.map((c, i) => (
         <Rect
           key={i}

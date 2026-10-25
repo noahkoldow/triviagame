@@ -29,6 +29,7 @@ import { isDue } from './srs';
 import { initialStory, storyFacts, type StoryState } from './story';
 import { initialLeague, type LeagueState } from './league';
 import { ROOT_QUESTIONS } from './content';
+import { DEFAULT_LANG, type Lang } from './lang';
 import { sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Sector } from './types';
 import { WALL_REACH, approachOf, type Breach } from './walls';
@@ -41,6 +42,8 @@ export interface PlayerProfile {
   consent: boolean;
   adFree: boolean;
   onboarded: boolean;
+  /** The language of UI, story and questions. */
+  lang: Lang;
 }
 
 export interface PlayerState {
@@ -75,6 +78,7 @@ export interface PlayerState {
   league: LeagueState;
 }
 
+/** Colours for the player's spark. `de` is the German name; the app shows the name of the player's language by id. */
 export const COSMETICS: { id: string; de: string; color: string; cost: number }[] = [
   { id: 'cyan', de: 'Klassik-Blau', color: '#1CB0F6', cost: 0 },
   { id: 'lime', de: 'Limette', color: '#58CC02', cost: 60 },
@@ -94,6 +98,7 @@ export function initialPlayer(
       consent: false,
       adFree: false,
       onboarded: false,
+      lang: DEFAULT_LANG,
     },
     network: createNetwork(pool, roots),
     skill: {},

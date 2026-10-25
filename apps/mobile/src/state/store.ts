@@ -1,11 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
-import { catchUpStory, initialPlayer, migrateSave, type PlayerState } from '@nexus/shared';
-import { pool, restoreAiQuestions } from '../services/content';
+import { catchUpStory, initialPlayer, migrateSave, relinkCacheFiles, type Lang, type PlayerState } from '@nexus/shared';
+import { deviceLang } from '../locale';
+import { pool, restoreAiQuestions, setContentLanguage } from '../services/content';
 
 const KEY = 'nexus:v1';
 
-let state: PlayerState = initialPlayer(pool);
+const withLang = (p: PlayerState, lang: Lang): PlayerState => ({ ...p, profile: { ...p.profile, lang } });
+
+// a new player starts in the language of the device (and picks one in the onboarding); saves from
+// before the language picker are German, because the base of the merge in `hydrate` is
+let state: PlayerState = withLang(initialPlayer(pool), deviceLang());
 let hydrated = false;
 const listeners = new Set<() => void>();
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -54,6 +59,7 @@ export async function hydrate(): Promise<void> {
   } catch {
     // corrupt or unavailable storage: start fresh
   }
+  setContentLanguage(state.profile.lang);
   hydrated = true;
   emit();
 }
@@ -72,9 +78,24 @@ export function update(fn: (p: PlayerState) => PlayerState | null): boolean {
 }
 
 export function resetGame(): void {
-  state = initialPlayer(pool);
+  // a new game, but in the same language
+  state = withLang(initialPlayer(pool), state.profile.lang);
   persist();
   emit();
+}
+
+/**
+ * Switches UI, story and questions to another language. Built-in questions keep their ids, so the
+ * network stays; carried files are renamed to the file names of the new language.
+ */
+export function setLanguage(lang: Lang): void {
+  if (state.profile.lang === lang) return;
+  const before = new Map(pool.byId);
+  setContentLanguage(lang);
+  update((p) => ({
+    ...withLang(p, lang),
+    cache: relinkCacheFiles(p.cache, (id) => before.get(id), (id) => pool.byId.get(id)),
+  }));
 }
 
 function subscribe(l: () => void) {

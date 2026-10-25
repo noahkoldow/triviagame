@@ -20,6 +20,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useStrings } from '../strings';
 
 export type Mood = 'happy' | 'think' | 'sad' | 'wow' | 'wink' | 'proud' | 'worried' | 'sleepy';
 
@@ -33,6 +34,7 @@ export function Bolt({
   mood?: Mood;
   color?: string;
 }) {
+  const t = useStrings();
   const reduced = useReducedMotion();
   const bob = useSharedValue(0);
   useEffect(() => {
@@ -141,7 +143,7 @@ export function Bolt({
     <Animated.View
       style={[{ width: size, height: size }, style]}
       accessible
-      accessibilityLabel="Bolt, dein Begleiter-Roboter"
+      accessibilityLabel={t.a11y.bolt}
     >
       <Canvas style={{ width: size, height: size }}>
         <Group transform={[{ scale: size / 100 }]}>
