@@ -84,6 +84,7 @@ export const es: Strings = {
   },
 
   map: {
+    showDamaged: 'Ver nodos dañados',
     unstableBanner: 'Red inestable: los nodos nuevos esperan. Toca aquí para hacer un mantenimiento.',
     dueBanner: (n) => (n === 1 ? '1 nodo dañado pendiente de reparación' : `${n} nodos dañados pendientes de reparación`),
     closeTip: 'Cerrar el consejo de Bolt',
@@ -235,6 +236,10 @@ export const es: Strings = {
       '“Gracias, justo me faltaba ese ladrillo.”',
     ],
     hold: ['“Fallaste. Mi muro sigue entero.”', '“Ni un rasguño.”'],
+    pushBack: (n) =>
+      `morph.ai contraataca: ${n === 1 ? 'un nodo junto al muro está dañado' : `${n} nodos junto al muro están dañados`}. Repára${n === 1 ? 'lo' : 'los'} antes de volver a atacar.`,
+    pushedBack: (n) =>
+      `Tras tu último ataque, morph.ai dañó ${n === 1 ? 'un nodo' : `${n} nodos`} junto a este muro. Repára${n === 1 ? 'lo' : 'los'} primero y podrás volver a atacar.`,
     start: 'Iniciar el ataque',
     clockRules: (time) => `Un solo reloj para todo el combate: ${time}. Solo corre mientras hay una pregunta abierta. Si se acaba, el muro resiste.`,
     finaleClock: (time) => `Un solo reloj para todo el duelo: ${time}. Solo corre mientras hay una pregunta abierta. Si se acaba, el duelo termina.`,

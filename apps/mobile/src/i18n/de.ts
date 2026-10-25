@@ -88,6 +88,7 @@ export const de = {
   },
 
   map: {
+    showDamaged: 'Beschädigte Knoten zeigen',
     unstableBanner: 'Netz instabil: neue Knoten warten. Tippe hier für eine Wartung.',
     dueBanner: (n: number) => (n === 1 ? '1 beschädigter Knoten zur Reparatur fällig' : `${n} beschädigte Knoten zur Reparatur fällig`),
     closeTip: 'Tipp von Bolt schließen',
@@ -240,6 +241,11 @@ export const de = {
       '„Danke, genau dieser Stein hat mir noch gefehlt.“',
     ],
     hold: ['„Daneben. Meine Wand steht noch ganz.“', '„Nicht mal ein Kratzer.“'],
+    /** morph.ai strikes back after a lost fight at a wall (D72). */
+    pushBack: (n: number) =>
+      `morph.ai schlägt zurück: ${n === 1 ? 'Ein Knoten an der Wand ist' : `${n} Knoten an der Wand sind`} beschädigt. Repariere ${n === 1 ? 'ihn' : 'sie'}, bevor du wieder angreifst.`,
+    pushedBack: (n: number) =>
+      `Nach deinem letzten Angriff hat morph.ai ${n === 1 ? 'einen Knoten' : `${n} Knoten`} an dieser Wand beschädigt. Repariere ${n === 1 ? 'ihn' : 'sie'} zuerst, dann kannst du wieder angreifen.`,
     /** One clock for the whole fight (D71); `time` is already formatted ("2:40"). */
     start: 'Angriff starten',
     clockRules: (time: string) => `Eine Uhr für den ganzen Kampf: ${time}. Sie läuft nur, solange eine Frage offen ist. Läuft sie ab, hält die Wand.`,

@@ -19,6 +19,7 @@ import {
   isCorrect,
   isSynapseId,
   networkBonus,
+  pushedBack,
   recordBoss,
   recordFinale,
   recordSynapse,
@@ -83,7 +84,9 @@ export default function BossScreen() {
         ? t.boss.alreadyBroken
         : !firewallReached(Object.values(getState().network.nodes), fw)
           ? t.boss.notReached
-          : null;
+          : pushedBack(getState().network.nodes, fw).length > 0
+            ? t.boss.pushedBack(pushedBack(getState().network.nodes, fw).length)
+            : null;
   // decided once when the screen opens: winning breaks the firewall (or ends the finale) and
   // losing can drop integrity to 0, but the outcome of this fight must stay on screen
   const [reason] = useState(
@@ -168,9 +171,11 @@ function WallFightView({ fwId }: { fwId: string }) {
       setChecked(false);
       return;
     }
-    const r = recordBoss(getState(), pool, fwId, state === 'won');
+    const r = recordBoss(getState(), pool, fwId, state === 'won', today(), fight.hp);
     update(() => r.player);
+    // back on the map the camera shows the new nodes, or those morph.ai damaged
     if (r.passed) setRecentlySpawned(r.spawned);
+    else if (r.damaged?.length) setRecentlySpawned(r.damaged);
     setOutcome(r);
   };
 
@@ -220,6 +225,11 @@ function WallFightView({ fwId }: { fwId: string }) {
                 <P style={{ color: colors.text }}>
                   {fight.timeUp ? t.boss.wallTimeUp(fight.hp, getState().integrity) : t.boss.wallLost(fight.hp, getState().integrity)}
                 </P>
+                {outcome.damaged?.length ? (
+                  <Card style={{ borderColor: colors.bad }}>
+                    <P style={{ color: colors.bad }}>{t.boss.pushBack(outcome.damaged.length)}</P>
+                  </Card>
+                ) : null}
               </>
             )}
             <Button label={t.boss.toMap} onPress={() => router.back()} />

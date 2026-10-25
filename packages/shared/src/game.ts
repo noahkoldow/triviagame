@@ -1,4 +1,15 @@
-import { BOSS_REWARD, FINALE_PASS, FINALE_REWARD, firewallReached, type BossOutcome, type Firewall } from './boss';
+import {
+  BOSS_REWARD,
+  FINALE_PASS,
+  FINALE_REWARD,
+  FIREWALL_HP,
+  firewallReached,
+  pushBackCount,
+  pushBackTargets,
+  pushedBack,
+  type BossOutcome,
+  type Firewall,
+} from './boss';
 import { cacheWithoutArea, type CacheEntry, type CacheFile } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
@@ -38,7 +49,7 @@ import {
 import { networkBonus } from './synapses';
 import { seededRng } from './rng';
 import { BASE_SKILL, updateSkill, type SkillMap } from './skill';
-import { isDue } from './srs';
+import { isDue, markDamaged } from './srs';
 import { initialStory, storyFacts, type StoryState } from './story';
 import { initialLeague, type LeagueState } from './league';
 import { ROOT_QUESTIONS } from './content';
@@ -156,24 +167,45 @@ export function ctxFor(p: PlayerState, pool: Pool, seed: string): SpawnContext {
 /**
  * The result of a firewall fight (`won`, see `wallFightState`). A won fight breaks the wall where
  * the network stands at it: a reward, a gap of a few cells, and the area behind opens with a
- * first node. Otherwise the network loses one integrity and the next fight draws new questions.
+ * first node. Otherwise the network loses one integrity, the next fight draws new questions, and
+ * morph.ai damages 1–2 solved nodes nearest to the wall (`pushBackCount`, `layersLeft` = layers the
+ * wall kept); the wall waits until they are repaired (D72).
  */
-export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, won: boolean): BossOutcome {
+export function recordBoss(
+  p: PlayerState,
+  pool: Pool,
+  firewallId: string,
+  won: boolean,
+  today: string,
+  layersLeft = FIREWALL_HP,
+): BossOutcome {
   const fw = p.network.firewalls?.find((f) => f.id === firewallId);
   const at = fw && !fw.broken ? approachOf(Object.values(p.network.nodes), fw.area) : undefined;
-  // a firewall the network has not grown to cannot be attacked
-  if (!fw || !at || at.cells > WALL_REACH) {
+  // a firewall the network has not grown to, or whose damaged nodes still wait for repair, cannot be attacked
+  if (!fw || !at || at.cells > WALL_REACH || pushedBack(p.network.nodes, fw).length > 0) {
     return { player: p, passed: false, spawned: [], areas: [] };
   }
   const passed = won;
+  // lost: morph.ai strikes back and damages the solved nodes nearest to the wall (D72)
+  const damaged = passed ? [] : pushBackTargets(Object.values(p.network.nodes), fw, pushBackCount(layersLeft));
   const firewalls = p.network.firewalls!.map((f) =>
-    f.id === firewallId ? { ...f, broken: passed, attempts: passed ? f.attempts : f.attempts + 1 } : f,
+    f.id === firewallId
+      ? { ...f, broken: passed, attempts: passed ? f.attempts : f.attempts + 1, pushed: passed ? undefined : damaged }
+      : f,
   );
   let player: PlayerState = { ...p, network: { ...p.network, firewalls } };
   if (!passed) {
+    const nodes = { ...p.network.nodes };
+    for (const id of damaged) nodes[id] = markDamaged(nodes[id]!, today);
     return {
-      player: { ...player, integrity: Math.max(0, p.integrity - 1), stats: { ...p.stats, wrong: p.stats.wrong + 1 } },
+      player: {
+        ...player,
+        network: { ...player.network, nodes },
+        integrity: Math.max(0, p.integrity - 1),
+        stats: { ...p.stats, wrong: p.stats.wrong + 1 },
+      },
       passed: false,
+      damaged,
       spawned: [],
       areas: [],
     };

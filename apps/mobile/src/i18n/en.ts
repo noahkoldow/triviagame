@@ -84,6 +84,7 @@ export const en: Strings = {
   },
 
   map: {
+    showDamaged: 'Show damaged nodes',
     unstableBanner: 'Network unstable: new nodes are waiting. Tap here for maintenance.',
     dueBanner: (n) => (n === 1 ? '1 damaged node is due for repair' : `${n} damaged nodes are due for repair`),
     closeTip: 'Close Bolt’s tip',
@@ -235,6 +236,10 @@ export const en: Strings = {
       '“Thanks, that was just the brick I was missing.”',
     ],
     hold: ['“Missed. My wall is still whole.”', '“Not even a scratch.”'],
+    pushBack: (n) =>
+      `morph.ai strikes back: ${n === 1 ? 'one node by the wall is' : `${n} nodes by the wall are`} damaged. Repair ${n === 1 ? 'it' : 'them'} before you attack again.`,
+    pushedBack: (n) =>
+      `After your last attack morph.ai damaged ${n === 1 ? 'a node' : `${n} nodes`} by this wall. Repair ${n === 1 ? 'it' : 'them'} first, then you can attack again.`,
     start: 'Start the attack',
     clockRules: (time) => `One clock for the whole fight: ${time}. It only runs while a question is open. If it runs out, the wall holds.`,
     finaleClock: (time) => `One clock for the whole duel: ${time}. It only runs while a question is open. If it runs out, the duel is over.`,

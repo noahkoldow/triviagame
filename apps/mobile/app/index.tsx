@@ -42,6 +42,7 @@ import {
   maintenanceTargets,
   markSeen,
   pendingBeats,
+  pushedBack,
   hallsOf,
   REVEAL_ID,
   fightFrom,
@@ -241,6 +242,7 @@ export default function Home() {
   const spot = synapseId ? spots.find((x) => x.id === synapseId) : undefined;
   const wallArea = firewall ? area(firewall.area) : '';
   const wallCost = firewall ? areaCost(firewall.area) : 0;
+  const wallPushed = firewall ? pushedBack(network.nodes, firewall) : [];
 
   const debrisProp = useMemo(
     () =>
@@ -544,6 +546,20 @@ export default function Home() {
                 ) : !firewallReached(nodes, firewall) ? (
                   // the network has to grow right up to the wall first
                   <Text style={styles.fragText}>{t.map.wallFar(wallArea, firewallSteps(nodes, firewall))}</Text>
+                ) : wallPushed.length > 0 ? (
+                  // morph.ai struck back after the last lost fight: those nodes need their repair first
+                  <>
+                    <Text style={styles.fragText}>{t.boss.pushedBack(wallPushed.length)}</Text>
+                    <Button
+                      label={t.map.showDamaged}
+                      onPress={() => {
+                        setFirewallId(null);
+                        setHighlight(wallPushed);
+                        focus(wallPushed[0]!);
+                        setTimeout(() => setHighlight([]), 6000);
+                      }}
+                    />
+                  </>
                 ) : (
                   <>
                     <Text style={styles.fragText}>

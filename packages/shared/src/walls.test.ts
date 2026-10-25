@@ -46,9 +46,9 @@ const DAY = '2026-10-01';
 function grow(steps: number): PlayerState {
   let p = initialPlayer(pool);
   for (let i = 0; i < steps; i++) {
-    const fw = p.network.firewalls!.find((f) => recordBoss(p, pool, f.id, true).passed);
+    const fw = p.network.firewalls!.find((f) => recordBoss(p, pool, f.id, true, '2026-10-01').passed);
     if (fw) {
-      p = recordBoss(p, pool, fw.id, true).player;
+      p = recordBoss(p, pool, fw.id, true, '2026-10-01').player;
       continue;
     }
     const open = Object.values(p.network.nodes)

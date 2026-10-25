@@ -58,7 +58,7 @@ function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
     const wall =
       ch.n === 3 ? p.network.firewalls!.find((f) => !f.broken && firewallReached(Object.values(p.network.nodes), f)) : undefined;
     if (wall) {
-      p = recordBoss(p, pool, wall.id, true).player;
+      p = recordBoss(p, pool, wall.id, true, '2026-10-01').player;
       continue;
     }
     if (ch.n === 4) {

@@ -110,7 +110,7 @@ describe('map scene', () => {
   });
 
   it('opens a gap the trace runs through once the wall is broken', () => {
-    const p = recordBoss(atWall(initialPlayer(pool)), pool, 'fw-biomedicine', true).player;
+    const p = recordBoss(atWall(initialPlayer(pool)), pool, 'fw-biomedicine', true, '2026-10-01').player;
     const sight = wallsInSight(Object.values(p.network.nodes), p.network.firewalls!);
     const { sites, edges } = sitesAndEdges(p);
     const s = buildHexScene(sites, edges, sight.cells);

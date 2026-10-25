@@ -37,6 +37,8 @@ export interface Firewall {
   breach?: Breach;
   /** Opened with gems instead of a fight; the story only counts fights. */
   bought?: boolean;
+  /** The nodes morph.ai damaged after the last lost fight here (D72); the wall waits until they are repaired. */
+  pushed?: string[];
 }
 
 /** Layers of a firewall: a right answer tears one down, a wrong one lets morph.ai rebuild one. */
@@ -57,6 +59,37 @@ type Placed = { pos: { x: number; y: number } };
 export function firewallReached(nodes: Placed[], fw: Firewall): boolean {
   const a = approachOf(nodes, fw.area);
   return !!a && a.cells <= WALL_REACH;
+}
+
+/**
+ * morph.ai strikes back after a lost fight (D72): it damages the solved nodes nearest to the wall,
+ * two when the wall still stood strong (3 or more layers), one when it nearly fell.
+ */
+export function pushBackCount(layersLeft: number): number {
+  return layersLeft >= 3 ? 2 : 1;
+}
+
+/** The `count` solved nodes nearest to the wall around the firewall's area, closest first. */
+export function pushBackTargets(nodes: NetNode[], fw: Firewall, count: number): string[] {
+  const near: { id: string; d: number }[] = [];
+  for (const n of nodes) {
+    if (n.state !== 'solved') continue;
+    const zone = zoneOf(n.pos.x, n.pos.y);
+    if (zone === fw.area) continue;
+    const h = worldToHex(n.pos.x, n.pos.y);
+    let d = Infinity;
+    for (const c of wallBetween(fw.area, zone)) d = Math.min(d, hexDistance(h, c.hex));
+    if (d < Infinity) near.push({ id: n.id, d });
+  }
+  return near
+    .sort((a, b) => a.d - b.d || a.id.localeCompare(b.id))
+    .slice(0, count)
+    .map((x) => x.id);
+}
+
+/** The nodes morph.ai damaged at this firewall that still wait for their repair; until then it cannot be attacked. */
+export function pushedBack(nodes: Record<string, NetNode>, fw: Firewall): string[] {
+  return (fw.pushed ?? []).filter((id) => nodes[id]?.state === 'damaged');
 }
 
 /** Roughly how many more nodes the network needs to reach a firewall (for the player). */
@@ -232,6 +265,8 @@ export function strikeWall(f: WallFight, ok: boolean): { fight: WallFight; hit: 
 export interface BossOutcome {
   player: PlayerState;
   passed: boolean;
+  /** Nodes morph.ai damaged after a lost fight at a firewall (D72). */
+  damaged?: string[];
   /** Node ids that appeared in the new zone. */
   spawned: string[];
   /** Areas that were opened. */

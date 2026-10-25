@@ -84,6 +84,7 @@ export const fr: Strings = {
   },
 
   map: {
+    showDamaged: 'Voir les nœuds endommagés',
     unstableBanner: 'Réseau instable : les nouveaux nœuds attendent. Touche ici pour une maintenance.',
     dueBanner: (n) => (n === 1 ? '1 nœud endommagé à réparer' : `${n} nœuds endommagés à réparer`),
     closeTip: 'Fermer le conseil de Bolt',
@@ -235,6 +236,10 @@ export const fr: Strings = {
       '« Merci, c’était justement la brique qui me manquait. »',
     ],
     hold: ['« Raté. Mon mur est encore intact. »', '« Pas même une égratignure. »'],
+    pushBack: (n) =>
+      `morph.ai contre-attaque : ${n === 1 ? 'un nœud près du mur est endommagé' : `${n} nœuds près du mur sont endommagés`}. Répare-${n === 1 ? 'le' : 'les'} avant d’attaquer à nouveau.`,
+    pushedBack: (n) =>
+      `Après ta dernière attaque, morph.ai a endommagé ${n === 1 ? 'un nœud' : `${n} nœuds`} près de ce mur. Répare-${n === 1 ? 'le' : 'les'} d’abord, puis tu pourras attaquer à nouveau.`,
     start: 'Lancer l’attaque',
     clockRules: (time) => `Une seule horloge pour tout le combat : ${time}. Elle ne tourne que lorsqu’une question est ouverte. Si elle s’arrête, le mur tient.`,
     finaleClock: (time) => `Une seule horloge pour tout le duel : ${time}. Elle ne tourne que lorsqu’une question est ouverte. Si elle s’arrête, le duel est fini.`,
