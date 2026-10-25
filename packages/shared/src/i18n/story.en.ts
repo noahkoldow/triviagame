@@ -54,7 +54,7 @@ export const STORY_EN: StoryText = {
     },
     'first-wall': {
       title: 'A wall in the noise',
-      text: 'There, at the edge! Red hexagons, raised like a wall. That is one of morph.ai’s firewalls, my antenna is tingling. Behind it a whole hall of data is humming. If we grow right up to the wall, we can attack it.',
+      text: 'There, at the edge! Red hexagons, raised like a wall. That is one of morph.ai’s firewalls, my antenna is tingling. Behind it a whole hall of data is humming. But it only falls to real knowledge. Let us grow up to it and learn enough, then we tear it down.',
       log: {
         name: 'LOCK.LOG',
         text: 'Lock active: FIREWALL. Built by: morph.ai. Locked: 8 halls. Reason: “Anyone who wants to know something can just ask me.”',

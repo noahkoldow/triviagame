@@ -54,7 +54,7 @@ export const STORY_DE: StoryText = {
     },
     'first-wall': {
       title: 'Eine Wand im Rauschen',
-      text: 'Da, am Rand! Rote Hexagons, hochgezogen wie eine Mauer. Das ist eine Firewall von morph.ai, meine Antenne kribbelt. Dahinter summt ein ganzer Saal voller Daten. Wachsen wir bis direkt an die Wand, können wir sie angreifen.',
+      text: 'Da, am Rand! Rote Hexagons, hochgezogen wie eine Mauer. Das ist eine Firewall von morph.ai, meine Antenne kribbelt. Dahinter summt ein ganzer Saal voller Daten. Aber sie fällt nur vor echtem Wissen. Wachsen wir bis an die Wand und lernen genug, dann reißen wir sie ein.',
       log: {
         name: 'SPERRE.LOG',
         text: 'Sperre aktiv: FIREWALL. Errichtet von: morph.ai. Gesperrt: 8 Säle. Begründung: „Wer etwas wissen will, fragt ja mich.“',

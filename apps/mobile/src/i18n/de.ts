@@ -243,7 +243,7 @@ export const de = {
     hold: ['„Daneben. Meine Wand steht noch ganz.“', '„Nicht mal ein Kratzer.“'],
     /** The wall waits until enough nodes are answered (D73). */
     wallQuota: (n: number) =>
-      `morph.ai hält die Wand noch dicht. Beantworte erst ${n === 1 ? 'einen weiteren Knoten' : `${n} weitere Knoten`}, dann kannst du angreifen.`,
+      `morph.ai hat diese Wand aus Vergessen gebaut, und nur Wissen reißt sie ein. Dein Netz weiß noch nicht genug: Beantworte noch ${n === 1 ? 'einen Knoten' : `${n} Knoten`}, dann ist es stark genug für den Angriff.`,
     /** morph.ai strikes back after a lost fight at a wall (D72). */
     pushBack: (n: number) =>
       `morph.ai schlägt zurück: ${n === 1 ? 'Ein Knoten an der Wand ist' : `${n} Knoten an der Wand sind`} beschädigt. Repariere ${n === 1 ? 'ihn' : 'sie'}, bevor du wieder angreifst.`,

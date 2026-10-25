@@ -237,7 +237,7 @@ export const en: Strings = {
     ],
     hold: ['“Missed. My wall is still whole.”', '“Not even a scratch.”'],
     wallQuota: (n) =>
-      `morph.ai is still holding the wall shut. Answer ${n === 1 ? 'one more node' : `${n} more nodes`} first, then you can attack.`,
+      `morph.ai built this wall out of forgetting, and only knowledge tears it down. Your network does not know enough yet: answer ${n === 1 ? 'one more node' : `${n} more nodes`}, and it will be strong enough to attack.`,
     pushBack: (n) =>
       `morph.ai strikes back: ${n === 1 ? 'one node by the wall is' : `${n} nodes by the wall are`} damaged. Repair ${n === 1 ? 'it' : 'them'} before you attack again.`,
     pushedBack: (n) =>

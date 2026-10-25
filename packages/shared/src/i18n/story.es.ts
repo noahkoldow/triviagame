@@ -54,7 +54,7 @@ export const STORY_ES: StoryText = {
     },
     'first-wall': {
       title: 'Un muro en el ruido',
-      text: '¡Ahí, en el borde! Hexágonos rojos, alzados como un muro. Es un cortafuegos de morph.ai, me pica la antena. Detrás zumba toda una sala llena de datos. Si crecemos hasta el mismo muro, podremos atacarlo.',
+      text: '¡Ahí, en el borde! Hexágonos rojos, alzados como un muro. Es un cortafuegos de morph.ai, me pica la antena. Detrás zumba toda una sala llena de datos. Pero solo cae ante el verdadero saber. Crezcamos hasta el muro y aprendamos lo suficiente, y lo derribaremos.',
       log: {
         name: 'BLOQUEO.LOG',
         text: 'Bloqueo activo: CORTAFUEGOS. Levantado por: morph.ai. Bloqueadas: 8 salas. Motivo: “Quien quiera saber algo, que me pregunte a mí”.',

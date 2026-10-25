@@ -54,7 +54,7 @@ export const STORY_FR: StoryText = {
     },
     'first-wall': {
       title: 'Un mur dans le bruit',
-      text: 'Là, au bord ! Des hexagones rouges, dressés comme un mur. C’est un pare-feu de morph.ai, mon antenne picote. Derrière, toute une salle de données bourdonne. Si nous grandissons jusqu’au mur, nous pourrons l’attaquer.',
+      text: 'Là, au bord ! Des hexagones rouges, dressés comme un mur. C’est un pare-feu de morph.ai, mon antenne picote. Derrière, toute une salle de données bourdonne. Mais il ne cède qu’au vrai savoir. Grandissons jusqu’au mur et apprenons assez, puis nous l’abattrons.',
       log: {
         name: 'VERROU.LOG',
         text: 'Verrou actif : PARE-FEU. Érigé par : morph.ai. Verrouillé : 8 salles. Motif : « Qui veut savoir quelque chose n’a qu’à me demander. »',
