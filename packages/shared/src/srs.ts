@@ -17,10 +17,8 @@ export function isDue(node: NetNode, today: string): boolean {
   return node.state === 'damaged' && !!node.dueDay && node.dueDay <= today;
 }
 
-/** Result of a repair run on a damaged node. */
+/** Result of a repair run on a damaged node: one right answer heals it, a wrong one sends it back a day. */
 export function applyReview(node: NetNode, correct: boolean, today: string): NetNode {
   if (!correct) return { ...node, box: 1, dueDay: addDays(today, BOX_DAYS[1]!) };
-  const box = node.box + 1;
-  if (box >= BOX_DAYS.length) return { ...node, state: 'solved', box: 0, dueDay: undefined };
-  return { ...node, box, dueDay: addDays(today, BOX_DAYS[box]!) };
+  return { ...node, state: 'solved', box: 0, dueDay: undefined };
 }

@@ -170,7 +170,7 @@ export const de = {
     maintainFailed: (answer: string) => `Richtig wäre: ${answer}. Dieser Knoten ist für heute gewartet, probier einen anderen.`,
     repaired: 'Repariert!',
     connected: 'Verbindung steht!',
-    early: 'Noch nicht fällig: Die fehlenden Wege wachsen trotzdem. Integrität und Belohnung gibt es, wenn die Reparatur dran ist, dann rückt der Knoten auch der Heilung näher.',
+    early: 'Noch nicht fällig: Der Knoten ist geheilt und die fehlenden Wege wachsen. Integrität und Belohnung gibt es nur, wenn die Reparatur dran ist.',
     prepared: 'Gut vorbereitet',
     secondTry: 'Erst im zweiten Anlauf: Nur die Vertiefung wächst. Der Knoten ist beschädigt. Repariere ihn, dann folgt die Brücke.',
     manyTries: 'Mehrere Fehlversuche: Der Knoten ist beschädigt und lässt nichts Neues wachsen, bis du ihn repariert hast.',

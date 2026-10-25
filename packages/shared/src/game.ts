@@ -370,9 +370,9 @@ export function recordCorrect(
 }
 
 /**
- * A repair run on a damaged node. Only a repair that is due moves the node up a Leitner box and
- * pays (reward, 1 integrity); an early repair still lets the withheld children grow, so playing
- * the same node again and again earns nothing and the spacing keeps its meaning.
+ * A repair run on a damaged node. A right answer heals it (solved again) and lets the withheld
+ * children grow. Only a repair that is due pays (reward, 1 integrity, skill); an early one heals
+ * for free, so answering the question again right after the damage earns nothing.
  */
 export function recordReviewResult(
   p: PlayerState,
@@ -389,7 +389,7 @@ export function recordReviewResult(
     correct && due
       ? rewardFor({ difficulty: q.difficulty, attempts: 1, rewinds: 0, kind: 'review' })
       : { xp: 0, bits: 0, gems: 0 };
-  const reviewed = correct && !due ? p.network : reviewNode(p.network, nodeId, correct, today);
+  const reviewed = reviewNode(p.network, nodeId, correct, today);
   const grown = correct
     ? growMissing(reviewed, nodeId, ctxFor(p, pool, `${nodeId}:repair`))
     : { state: reviewed, spawned: [] };

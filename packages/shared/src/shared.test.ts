@@ -145,9 +145,10 @@ describe('skill & rewards', () => {
     let d = markDamaged(n, '2026-10-01');
     expect(d.state).toBe('damaged');
     expect(d.dueDay).toBe('2026-10-02');
-    for (let i = 0; i < 4; i++) d = applyReview(d, true, '2026-10-20');
+    expect(applyReview(d, false, '2026-10-02')).toMatchObject({ state: 'damaged', dueDay: '2026-10-03' });
+    d = applyReview(d, true, '2026-10-02');
     expect(d.state).toBe('solved');
-    expect(applyReview({ ...d, state: 'damaged', box: 3 }, false, '2026-10-20').box).toBe(1);
+    expect(d.dueDay).toBeUndefined();
   });
 });
 

@@ -166,7 +166,7 @@ export const en: Strings = {
     maintainFailed: (answer) => `The right answer: ${answer}. This node is maintained for today, try another one.`,
     repaired: 'Repaired!',
     connected: 'Connection made!',
-    early: 'Not due yet: the missing paths grow anyway. Integrity and rewards come when the repair is due; then the node also gets closer to healing.',
+    early: 'Not due yet: the node is healed and the missing paths grow. Integrity and rewards only come when the repair is due.',
     prepared: 'Well prepared',
     secondTry: 'Only on the second try: just the deep dive grows. The node is damaged. Repair it and the bridge follows.',
     manyTries: 'Several wrong tries: the node is damaged and grows nothing new until you repair it.',

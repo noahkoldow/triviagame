@@ -166,7 +166,7 @@ export const es: Strings = {
     maintainFailed: (answer) => `La respuesta correcta: ${answer}. Este nodo ya tuvo su mantenimiento de hoy; prueba con otro.`,
     repaired: '¡Reparado!',
     connected: '¡Conexión establecida!',
-    early: 'Aún no toca: los caminos que faltan crecen igualmente. La integridad y la recompensa llegarán cuando toque la reparación; entonces el nodo también se acercará a curarse.',
+    early: 'Aún no toca: el nodo está curado y los caminos que faltan crecen. La integridad y la recompensa solo llegan cuando toca la reparación.',
     prepared: 'Bien preparado',
     secondTry: 'Solo al segundo intento: crece únicamente la profundización. El nodo está dañado. Repáralo y después llegará el puente.',
     manyTries: 'Varios intentos fallidos: el nodo está dañado y no hará crecer nada nuevo hasta que lo repares.',

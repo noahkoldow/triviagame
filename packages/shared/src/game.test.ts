@@ -74,7 +74,8 @@ describe('player flow', () => {
     expect(dueReviews(r.player, '2026-10-01')).toEqual([]);
     expect(dueReviews(r.player, '2026-10-02')).toEqual(['n0']);
     const rev = recordReviewResult(r.player, pool, 'n0', true, '2026-10-02');
-    expect(rev.player.network.nodes['n0']!.box).toBe(2);
+    expect(rev.player.network.nodes['n0']!.state).toBe('solved');
+    expect(dueReviews(rev.player, '2026-10-30')).toEqual([]);
     expect(rev.reward.xp).toBeGreaterThan(0);
   });
 
@@ -301,18 +302,26 @@ describe('consequences', () => {
     expect(recordMaintenance(withCache, pool, 'n0', true, '2026-10-01').cache).toHaveLength(1);
   });
 
-  it('only a due repair moves the box and pays; an early one still regrows', () => {
+  it('one right repair heals the node; only a due one pays', () => {
     const broken = { ...completeNode3(), integrity: 2 };
     const early = recordReviewResult(broken, pool, 'n0', true, '2026-10-01');
     expect(early.due).toBe(false);
     expect(early.reward).toEqual({ xp: 0, bits: 0, gems: 0 });
     expect(early.player.integrity).toBe(2);
-    expect(early.player.network.nodes['n0']!.box).toBe(1);
+    expect(early.player.network.nodes['n0']!.state).toBe('solved');
     expect(early.spawned.length).toBeGreaterThan(0);
-    const due = recordReviewResult(early.player, pool, 'n0', true, '2026-10-02');
+    const due = recordReviewResult(broken, pool, 'n0', true, '2026-10-02');
     expect(due.due).toBe(true);
-    expect(due.player.network.nodes['n0']!.box).toBe(2);
+    expect(due.player.network.nodes['n0']!.state).toBe('solved');
     expect(due.player.integrity).toBe(3);
+  });
+
+  it('a wrong repair keeps the node damaged until tomorrow', () => {
+    const broken = completeNode3();
+    const r = recordReviewResult(broken, pool, 'n0', false, '2026-10-02');
+    expect(r.player.network.nodes['n0']!.state).toBe('damaged');
+    expect(r.player.network.nodes['n0']!.dueDay).toBe('2026-10-03');
+    expect(r.spawned).toEqual([]);
   });
 
   it('heals integrity with gems, and a repair gives one back', () => {

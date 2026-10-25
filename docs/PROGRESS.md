@@ -36,7 +36,7 @@ Spielbar in Expo Go (Mock-Daten):
 ## Prototyp 0.6 (Regie: Plot, offenes Ende, Liga, neue Sektoren)
 
 - **Plot** (D36–D38): fünf Kapitel mit Zielleiste unter dem HUD, 18 Story-Momente als Dialoge, Logbuch im Codex, vier Hüter mit Porträts (erwachen bei 3 Knoten je Sektor, kommentieren richtige Antworten), Finale gegen morph.ai im Kern. Danach endlos weiter mit Meilensteinen.
-- **Regeln** (D39–D43): kein Softlock bei Integrität 0 (Wartung), Reparatur zählt nur bei Fälligkeit, Streak-Freezes monatlich, Ergebnis-Screens frieren ihren Start ein, Knotenliste im Dock.
+- **Regeln** (D39–D43): kein Softlock bei Integrität 0 (Wartung), Reparatur zählt nur bei Fälligkeit und heilt mit einer richtigen Antwort (D67), Streak-Freezes monatlich, Ergebnis-Screens frieren ihren Start ein, Knotenliste im Dock.
 - **Sektoren** (D44): Naturwissenschaften, Technik & Medizin · Geographie & Erde · Geisteswissenschaften & Kultur · Gesellschaft, Politik & Wirtschaft, je drei Bereiche, 61 eingebaute Fragen, Migration alter Spielstände.
 - **Kein offener Proxy** (D45): Functions `questions` (gemeinsamer geprüfter Pool, Erzeugung nur serverseitig, Limits pro IP) und `league`. **Im Code fertig, aber noch nicht deployed**; bis zum Deploy läuft live noch die alte `gemini`-Function.
 - **Offenes Ende** (D46): Nachschub je Bereich, wartende Zweige wachsen nach.

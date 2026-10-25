@@ -166,7 +166,7 @@ export const fr: Strings = {
     maintainFailed: (answer) => `La bonne réponse : ${answer}. Ce nœud est entretenu pour aujourd’hui, essaie-en un autre.`,
     repaired: 'Réparé !',
     connected: 'Connexion établie !',
-    early: 'Pas encore dû : les chemins manquants poussent quand même. L’intégrité et la récompense viendront quand la réparation sera due ; le nœud se rapprochera alors aussi de la guérison.',
+    early: 'Pas encore dû : le nœud est guéri et les chemins manquants poussent. L’intégrité et la récompense ne viennent que quand la réparation est due.',
     prepared: 'Bien préparé',
     secondTry: 'Seulement au deuxième essai : seul l’approfondissement pousse. Le nœud est endommagé. Répare-le, puis le pont suivra.',
     manyTries: 'Plusieurs erreurs : le nœud est endommagé et ne fait rien pousser de nouveau tant que tu ne l’as pas réparé.',
