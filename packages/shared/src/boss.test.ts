@@ -10,6 +10,8 @@ import {
   WALL_MARGIN,
   WALL_RADIUS,
   bossQuestions,
+  fightClock,
+  timeOutWall,
   breachCells,
   createFirewalls,
   fightFrom,
@@ -85,6 +87,30 @@ describe('a fight against a firewall', () => {
     const { f } = play([true, false, true, true, false, true, true, true]);
     expect(f.log).toHaveLength(FIREWALL_ROUNDS);
     expect(wallFightState(f)).toBe('won');
+  });
+
+  it('holds when the clock runs out, but a broken wall stays broken', () => {
+    const { f } = play([true, true]);
+    const late = timeOutWall(f);
+    expect(wallFightState(late)).toBe('lost');
+    expect(strikeWall(late, true).fight).toBe(late);
+    const { f: won } = play(Array(FIREWALL_HP).fill(true));
+    expect(timeOutWall(won)).toBe(won);
+  });
+});
+
+describe('fight clock', () => {
+  it('gives long question types more time, rounded up to ten seconds', () => {
+    expect(fightClock([{ type: 'choice' }, { type: 'choice' }])).toBe(40);
+    expect(fightClock([{ type: 'sort' }, { type: 'riddle' }])).toBeGreaterThan(fightClock([{ type: 'choice' }, { type: 'truefalse' }]));
+    expect(fightClock([{ type: 'choice' }], true)).toBe(2 * fightClock([{ type: 'choice' }]));
+  });
+
+  it('leaves a real fight a few minutes', () => {
+    const qs = bossQuestions(pool, createFirewalls()[0]!, {}, 'physics');
+    const s = fightClock(qs);
+    expect(s).toBeGreaterThanOrEqual(qs.length * 12);
+    expect(s).toBeLessThanOrEqual(qs.length * 32 + 10);
   });
 });
 

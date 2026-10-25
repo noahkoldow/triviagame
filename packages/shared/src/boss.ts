@@ -3,7 +3,7 @@ import type { Pool } from './network';
 import { seededRng } from './rng';
 import { BASE_SKILL, targetDifficulty, type SkillMap } from './skill';
 import { SECTORS, areasOfSector, sectorOfArea } from './taxonomy';
-import type { NetNode, Question, Sector } from './types';
+import type { NetNode, Question, QuestionType, Sector } from './types';
 import { hexDistance, worldToHex } from './hex';
 import {
   CORE_ZONE,
@@ -159,6 +159,34 @@ export function finaleQuestions(pool: Pool, attempt: number, skill: SkillMap): Q
   );
 }
 
+/**
+ * Seconds a question adds to the clock of a boss fight (D71): a quick choice gives little, a
+ * question with much to read or arrange more. The fight has one clock for all its questions.
+ */
+const CLOCK_SECONDS: Record<QuestionType, number> = {
+  truefalse: 12,
+  choice: 18,
+  estimate: 20,
+  cloze: 20,
+  multi: 24,
+  locate: 25,
+  order: 28,
+  match: 28,
+  spot: 28,
+  riddle: 30,
+  source: 30,
+  sort: 32,
+};
+
+/**
+ * The clock of a boss fight in seconds, from the questions drawn for it, rounded up to ten.
+ * `relaxed` (a screen reader is on) doubles it: reading aloud takes longer than reading.
+ */
+export function fightClock(questions: Pick<Question, 'type'>[], relaxed = false): number {
+  const s = questions.reduce((sum, q) => sum + CLOCK_SECONDS[q.type], 0);
+  return Math.ceil(s / 10) * 10 * (relaxed ? 2 : 1);
+}
+
 /** A fight against a firewall while it runs. */
 export interface WallFight {
   /** Layers still standing (0 = broken). */
@@ -167,6 +195,8 @@ export interface WallFight {
   rounds: number;
   /** Every answer so far, right or wrong. */
   log: boolean[];
+  /** The clock ran out before the wall fell. */
+  timeUp?: boolean;
 }
 
 /**
@@ -179,10 +209,15 @@ export function startWallFight(rounds: number): WallFight {
   return { hp: FIREWALL_HP, rounds, log: [] };
 }
 
-/** `won` once the wall is down, `lost` once fewer questions are left than layers stand. */
+/** `won` once the wall is down, `lost` once the clock ran out or fewer questions are left than layers stand. */
 export function wallFightState(f: WallFight): 'on' | 'won' | 'lost' {
   if (f.hp <= 0) return 'won';
-  return f.rounds - f.log.length < f.hp ? 'lost' : 'on';
+  return f.timeUp || f.rounds - f.log.length < f.hp ? 'lost' : 'on';
+}
+
+/** The clock ran out: the wall holds with the layers it has. A finished fight stays as it is. */
+export function timeOutWall(f: WallFight): WallFight {
+  return wallFightState(f) === 'on' ? { ...f, timeUp: true } : f;
 }
 
 /** One answer against the wall. A finished fight stays as it is. */

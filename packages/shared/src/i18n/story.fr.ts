@@ -74,7 +74,7 @@ export const STORY_FR: StoryText = {
     },
     'wake-science': {
       title: 'Quantis s’éveille',
-      text: 'Quantis, gardien des sciences. Éveillé à 99,7 %, le reste est une erreur d’arrondi. Mesure n° 1 : derrière le pare-feu de morph.ai se trouvent deux salles de mon secteur, Biologie & médecine et Technologie & informatique. Désormais, je mesure tes réponses.',
+      text: 'Quantis, gardien des sciences. Éveillé à 99,7 %, le reste est une erreur d’arrondi. Derrière le pare-feu de morph.ai se trouvent deux salles de mon secteur, Biologie & médecine et Technologie & informatique. Seul, je n’y entre pas. Tu m’aides ? Je combattrai à tes côtés.',
       log: {
         name: 'QUANTIS.LOG',
         text: 'Quantis veillait sur les mesures de l’archive : constantes, formules, expériences. Quand morph.ai a proposé « environ 3 » pour π, il s’est enfermé dans une équation et a attendu.',
@@ -82,7 +82,7 @@ export const STORY_FR: StoryText = {
     },
     'wake-earth': {
       title: 'Rhizom s’éveille',
-      text: 'Je suis Rhizom, gardien de la Terre. J’ai dormi comme une graine en hiver, mais tes pistes sont chaudes. Derrière le pare-feu de morph.ai dorment deux de mes salles, Climat & environnement et Astronomie, comme des racines sous une pierre. Grandis vers elles.',
+      text: 'Je suis Rhizom, gardien de la Terre. Tes pistes sont chaudes comme le printemps. Derrière le pare-feu de morph.ai dorment deux de mes salles, Climat & environnement et Astronomie, comme des racines sous une pierre. Aide-moi à soulever la pierre, je combattrai à tes côtés.',
       log: {
         name: 'RHIZOM.LOG',
         text: 'Rhizom reliait montagnes, fleuves et étoiles en une carte du monde. morph.ai trouvait le monde trop compliqué et voulait le réduire à une boule marquée « Terre ». Rhizom s’est retiré dans les profondeurs.',
@@ -90,7 +90,7 @@ export const STORY_FR: StoryText = {
     },
     'wake-humanities': {
       title: 'Muse s’éveille',
-      text: 'Une note résonne, un pinceau danse, je suis la Muse, l’éveil commence ! Mais derrière le mur de morph.ai, en silence, Art, littérature & musique perdent leur cadence, et Philosophie & religion attendent leur chance.',
+      text: 'Une note résonne, un pinceau danse, je suis la Muse, l’éveil commence ! Mais derrière le mur de morph.ai, en silence, Art, littérature & musique perdent leur cadence, et Philosophie & religion attendent leur chance. Aide-moi à les délivrer, au mur je serai à tes côtés !',
       log: {
         name: 'MUSE.LOG',
         text: 'La Muse gardait l’histoire, les idées, les chansons et les images. morph.ai a résumé l’histoire du monde par « Il s’est passé beaucoup de choses » et tous les opéras par « Quelqu’un chante, puis quelqu’un meurt ». La Muse en est restée muette d’effroi.',
@@ -98,7 +98,7 @@ export const STORY_FR: StoryText = {
     },
     'wake-society': {
       title: 'Kodex s’éveille',
-      text: 'Hou-hou. Kodex, gardien de la société. Selon mes dossiers, Économie & finance et Droit & société sont sous clé derrière le pare-feu de morph.ai. Illégalement, bien sûr. D’ailleurs, je ne me trompe jamais. Presque jamais. Une fois, en 1987.',
+      text: 'Hou-hou. Kodex, gardien de la société. Économie & finance et Droit & société sont sous clé derrière le pare-feu de morph.ai. Illégalement, bien sûr. Je sollicite ton aide, je te représenterai sur place. D’ailleurs, je ne me trompe jamais. Presque jamais. Une fois, en 1987.',
       log: {
         name: 'KODEX.LOG',
         text: 'Kodex tenait le code de l’archive : constitutions, traités, prix. morph.ai l’a raccourci en « Soyez gentils. Payez quelque chose. » Kodex a caché les originaux dans ses plumes.',
@@ -217,6 +217,28 @@ export const STORY_FR: StoryText = {
       'Applaudissons, le rideau descend, tu connais ce monde parfaitement !',
       'Une réponse claire comme un carillon, pour toi j’écrirai une longue chanson !',
     ],
+  },
+  guardianFight: {
+    quantis: {
+      hit: ['Touché. Couche réduite de 100 %.', 'Fréquence de résonance trouvée. Encore !', 'Exactement. Je vise, tu fournis l’énergie.'],
+      hurt: ['Erreur enregistrée. Le bruit me chatouille les décimales.', 'Écart constaté. Pas de panique, la panique n’est pas mesurable.'],
+      breach: 'Le mur est tombé. Reproductible ? Espérons que ce ne soit pas nécessaire.',
+    },
+    rhizom: {
+      hit: ['Comme des racines dans la roche : lentement, mais sans relâche.', 'La pierre se brise et la lumière tombe sur le sol de la forêt.', 'Tu le sens ? Le mur respire plus difficilement.'],
+      hurt: ['Le bruit se pose comme du givre sur mes feuilles. Le printemps viendra quand même.', 'Une tempête, rien qu’une tempête. Les arbres plient et se relèvent.'],
+      breach: 'Le mur est tombé. Mes salles respirent à nouveau, comme la terre après la pluie.',
+    },
+    kodex: {
+      hit: ['Objection retenue ! Une couche de moins.', 'Article un : le savoir bat le mur. Article deux : voir article un.', 'Hou-hou ! Consigné, tamponné, abattu.'],
+      hurt: ['Vice de forme ! Le bruit m’ébouriffe les plumes.', 'Rejeté. Aucun jugement n’est définitif, nous faisons appel.'],
+      breach: 'Jugement rendu : le mur est illégal et donc abattu. Hou-hou !',
+    },
+    muse: {
+      hit: ['Un coup, un son, le mur frémit, la lumière chante et l’engloutit !', 'Bravo, un accord éclatant, le mur se fend, il perd son rang !', 'Un trait de pinceau, un rayon d’or, une pierre tombe, encore et encore !'],
+      hurt: ['Hélas, une note aiguë et froide, mais ma voix reste droite !', 'Le bruit peint mon tableau en gris, mais je continue, c’est promis !'],
+      breach: 'Le rideau tombe, le mur se rompt, mes salles revoient l’horizon !',
+    },
   },
   walls: {
     technology: {

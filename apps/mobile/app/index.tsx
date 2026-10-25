@@ -42,6 +42,7 @@ import {
   maintenanceTargets,
   markSeen,
   pendingBeats,
+  hallsOf,
   REVEAL_ID,
   fightFrom,
   firewallReached,
@@ -256,6 +257,12 @@ export default function Home() {
 
   const busy = !!(debrisId || shard || explorerOpen || cacheOpen || firewall || spot || unstable || selected || listOpen);
   const beat = focused && !busy ? pendingBeats(player, pool)[0] : undefined;
+  // a waking guardian shows its halls behind the firewall on the map
+  const beatFocus = beat?.focus;
+  const spotlight = useMemo(
+    () => (beatFocus ? { areas: hallsOf(beatFocus), color: colors.sector[beatFocus] } : undefined),
+    [beatFocus],
+  );
 
   // after the finale the network shows what it really is (once; it can be replayed in the settings)
   const revealDue = focused && !busy && !beat && player.story.finale && !player.story.seen.includes(REVEAL_ID);
@@ -324,6 +331,7 @@ export default function Home() {
           setSynapseId(id);
         }}
         debris={debrisProp}
+        spotlight={spotlight}
         onShard={(id) => {
           tap();
           setShardId(id);

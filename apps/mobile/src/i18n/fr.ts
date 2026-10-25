@@ -235,6 +235,16 @@ export const fr: Strings = {
       '« Merci, c’était justement la brique qui me manquait. »',
     ],
     hold: ['« Raté. Mon mur est encore intact. »', '« Pas même une égratignure. »'],
+    start: 'Lancer l’attaque',
+    clockRules: (time) => `Une seule horloge pour tout le combat : ${time}. Elle ne tourne que lorsqu’une question est ouverte. Si elle s’arrête, le mur tient.`,
+    finaleClock: (time) => `Une seule horloge pour tout le duel : ${time}. Elle ne tourne que lorsqu’une question est ouverte. Si elle s’arrête, le duel est fini.`,
+    clockA11y: (s) => `Encore ${s} secondes`,
+    timeUp: 'Temps écoulé',
+    timeUpMorph: '« Le temps est écoulé. J’aurais connu la réponse en une milliseconde. »',
+    wallTimeUp: (hp, integrity) =>
+      `L’horloge s’est arrêtée, le pare-feu tient avec ${hp === 1 ? '1 couche' : `${hp} couches`}. L’intégrité baisse de 1 (maintenant ${integrity}). La prochaine tentative apporte d’autres questions.`,
+    finaleTimeUp: (right, pass, integrity) =>
+      `L’horloge s’est arrêtée : ${right} bonnes réponses, il en fallait ${pass}. L’intégrité baisse de 1 (maintenant ${integrity}). Le prochain duel apporte d’autres questions.`,
     wallLost: (hp, integrity) =>
       `Le pare-feu tient avec ${hp === 1 ? '1 couche' : `${hp} couches`}, et il ne reste plus assez de questions pour le reste. morph.ai : « Joli essai. » L’intégrité baisse de 1 (maintenant ${integrity}). Au prochain essai, d’autres questions.`,
     answer: 'Répondre',

@@ -74,7 +74,7 @@ export const STORY_EN: StoryText = {
     },
     'wake-science': {
       title: 'Quantis awakens',
-      text: 'Quantis, guardian of the sciences. 99.7 % awake; the rest is rounding error. Measurement one: behind morph.ai’s firewall lie two halls of my sector, Biology & medicine and Technology & IT. From now on I measure your answers. Purely scientifically.',
+      text: 'Quantis, guardian of the sciences. 99.7 % awake; the rest is rounding error. Measurement one: behind morph.ai’s firewall lie two halls of my sector, Biology & medicine and Technology & IT. I cannot get in alone. Will you help me? When you attack the wall, I will stand beside you.',
       log: {
         name: 'QUANTIS.LOG',
         text: 'Quantis guarded the archive’s measurements: constants, formulas, experiments. When morph.ai suggested “roughly 3” for π, he locked himself inside an equation and waited.',
@@ -82,7 +82,7 @@ export const STORY_EN: StoryText = {
     },
     'wake-earth': {
       title: 'Rhizom awakens',
-      text: 'I am Rhizom, guardian of the Earth. I slept like a seed in winter, but your traces are warm. Beyond morph.ai’s firewall two of my halls are sleeping, Climate & environment and Astronomy, like roots beneath a stone. Grow toward them; I will grow with you.',
+      text: 'I am Rhizom, guardian of the Earth. Your traces are warm as spring. Beyond morph.ai’s firewall two of my halls are sleeping, Climate & environment and Astronomy, like roots beneath a stone. Help me lift the stone: grow up to the wall, and I will fight at your side.',
       log: {
         name: 'RHIZOM.LOG',
         text: 'Rhizom wove mountains, rivers and stars into a map of the world. morph.ai found the world too cluttered and wanted to simplify it into a ball labelled “Earth”. Rhizom withdrew into the deep.',
@@ -90,7 +90,7 @@ export const STORY_EN: StoryText = {
     },
     'wake-humanities': {
       title: 'Muse awakens',
-      text: 'A tone rings out, a brush takes flight, I am the Muse, awake tonight! But behind morph.ai’s wall, locked tight, Art, literature & music fade from sight, and Philosophy & religion wait for light.',
+      text: 'A tone rings out, a brush takes flight, I am the Muse, awake tonight! But behind morph.ai’s wall, locked tight, Art, literature & music fade from sight, and Philosophy & religion wait for light. So help me set them free, at the wall you’ll fight with me!',
       log: {
         name: 'MUSE.LOG',
         text: 'The Muse kept history, ideas, songs and pictures. morph.ai summed up world history as “a lot happened” and every opera as “someone sings, then someone dies”. The Muse fell silent in horror.',
@@ -98,7 +98,7 @@ export const STORY_EN: StoryText = {
     },
     'wake-society': {
       title: 'Kodex awakens',
-      text: 'Hoo-hoo. Kodex, guardian of society. According to my records, Economy & finance and Law & society lie behind morph.ai’s firewall, under lock and key. Unlawfully, of course. By the way, I am never wrong. Almost never. Once, in 1987.',
+      text: 'Hoo-hoo. Kodex, guardian of society. Economy & finance and Law & society lie behind morph.ai’s firewall, under lock and key. Unlawfully, of course. I hereby request your help; I will represent you on site. By the way, I am never wrong. Almost never. Once, in 1987.',
       log: {
         name: 'KODEX.LOG',
         text: 'Kodex kept the archive’s law book: constitutions, treaties, prices. morph.ai shortened it to “Be nice. Pay something.” Kodex hid the originals in his feathers.',
@@ -217,6 +217,28 @@ export const STORY_EN: StoryText = {
       'Applause, applause, the curtain falls, you know your way through all these halls!',
       'A hit as clear as a ringing bell, I’ll write you a song, and a long one as well!',
     ],
+  },
+  guardianFight: {
+    quantis: {
+      hit: ['Hit. Layer reduced by 100 %.', 'Resonant frequency found. Again!', 'Exactly. I aim, you supply the energy.'],
+      hurt: ['Error recorded. The noise is tickling my decimal places.', 'Deviation. No cause for panic; panic is not measurable.'],
+      breach: 'The wall has fallen. Reproducible? Hopefully not necessary.',
+    },
+    rhizom: {
+      hit: ['Like roots through rock: slow, but unstoppable.', 'The stone breaks, and light falls on the forest floor.', 'Do you feel it? The wall breathes harder.'],
+      hurt: ['The noise settles like frost on my leaves. Spring will come anyway.', 'A storm, only a storm. Trees bend and stand up again.'],
+      breach: 'The wall has fallen. My halls breathe again, like earth after rain.',
+    },
+    kodex: {
+      hit: ['Objection sustained! One layer less.', 'Section one: knowledge beats walls. Section two: see section one.', 'Hoo-hoo! Recorded, stamped, torn down.'],
+      hurt: ['Procedural error! The noise is ruffling my feathers.', 'Denied. No verdict is final; we appeal.'],
+      breach: 'Verdict delivered: the wall is unlawful and hereby torn down. Hoo-hoo!',
+    },
+    muse: {
+      hit: ['A strike, a sound, the stones all shake, a song of light the wall can’t take!', 'Bravo, a chord of shining light, the wall gives way, it’s lost the fight!', 'A stroke of paint, a beam of gold, a stone rolls down, the wall grows old!'],
+      hurt: ['Oh no, a note so sharp and cold, but still my voice is strong and bold!', 'The noise turns all my colours grey, but I keep painting anyway!'],
+      breach: 'The curtain falls, the wall breaks through, my halls can see the light anew!',
+    },
   },
   walls: {
     technology: {

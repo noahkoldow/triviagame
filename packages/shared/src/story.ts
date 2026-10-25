@@ -23,7 +23,8 @@ import { OUTER_ZONES, WALL_SIGHT, approachOf } from './walls';
  * out of the fog, every guardian names the two areas of its sector locked behind it, before
  * each fight morph.ai and the guardian trade words about the area behind the wall
  * (`wallVoices`), and after the third broken wall the core picks up morph.ai preparing the final
- * duel.
+ * duel. In a fight the awake guardian stands beside the player and reacts to every answer
+ * (`guardianFightLine`); it gives no bonus, it is company.
  *
  * This file holds the logic; the words are in `i18n/story.<lang>.ts`, one file per language.
  */
@@ -61,6 +62,8 @@ export interface StoryText {
   morphWrong: string[];
   morphReformed: string[];
   guardianCorrect: Record<GuardianId, string[]>;
+  /** In a wall fight the guardian of the sector fights beside the player and reacts to every answer. */
+  guardianFight: Record<GuardianId, { hit: string[]; hurt: string[]; breach: string }>;
   /** Before a fight, by the area behind the wall (every outer area): morph.ai's taunt and its guardian's answer. */
   walls: Record<string, { morph: string; guardian: string }>;
   /** Bolt's answer while the guardian of the sector still sleeps. */
@@ -202,6 +205,8 @@ interface BeatCue {
   mood?: StoryMood;
   /** MORPH's shape. */
   form?: MorphForm;
+  /** The map zooms out to the two areas of this sector behind the firewall while the beat is shown. */
+  focus?: Sector;
   when: (f: StoryFacts) => boolean;
 }
 
@@ -230,10 +235,12 @@ export const STORY_CUES: BeatCue[] = [
   // breadth pays: connected knowledge is worth more
   { id: 'synapse-ready', speaker: 'bolt', mood: 'wow', when: (f) => f.synapseReady > 0 && f.synapses === 0 },
   { id: 'first-synapse', speaker: 'core', when: (f) => f.synapses >= 1 },
-  { id: 'wake-science', speaker: 'quantis', when: wake('science') },
-  { id: 'wake-earth', speaker: 'rhizom', when: wake('earth') },
-  { id: 'wake-humanities', speaker: 'muse', when: wake('humanities') },
-  { id: 'wake-society', speaker: 'kodex', when: wake('society') },
+  // every guardian names the two halls of its sector behind the firewall and asks for help; the
+  // map shows where they lie
+  { id: 'wake-science', speaker: 'quantis', focus: 'science', when: wake('science') },
+  { id: 'wake-earth', speaker: 'rhizom', focus: 'earth', when: wake('earth') },
+  { id: 'wake-humanities', speaker: 'muse', focus: 'humanities', when: wake('humanities') },
+  { id: 'wake-society', speaker: 'kodex', focus: 'society', when: wake('society') },
   { id: 'guardians', speaker: 'kodex', when: (f) => f.awake.length === SECTORS.length },
   // morph.ai's memories, one per broken firewall in the order they break: how the humans stopped thinking
   { id: 'firewall-1', speaker: 'morph', form: 'glitch', when: (f) => f.broken >= 1 },
@@ -336,6 +343,14 @@ export function guardianLine(
   return { who: g.id, name: g.name, text: lines[Math.floor(seededRng(`guardian:${seed}`)() * lines.length)]! };
 }
 
+/** The guardian who fights beside the player at the firewall of `area`, or none while it still sleeps. */
+export function wallAlly(p: PlayerState, pool: Pool, area: string): { who: GuardianId; name: string } | null {
+  const sector = sectorOfArea(area);
+  if (!storyFacts(p, pool).awake.includes(sector)) return null;
+  const g = GUARDIANS[sector];
+  return { who: g.id, name: g.name };
+}
+
 /**
  * Who speaks before a fight at the firewall of `area`: morph.ai taunts with what it "cleaned up"
  * there, and the guardian of the sector answers, or Bolt while the guardian still sleeps.
@@ -347,13 +362,28 @@ export function wallVoices(
 ): { morph: string; ally: { who: GuardianId | 'bolt'; name: string; text: string } } {
   const text = STORY_TEXT[p.profile.lang];
   const words = text.walls[area]!;
-  const sector = sectorOfArea(area);
-  const g = GUARDIANS[sector];
-  const ally = storyFacts(p, pool).awake.includes(sector)
-    ? { who: g.id, name: g.name, text: words.guardian }
+  const g = wallAlly(p, pool, area);
+  const ally = g
+    ? { who: g.who, name: g.name, text: words.guardian }
     : { who: 'bolt' as const, name: 'Bolt', text: text.wallBolt };
   return { morph: words.morph, ally };
 }
 
+/**
+ * What a guardian says in a wall fight after an answer: `hit` for a right one, `hurt` when
+ * morph.ai's noise strikes back, `breach` when the wall falls. `n` picks among the lines.
+ */
+export function guardianFightLine(lang: Lang, who: GuardianId, kind: 'hit' | 'hurt' | 'breach', n: number): string {
+  const words = STORY_TEXT[lang].guardianFight[who];
+  if (kind === 'breach') return words.breach;
+  const lines = words[kind];
+  return lines[n % lines.length]!;
+}
+
 /** The areas behind a firewall, which `StoryText.walls` covers. */
 export const WALL_AREAS = OUTER_ZONES.map((z) => z.area);
+
+/** The two areas of a sector behind the firewall, which its guardian names when it wakes. */
+export function hallsOf(sector: Sector): string[] {
+  return WALL_AREAS.filter((a) => sectorOfArea(a) === sector);
+}

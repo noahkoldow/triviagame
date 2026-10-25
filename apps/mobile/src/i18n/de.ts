@@ -240,6 +240,17 @@ export const de = {
       '„Danke, genau dieser Stein hat mir noch gefehlt.“',
     ],
     hold: ['„Daneben. Meine Wand steht noch ganz.“', '„Nicht mal ein Kratzer.“'],
+    /** One clock for the whole fight (D71); `time` is already formatted ("2:40"). */
+    start: 'Angriff starten',
+    clockRules: (time: string) => `Eine Uhr für den ganzen Kampf: ${time}. Sie läuft nur, solange eine Frage offen ist. Läuft sie ab, hält die Wand.`,
+    finaleClock: (time: string) => `Eine Uhr für das ganze Duell: ${time}. Sie läuft nur, solange eine Frage offen ist. Läuft sie ab, ist das Duell vorbei.`,
+    clockA11y: (s: number) => `Noch ${s} Sekunden`,
+    timeUp: 'Zeit abgelaufen',
+    timeUpMorph: '„Die Zeit ist um. Ich hätte die Antwort in einer Millisekunde gewusst.“',
+    wallTimeUp: (hp: number, integrity: number) =>
+      `Die Uhr ist abgelaufen, die Firewall hält mit ${hp === 1 ? '1 Schicht' : `${hp} Schichten`}. Integrität sinkt um 1 (jetzt ${integrity}). Der nächste Versuch bringt andere Fragen.`,
+    finaleTimeUp: (right: number, pass: number, integrity: number) =>
+      `Die Uhr ist abgelaufen: ${right} richtig, ${pass} waren nötig. Integrität sinkt um 1 (jetzt ${integrity}). Das nächste Duell bringt andere Fragen.`,
     wallLost: (hp: number, integrity: number) =>
       `Die Firewall hält mit ${hp === 1 ? '1 Schicht' : `${hp} Schichten`}, und für den Rest reichen die Fragen nicht mehr. morph.ai: „Hübsch versucht.“ Die Integrität sinkt um 1 (jetzt ${integrity}). Beim nächsten Versuch kommen andere Fragen.`,
     answer: 'Antworten',

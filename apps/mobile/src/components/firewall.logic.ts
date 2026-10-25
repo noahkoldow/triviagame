@@ -20,13 +20,14 @@ export interface WallLayout {
   /** Centre line of every layer, bottom first. */
   rowY: number[];
   height: number;
-  /** Where morph.ai stands on top of the wall, and where Bolt fires from. */
+  /** Where morph.ai stands on top of the wall, and where Bolt and the guardian fire from. */
   morph: { x: number; y: number; size: number };
   bolt: { x: number; y: number; size: number };
+  guardian: { x: number; y: number; size: number };
 }
 
 const SQRT3 = Math.sqrt(3);
-/** Room above the wall for morph.ai and below it for Bolt. */
+/** Room above the wall for morph.ai and below it for Bolt and the guardian. */
 const TOP = 74;
 const BOTTOM = 62;
 
@@ -64,6 +65,7 @@ export function wallLayout(width: number, rows: number, cols = 8, seed = 'wall')
     height,
     morph: { x: width / 2, y: TOP - size / 2 - 6, size },
     bolt: { x: 34, y: height - BOTTOM / 2, size: 48 },
+    guardian: { x: width - 34, y: height - BOTTOM / 2, size: 48 },
   };
 }
 

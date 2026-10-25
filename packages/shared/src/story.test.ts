@@ -37,6 +37,9 @@ import {
   WALL_AREAS,
   areaName,
   wallVoices,
+  wallAlly,
+  guardianFightLine,
+  hallsOf,
   type PlayerState,
 } from './index';
 import { servedPool } from './served.testutil';
@@ -201,12 +204,19 @@ describe('foreshadowing the firewalls', () => {
     for (const lang of LANGS) {
       for (const s of SECTORS) {
         const text = STORY_TEXT[lang].beats[`wake-${s}`]!.text.toLowerCase();
-        const locked = WALL_AREAS.filter((a) => sectorOfArea(a) === s);
+        const locked = hallsOf(s);
         expect(locked).toHaveLength(2);
+        expect(locked.every((a) => WALL_AREAS.includes(a))).toBe(true);
         // the Muse rhymes, so it may name an area by its first word only
         for (const a of locked) expect(text, `${lang} ${s} ${a}`).toContain(areaName(a, lang).split(/[ ,]/)[0]!.toLowerCase());
       }
     }
+  });
+
+  it('the map shows the halls while a guardian wakes', () => {
+    const focus = storyBeats('de').filter((b) => b.focus);
+    expect(focus.map((b) => b.id)).toEqual(SECTORS.map((s) => `wake-${s}`));
+    for (const b of focus) expect(b.id).toBe(`wake-${b.focus}`);
   });
 
   it('the core overhears morph.ai after the third wall, until the finale is won', () => {
@@ -229,6 +239,21 @@ describe('foreshadowing the firewalls', () => {
       name: GUARDIANS.earth.name,
       text: STORY_TEXT.en.walls.astronomy!.guardian,
     });
+  });
+
+  it('the awake guardian fights beside the player and reacts in every language', () => {
+    expect(wallAlly(initialPlayer(pool), pool, 'astronomy')).toBeNull();
+    const awake = play(400, (x) => storyFacts(x, pool).awake.includes('earth'));
+    expect(wallAlly(awake, pool, 'climate')).toEqual({ who: GUARDIANS.earth.id, name: GUARDIANS.earth.name });
+    for (const lang of LANGS) {
+      for (const g of Object.values(GUARDIANS)) {
+        const words = STORY_TEXT[lang].guardianFight[g.id];
+        expect(words.hit.length, `${lang} ${g.id}`).toBeGreaterThan(1);
+        expect(words.hurt.length, `${lang} ${g.id}`).toBeGreaterThan(1);
+        expect(guardianFightLine(lang, g.id, 'hit', 7)).toBe(words.hit[7 % words.hit.length]);
+        expect(guardianFightLine(lang, g.id, 'breach', 0)).toBe(words.breach);
+      }
+    }
   });
 });
 

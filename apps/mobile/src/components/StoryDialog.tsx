@@ -40,12 +40,15 @@ export function Portrait({
   return <Guardian who={speaker} size={size} />;
 }
 
-/** One beat of the story as a dialog box; the log file it unlocks is named below the text. */
+/**
+ * One beat of the story as a dialog box; the log file it unlocks is named below the text. A beat
+ * that points the map at a guardian's halls (`focus`) docks at the bottom, so the map stays in view.
+ */
 export function StoryDialog({ beat, onDone }: { beat: StoryBeat | undefined; onDone: () => void }) {
   const t = useStrings();
   return (
     <Modal transparent animationType="fade" visible={!!beat} onRequestClose={onDone}>
-      <View style={styles.center}>
+      <View style={[styles.center, beat?.focus && styles.docked]}>
         {beat ? (
           <Dialog title={beat.title} icon={beat.speaker === 'morph' ? 'warn' : 'cache'} onClose={onDone}>
             <View style={styles.row}>
@@ -77,6 +80,7 @@ export function StoryDialog({ beat, onDone }: { beat: StoryBeat | undefined; onD
 
 const styles = StyleSheet.create({
   center: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: 20 },
+  docked: { backgroundColor: 'rgba(0,0,0,0.15)', justifyContent: 'flex-end', paddingBottom: 32 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   words: { flex: 1, gap: 4 },
   speaker: { color: colors.accent, fontSize: 13, fontWeight: '900', letterSpacing: 0.6 },

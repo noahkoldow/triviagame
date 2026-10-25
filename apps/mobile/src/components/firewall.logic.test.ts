@@ -17,6 +17,10 @@ describe('firewall layout', () => {
     expect(w.morph.y + w.morph.size / 2).toBeLessThan(w.rowY[3]! - w.r);
     expect(w.bolt.y).toBeGreaterThan(w.rowY[0]! + w.r);
     expect(w.bolt.y + w.bolt.size / 2).toBeLessThanOrEqual(w.height + 1);
+    // the guardian stands beside Bolt, on the other side, inside the scene
+    expect(w.guardian.y).toBe(w.bolt.y);
+    expect(w.guardian.x - w.guardian.size / 2).toBeGreaterThan(w.bolt.x + w.bolt.size / 2);
+    expect(w.guardian.x + w.guardian.size / 2).toBeLessThanOrEqual(340);
   });
 
   it('falls the same way for the same seed', () => {

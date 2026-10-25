@@ -1,8 +1,9 @@
 import { Canvas, Circle, Group, Line, Path, RadialGradient, Rect, Skia, vec, type SkPath } from '@shopify/react-native-skia';
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import {
+import Animated, {
   Easing,
+  useAnimatedStyle,
   useDerivedValue,
   useReducedMotion,
   useSharedValue,
@@ -11,8 +12,9 @@ import {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import type { WallHit } from '@nexus/shared';
+import type { GuardianId, WallHit } from '@nexus/shared';
 import { Bolt, type Mood } from './Bolt';
+import { Guardian } from './Guardian';
 import { Morph, type MorphForm } from './Morph';
 import { brickFall, hexPath, wallLayout, type Brick } from './firewall.logic';
 
@@ -26,9 +28,10 @@ const PARTICLES = 14;
 const svg = (d: string): SkPath => Skia.Path.MakeFromSVGString(d) ?? Skia.PathBuilder.Make().detach();
 
 /**
- * The firewall in a fight: a honeycomb wall with one layer per life, morph.ai on top, Bolt below.
- * A right answer (`crack`, `breach`) sends a beam from Bolt into the top layer, which bursts into
- * falling bricks; a wrong one (`repair`) lets morph.ai's noise flow down and rebuild a layer.
+ * The firewall in a fight: a honeycomb wall with one layer per life, morph.ai on top, Bolt below
+ * and, once awake, the guardian of the sector beside him. A right answer (`crack`, `breach`) sends
+ * a beam from both into the top layer, which bursts into falling bricks; a wrong one (`repair`)
+ * lets morph.ai's noise flow down and rebuild a layer, and the guardian flinches.
  * `hit.seq` changes with every answer, so the same kind of hit plays again.
  */
 export function FirewallScene({
@@ -39,6 +42,7 @@ export function FirewallScene({
   color,
   morphForm,
   boltMood,
+  guardian,
   label,
 }: {
   width: number;
@@ -49,6 +53,8 @@ export function FirewallScene({
   color: string;
   morphForm: MorphForm;
   boltMood: Mood;
+  /** The guardian fighting beside Bolt; none while it still sleeps. */
+  guardian?: GuardianId;
   label: string;
 }) {
   const reduced = useReducedMotion();
@@ -60,6 +66,7 @@ export function FirewallScene({
   const stream = useSharedValue(0);
   const light = useSharedValue(hp <= 0 ? 1 : 0);
   const pulse = useSharedValue(0);
+  const flinch = useSharedValue(0);
   // where the last beam hit, or the layer the last repair came down to: a right answer took the
   // layer at index `hp`, a repair rebuilt the one at `hp - 1`
   const t = useMemo(() => {
@@ -92,6 +99,13 @@ export function FirewallScene({
     } else if (hit.kind === 'repair') {
       stream.value = 0;
       stream.value = withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) });
+      flinch.value = withSequence(
+        withTiming(0, { duration: 500 }),
+        withTiming(5, { duration: 60 }),
+        withTiming(-5, { duration: 60 }),
+        withTiming(3, { duration: 60 }),
+        withTiming(0, { duration: 60 }),
+      );
     } else {
       // wrong while the wall is whole: it only flickers
       shake.value = withSequence(withTiming(2, { duration: 60 }), withTiming(-2, { duration: 60 }), withTiming(0, { duration: 60 }));
@@ -113,6 +127,8 @@ export function FirewallScene({
   const glow = useDerivedValue(() => 0.18 + light.value * 0.62);
   const beamOpacity = useDerivedValue(() => beam.value);
   const flashR = useDerivedValue(() => 8 + beam.value * 26);
+  const flinchStyle = useAnimatedStyle(() => ({ transform: [{ translateX: flinch.value }] }));
+  const g = wall.guardian;
 
   return (
     <View style={{ width, height: H }} accessible accessibilityRole="image" accessibilityLabel={label}>
@@ -139,6 +155,12 @@ export function FirewallScene({
         <Group opacity={beamOpacity}>
           <Line p1={vec(wall.bolt.x + 14, wall.bolt.y - 10)} p2={vec(t.x, t.y)} color={color} strokeWidth={7} strokeCap="round" />
           <Line p1={vec(wall.bolt.x + 14, wall.bolt.y - 10)} p2={vec(t.x, t.y)} color="#FFFFFF" strokeWidth={2} strokeCap="round" />
+          {guardian ? (
+            <>
+              <Line p1={vec(g.x - 14, g.y - 10)} p2={vec(t.x, t.y)} color={color} strokeWidth={7} strokeCap="round" />
+              <Line p1={vec(g.x - 14, g.y - 10)} p2={vec(t.x, t.y)} color="#FFFFFF" strokeWidth={2} strokeCap="round" />
+            </>
+          ) : null}
           <Circle cx={t.x} cy={t.y} r={flashR} color="#FFFFFF" opacity={0.85} />
         </Group>
         {/* morph.ai's noise flowing down into a rebuilt layer */}
@@ -158,6 +180,11 @@ export function FirewallScene({
       >
         <Bolt size={wall.bolt.size} mood={boltMood} />
       </View>
+      {guardian ? (
+        <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: g.x - g.size / 2, top: g.y - g.size / 2 }, flinchStyle]}>
+          <Guardian who={guardian} size={g.size} />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }

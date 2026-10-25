@@ -235,6 +235,16 @@ export const en: Strings = {
       '“Thanks, that was just the brick I was missing.”',
     ],
     hold: ['“Missed. My wall is still whole.”', '“Not even a scratch.”'],
+    start: 'Start the attack',
+    clockRules: (time) => `One clock for the whole fight: ${time}. It only runs while a question is open. If it runs out, the wall holds.`,
+    finaleClock: (time) => `One clock for the whole duel: ${time}. It only runs while a question is open. If it runs out, the duel is over.`,
+    clockA11y: (s) => `${s} seconds left`,
+    timeUp: 'Time’s up',
+    timeUpMorph: '“Time’s up. I would have known the answer in a millisecond.”',
+    wallTimeUp: (hp, integrity) =>
+      `The clock ran out and the firewall holds with ${hp === 1 ? '1 layer' : `${hp} layers`}. Integrity drops by 1 (now ${integrity}). The next attempt brings other questions.`,
+    finaleTimeUp: (right, pass, integrity) =>
+      `The clock ran out: ${right} right, ${pass} were needed. Integrity drops by 1 (now ${integrity}). The next duel brings other questions.`,
     wallLost: (hp, integrity) =>
       `The firewall holds with ${hp === 1 ? '1 layer' : `${hp} layers`}, and there are not enough questions left for the rest. morph.ai: “Nice try.” Integrity drops by 1 (now ${integrity}). The next attempt brings other questions.`,
     answer: 'Answer',

@@ -235,6 +235,16 @@ export const es: Strings = {
       '“Gracias, justo me faltaba ese ladrillo.”',
     ],
     hold: ['“Fallaste. Mi muro sigue entero.”', '“Ni un rasguño.”'],
+    start: 'Iniciar el ataque',
+    clockRules: (time) => `Un solo reloj para todo el combate: ${time}. Solo corre mientras hay una pregunta abierta. Si se acaba, el muro resiste.`,
+    finaleClock: (time) => `Un solo reloj para todo el duelo: ${time}. Solo corre mientras hay una pregunta abierta. Si se acaba, el duelo termina.`,
+    clockA11y: (s) => `Quedan ${s} segundos`,
+    timeUp: 'Se acabó el tiempo',
+    timeUpMorph: '“Se acabó el tiempo. Yo habría sabido la respuesta en un milisegundo.”',
+    wallTimeUp: (hp, integrity) =>
+      `El reloj se ha agotado y el cortafuegos resiste con ${hp === 1 ? '1 capa' : `${hp} capas`}. La integridad baja en 1 (ahora ${integrity}). El próximo intento trae otras preguntas.`,
+    finaleTimeUp: (right, pass, integrity) =>
+      `El reloj se ha agotado: ${right} correctas, se necesitaban ${pass}. La integridad baja en 1 (ahora ${integrity}). El próximo duelo trae otras preguntas.`,
     wallLost: (hp, integrity) =>
       `El cortafuegos aguanta con ${hp === 1 ? '1 capa' : `${hp} capas`} y ya no quedan preguntas suficientes para el resto. morph.ai: “Buen intento.” La integridad baja 1 (ahora ${integrity}). En el próximo intento habrá otras preguntas.`,
     answer: 'Responder',

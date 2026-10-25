@@ -8,7 +8,9 @@ import {
   matchFont,
   Path,
   Rect,
+  RoundedRect,
   Skia,
+  Text as SkText,
   vec,
 } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo, useRef } from 'react';
@@ -63,6 +65,7 @@ import {
   type Shard,
 } from './NodeViews';
 import { buildStrand, type Site } from './scenery';
+import { fitView, hallPath, hallShapes } from './spotlight';
 
 interface Props {
   nodes: NetNode[];
@@ -90,6 +93,11 @@ interface Props {
   /** Debris field of the node the player is currently scavenging. */
   debris?: { nodeId: string; center: { x: number; y: number }; color: string; shards: Shard[] };
   onShard?: (fragmentId: string) => void;
+  /**
+   * A guardian's halls behind the firewall (D71): while set, the camera pulls back to show them
+   * outlined in `color` above a dialog docked at the bottom, and returns when it is cleared.
+   */
+  spotlight?: { areas: string[]; color: string };
   /** The player moved the map or tapped the empty ground while a node was scavenged: same as "Zurück". */
   onDismiss?: () => void;
   onSelect: (id: string) => void;
@@ -120,6 +128,7 @@ function NetMapBase({
   onShard,
   onDismiss,
   onSelect,
+  spotlight,
 }: Props) {
   // node labels and wall signs follow the player's language
   const t = useStrings();
@@ -279,6 +288,8 @@ function NetMapBase({
 
   // --- camera -------------------------------------------------------------
   const cam = useRef({ cx: 0, cy: 0, s: 0.9 });
+  /** Where the camera returns once the spotlight on a guardian's halls ends; set while it shows. */
+  const before = useRef<{ cx: number; cy: number; s: number } | null>(null);
   const sizeRef = useRef({ width, height });
   sizeRef.current = { width, height };
   const nodesRef = useRef(placed);
@@ -320,12 +331,52 @@ function NetMapBase({
       focusMidY !== undefined
         ? n.pos.y - (focusMidY - h * ANCHOR_Y) / (s * SQUASH)
         : n.pos.y + (focusLift * h) / (s * SQUASH);
+    // while the spotlight shows the halls, the camera goes there once it ends
+    if (before.current) {
+      before.current = { cx: n.pos.x, cy: cyTarget, s };
+      return;
+    }
     cam.current = { cx: n.pos.x, cy: cyTarget, s };
     cx.value = withTiming(n.pos.x, { duration: 450 });
     cy.value = withTiming(cyTarget, { duration: 450 });
     zoom.value = withTiming(s, { duration: 450 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey]);
+
+  // the guardian's halls: the camera pulls back to them and later returns to where it was
+  const halls = useMemo(() => {
+    if (!spotlight) return null;
+    const shapes = hallShapes(spotlight.areas);
+    // the core stays in the picture, so the halls show where they lie from the player's network
+    const view = fitView([...shapes.flatMap((s) => s.points), { x: 0, y: 0 }], width, height, height * 0.1, height * 0.5);
+    return {
+      color: spotlight.color,
+      view,
+      shapes: shapes.map((s) => ({
+        ...s,
+        path: Skia.Path.MakeFromSVGString(hallPath(s)) ?? Skia.PathBuilder.Make().detach(),
+        name: areaName(s.area, t.lang),
+      })),
+    };
+  }, [spotlight, width, height, t.lang]);
+  useEffect(() => {
+    const ms = reduced ? 0 : 900;
+    const go = (to: { cx: number; cy: number; s: number }) => {
+      cam.current = to;
+      cx.value = withTiming(to.cx, { duration: ms, easing: Easing.inOut(Easing.cubic) });
+      cy.value = withTiming(to.cy, { duration: ms, easing: Easing.inOut(Easing.cubic) });
+      zoom.value = withTiming(to.s, { duration: ms, easing: Easing.inOut(Easing.cubic) });
+    };
+    if (halls) {
+      before.current ??= { ...cam.current };
+      go(halls.view);
+    } else if (before.current) {
+      go(before.current);
+      before.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [halls]);
+  const hallFill = useDerivedValue(() => 0.12 + pulse.value * 0.14);
 
   // ends the scavenging one frame later, so the first frames of a swipe are not held up by the re-render
   const dismiss = () => {
@@ -613,6 +664,25 @@ function NetMapBase({
               />
             </Group>
           ))}
+          {/* a guardian's halls behind the firewall, outlined while it wakes; the names keep their size */}
+          {halls
+            ? halls.shapes.map((h) => {
+                const w = font.getTextWidth(h.name) + 20;
+                return (
+                  <Group key={`hall-${h.area}`}>
+                    <Path path={h.path} color={halls.color} opacity={hallFill} />
+                    <Path path={h.path} style="stroke" strokeWidth={3 / halls.view.s} strokeJoin="round" color={halls.color}>
+                      <DashPathEffect intervals={[14 / halls.view.s, 10 / halls.view.s]} />
+                    </Path>
+                    <Group transform={[{ translateX: h.label.x }, { translateY: h.label.y }, { scale: 1 / halls.view.s }]}>
+                      <RoundedRect x={-w / 2} y={-12} width={w} height={24} r={12} color="#04080F" opacity={0.88} />
+                      <RoundedRect x={-w / 2} y={-12} width={w} height={24} r={12} style="stroke" strokeWidth={2} color={halls.color} />
+                      <SkText x={-w / 2 + 10} y={4.5} text={h.name} font={font} color="#FFFFFF" />
+                    </Group>
+                  </Group>
+                );
+              })
+            : null}
         </Group>
 
         {/* veil: pulls everything back while a node is being scavenged */}

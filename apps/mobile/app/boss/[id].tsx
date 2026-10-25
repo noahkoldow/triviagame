@@ -11,9 +11,11 @@ import {
   FINALE_REWARD,
   areaName,
   bossQuestions,
+  fightClock,
   fightFrom,
   finaleQuestions,
   firewallReached,
+  guardianFightLine,
   isCorrect,
   isSynapseId,
   networkBonus,
@@ -29,14 +31,18 @@ import {
   startWallFight,
   storyFacts,
   strikeWall,
+  timeOutWall,
+  wallAlly,
   wallFightState,
   wallVoices,
   type Answer,
   type BossOutcome,
+  type GuardianId,
   type WallFight,
   type WallHit,
 } from '@nexus/shared';
 import { Bolt, type Mood } from '../../src/components/Bolt';
+import { ClockBar, formatClock, useFightClock, useScreenReader } from '../../src/components/FightClock';
 import { FirewallScene } from '../../src/components/FirewallScene';
 import { Guardian } from '../../src/components/Guardian';
 import { Morph, type MorphForm } from '../../src/components/Morph';
@@ -107,8 +113,9 @@ const pick = (lines: readonly string[], n: number) => lines[n % lines.length]!;
 
 /**
  * A firewall as a boss fight: the wall has `FIREWALL_HP` layers, every right answer tears one
- * down, every wrong one lets morph.ai rebuild one. The fight ends with the wall down, or when
- * fewer questions are left than layers stand (`wallFightState`).
+ * down, every wrong one lets morph.ai rebuild one. The fight ends with the wall down, when fewer
+ * questions are left than layers stand (`wallFightState`), or when its one clock runs out (D71).
+ * The guardian of the sector, once awake, fights beside Bolt and reacts to every answer.
  */
 function WallFightView({ fwId }: { fwId: string }) {
   const router = useRouter();
@@ -123,11 +130,16 @@ function WallFightView({ fwId }: { fwId: string }) {
   );
   // before the first question morph.ai taunts and the guardian of the sector (or Bolt) answers
   const voices = useMemo(() => wallVoices(getState(), pool, fw.area), [fwId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ally = useMemo(() => wallAlly(getState(), pool, fw.area), [fwId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [fight, setFight] = useState<WallFight>(() => startWallFight(Math.min(FIREWALL_ROUNDS, questions.length)));
   const [hit, setHit] = useState<{ kind: WallHit; seq: number } | null>(null);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [checked, setChecked] = useState(false);
   const [outcome, setOutcome] = useState<BossOutcome | null>(null);
+  // one clock for the whole fight; it starts with the first question and pauses while an answer is shown
+  const [started, setStarted] = useState(false);
+  const screenReader = useScreenReader();
+  const total = useMemo(() => fightClock(questions.slice(0, FIREWALL_ROUNDS), screenReader), [questions, screenReader]);
 
   // while an answer is shown, its question stays on screen
   const i = fight.log.length - (checked ? 1 : 0);
@@ -135,6 +147,10 @@ function WallFightView({ fwId }: { fwId: string }) {
   const state = wallFightState(fight);
   const right = fight.log.filter((x) => x).length;
   const sceneW = Math.min(width - 24, 480) - 28;
+  const left = useFightClock(total, started && !checked && state === 'on', () => {
+    tap('error');
+    setFight((f) => timeOutWall(f));
+  });
 
   const check = () => {
     if (!q || !answer) return;
@@ -200,8 +216,10 @@ function WallFightView({ fwId }: { fwId: string }) {
                 <View style={{ alignItems: 'center' }}>
                   <Morph size={90} form="crown" />
                 </View>
-                <H1>{t.boss.notEnough}</H1>
-                <P style={{ color: colors.text }}>{t.boss.wallLost(fight.hp, getState().integrity)}</P>
+                <H1>{fight.timeUp ? t.boss.timeUp : t.boss.notEnough}</H1>
+                <P style={{ color: colors.text }}>
+                  {fight.timeUp ? t.boss.wallTimeUp(fight.hp, getState().integrity) : t.boss.wallLost(fight.hp, getState().integrity)}
+                </P>
               </>
             )}
             <Button label={t.boss.toMap} onPress={() => router.back()} />
@@ -211,23 +229,35 @@ function WallFightView({ fwId }: { fwId: string }) {
     );
   }
 
-  // who speaks after an answer, and how the two look
+  // who speaks after an answer: on a hit the guardian (or Bolt while it sleeps), on a miss
+  // morph.ai and then the guardian it struck; and how they look
   const seq = hit?.seq ?? 0;
-  const line = !checked
-    ? null
-    : hit?.kind === 'breach'
-      ? { morph: false, text: t.boss.breach }
-      : hit?.kind === 'crack'
-        ? fight.hp === 1
-          ? { morph: true, text: t.boss.morphLow }
-          : { morph: false, text: pick(t.boss.crack, seq) }
-        : hit?.kind === 'repair'
-          ? { morph: true, text: pick(t.boss.repair, seq) }
-          : { morph: true, text: pick(t.boss.hold, seq) };
+  const lines: { who: 'morph' | 'bolt' | GuardianId; text: string }[] = [];
+  if (fight.timeUp) {
+    lines.push({ who: 'morph', text: t.boss.timeUpMorph });
+  } else if (checked && (hit?.kind === 'crack' || hit?.kind === 'breach')) {
+    const k = hit.kind;
+    lines.push(
+      ally
+        ? { who: ally.who, text: guardianFightLine(t.lang, ally.who, k === 'breach' ? 'breach' : 'hit', seq) }
+        : { who: 'bolt', text: k === 'breach' ? t.boss.breach : pick(t.boss.crack, seq) },
+    );
+    if (k === 'crack' && fight.hp === 1) lines.push({ who: 'morph', text: t.boss.morphLow });
+  } else if (checked) {
+    lines.push({ who: 'morph', text: hit?.kind === 'repair' ? pick(t.boss.repair, seq) : pick(t.boss.hold, seq) });
+    if (ally) lines.push({ who: ally.who, text: guardianFightLine(t.lang, ally.who, 'hurt', seq) });
+  }
+  const sectorColor = colors.sector[sectorOfArea(fw.area)];
+  const speaker = (who: (typeof lines)[number]['who']) =>
+    who === 'morph'
+      ? { name: t.speakers.morph, color: MORPH_PINK }
+      : who === 'bolt'
+        ? { name: t.speakers.bolt, color: colors.accent }
+        : { name: ally!.name, color: sectorColor };
   const struck = checked && (hit?.kind === 'crack' || hit?.kind === 'breach');
   const morphForm: MorphForm = fight.hp <= 1 || struck ? 'glitch' : fight.hp === FIREWALL_HP ? 'crown' : 'glasses';
-  const boltMood: Mood = !checked ? 'think' : hit?.kind === 'breach' ? 'proud' : struck ? 'happy' : 'worried';
-  const left = fight.rounds - fight.log.length;
+  const boltMood: Mood = fight.timeUp ? 'worried' : !checked ? 'think' : hit?.kind === 'breach' ? 'proud' : struck ? 'happy' : 'worried';
+  const roundsLeft = fight.rounds - fight.log.length;
   const area = q?.area ?? fw.area;
 
   return (
@@ -248,16 +278,14 @@ function WallFightView({ fwId }: { fwId: string }) {
             hp={fight.hp}
             max={FIREWALL_HP}
             hit={hit}
-            color={colors.sector[sectorOfArea(fw.area)]}
+            color={sectorColor}
             morphForm={morphForm}
             boltMood={boltMood}
+            guardian={ally?.who}
             label={t.boss.sceneA11y(fight.hp, FIREWALL_HP)}
           />
-          <View style={styles.row}>
-            <Pill label={areaName(area, t.lang)} color={colors.sector[sectorOfArea(area)]} />
-            <Pill label={t.boss.roundsLeft(left)} color={left <= fight.hp ? colors.bad : colors.dim} />
-          </View>
-          {fight.log.length === 0 ? (
+          {!started ? (
+            // before the clock starts: morph.ai taunts, the guardian (or Bolt) answers, the rules
             <>
               <View style={styles.intro}>
                 <Text style={[styles.speaker, { color: MORPH_PINK }]}>{t.speakers.morph}</Text>
@@ -266,25 +294,33 @@ function WallFightView({ fwId }: { fwId: string }) {
               <View style={styles.intro}>
                 {voices.ally.who === 'bolt' ? <Bolt size={44} mood="proud" /> : <Guardian who={voices.ally.who} size={44} />}
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.speaker, { color: voices.ally.who === 'bolt' ? colors.accent : colors.sector[sectorOfArea(fw.area)] }]}>
+                  <Text style={[styles.speaker, { color: voices.ally.who === 'bolt' ? colors.accent : sectorColor }]}>
                     {voices.ally.name}
                   </Text>
                   <P style={{ color: colors.text }}>{voices.ally.text}</P>
                 </View>
               </View>
               <P style={{ color: colors.dim }}>{t.boss.wallRules}</P>
+              <P style={{ color: colors.warn }}>{t.boss.clockRules(formatClock(total))}</P>
+              <Button label={t.boss.start} onPress={() => setStarted(true)} />
             </>
-          ) : null}
-          {line ? (
-            <View style={styles.intro}>
-              <Text style={[styles.speaker, { color: line.morph ? MORPH_PINK : colors.accent }]}>
-                {line.morph ? t.speakers.morph : t.speakers.bolt}
-              </Text>
-              <P style={{ color: colors.text, flex: 1 }}>{line.text}</P>
+          ) : (
+            <>
+              <ClockBar left={left} total={total} />
+              <View style={styles.row}>
+                <Pill label={areaName(area, t.lang)} color={colors.sector[sectorOfArea(area)]} />
+                <Pill label={t.boss.roundsLeft(roundsLeft)} color={roundsLeft <= fight.hp ? colors.bad : colors.dim} />
+              </View>
+            </>
+          )}
+          {lines.map((l, k) => (
+            <View key={k} style={styles.intro}>
+              <Text style={[styles.speaker, { color: speaker(l.who).color }]}>{speaker(l.who).name}</Text>
+              <P style={{ color: colors.text, flex: 1 }}>{l.text}</P>
             </View>
-          ) : null}
+          ))}
 
-          {q ? (
+          {started && q ? (
             <>
               <Text style={styles.stem} maxFontSizeMultiplier={1.4}>
                 {q.stem}
@@ -298,7 +334,7 @@ function WallFightView({ fwId }: { fwId: string }) {
             </>
           ) : null}
 
-          {!checked ? (
+          {!started ? null : !checked && state === 'on' ? (
             <Button label={t.boss.attack} disabled={answer === null} onPress={check} />
           ) : (
             <Button label={state === 'on' ? t.boss.nextQuestion : t.boss.result} onPress={next} />
@@ -309,7 +345,7 @@ function WallFightView({ fwId }: { fwId: string }) {
   );
 }
 
-/** A synapse probe (`synId`) or, without one, the final duel against morph.ai. */
+/** A synapse probe (`synId`) or, without one, the final duel against morph.ai, which runs on one clock (D71). */
 function Fight({ synId }: { synId?: string }) {
   const router = useRouter();
   const t = useStrings();
@@ -333,6 +369,11 @@ function Fight({ synId }: { synId?: string }) {
   const [right, setRight] = useState(0);
   const [marks, setMarks] = useState<boolean[]>([]);
   const [outcome, setOutcome] = useState<BossOutcome | null>(null);
+  // the finale has one clock for all questions; a probe asks from memory without one
+  const [started, setStarted] = useState(!finale);
+  const [timedOut, setTimedOut] = useState(false);
+  const screenReader = useScreenReader();
+  const total = useMemo(() => fightClock(questions, screenReader), [questions, screenReader]);
 
   const q = questions[i];
   const sector = q ? sectorOfArea(q.area) : 'science';
@@ -347,13 +388,7 @@ function Fight({ synId }: { synId?: string }) {
     if (ok) setRight(right + 1);
   };
 
-  const next = () => {
-    if (i + 1 < questions.length) {
-      setI(i + 1);
-      setAnswer(null);
-      setChecked(false);
-      return;
-    }
+  const finish = () => {
     const r: BossOutcome = synId
       ? { ...recordSynapse(getState(), pool, synId, right, today()), spawned: [], areas: [] }
       : { ...recordFinale(getState(), pool, right), spawned: [], areas: [] };
@@ -362,6 +397,22 @@ function Fight({ synId }: { synId?: string }) {
     tap(r.passed ? 'success' : 'error');
     setOutcome(r);
   };
+
+  const next = () => {
+    if (i + 1 < questions.length) {
+      setI(i + 1);
+      setAnswer(null);
+      setChecked(false);
+      return;
+    }
+    finish();
+  };
+
+  // the open question counts as wrong; what was right so far decides
+  const left = useFightClock(total, finale && started && !checked && !outcome, () => {
+    setTimedOut(true);
+    finish();
+  });
 
   if (outcome) {
     const g = getState();
@@ -411,11 +462,13 @@ function Fight({ synId }: { synId?: string }) {
                 <View style={{ alignItems: 'center' }}>
                   {synId ? <Bolt size={90} mood="think" /> : <Morph size={90} form="crown" />}
                 </View>
-                <H1>{t.boss.notEnough}</H1>
+                <H1>{timedOut ? t.boss.timeUp : t.boss.notEnough}</H1>
                 <P style={{ color: colors.text }}>
                   {synId
                     ? t.boss.synapseLost(right, questions.length, pass)
-                    : t.boss.lost(right, questions.length, pass, finale, g.integrity)}
+                    : timedOut
+                      ? t.boss.finaleTimeUp(right, pass, g.integrity)
+                      : t.boss.lost(right, questions.length, pass, finale, g.integrity)}
                 </P>
               </>
             )}
@@ -445,6 +498,22 @@ function Fight({ synId }: { synId?: string }) {
   }
 
   const isLast = i + 1 === questions.length;
+  if (!started) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <ScrollView contentContainerStyle={styles.body}>
+          <Window title={title} icon="warn" onClose={() => router.back()}>
+            <View style={styles.intro}>
+              <Morph size={56} form="crown" />
+              <P style={{ color: colors.dim, flex: 1 }}>{t.boss.finaleIntro(pass)}</P>
+            </View>
+            <P style={{ color: colors.warn }}>{t.boss.finaleClock(formatClock(total))}</P>
+            <Button label={t.boss.start} onPress={() => setStarted(true)} />
+          </Window>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -462,15 +531,16 @@ function Fight({ synId }: { synId?: string }) {
               />
             ))}
           </View>
+          {finale ? <ClockBar left={left} total={total} /> : null}
           <View style={styles.row}>
             <Pill label={t.sectorsShort[sector]} color={colors.sector[sector]} />
             <Pill label={areaName(q.area, t.lang)} color={colors.dim} />
             <Pill label={t.boss.needed(right, pass)} color={colors.warn} />
           </View>
-          {i === 0 && !checked ? (
+          {i === 0 && !checked && !finale ? (
             <View style={styles.intro}>
-              {finale ? <Morph size={56} form="crown" /> : <Bolt size={56} mood="think" />}
-              <P style={{ color: colors.dim, flex: 1 }}>{finale ? t.boss.finaleIntro(pass) : t.boss.synapseIntro}</P>
+              <Bolt size={56} mood="think" />
+              <P style={{ color: colors.dim, flex: 1 }}>{t.boss.synapseIntro}</P>
             </View>
           ) : null}
 

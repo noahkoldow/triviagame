@@ -74,7 +74,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-science': {
       title: 'Quantis erwacht',
-      text: 'Quantis, Hüter der Naturwissenschaften. Zu 99,7 % wach, der Rest ist Rundungsfehler. Messung eins: Hinter morph.ais Firewall liegen zwei Säle meines Sektors, Biologie & Medizin und Technologie & IT. Ab jetzt messe ich deine Antworten. Rein wissenschaftlich.',
+      text: 'Quantis, Hüter der Naturwissenschaften. Zu 99,7 % wach, der Rest ist Rundungsfehler. Messung eins: Hinter morph.ais Firewall liegen zwei Säle meines Sektors, Biologie & Medizin und Technologie & IT. Allein komme ich nicht hinein. Hilfst du mir? Ich kämpfe an deiner Seite.',
       log: {
         name: 'QUANTIS.LOG',
         text: 'Quantis hütete die Messungen des Archivs: Konstanten, Formeln, Versuche. Als morph.ai für π „ungefähr 3“ vorschlug, schloss er sich in einer Gleichung ein und wartete.',
@@ -82,7 +82,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-earth': {
       title: 'Rhizom erwacht',
-      text: 'Ich bin Rhizom, Hüter der Erde. Ich schlief wie ein Samen im Winter, doch deine Bahnen sind warm. Jenseits von morph.ais Firewall schlafen zwei meiner Säle, Klima & Umwelt und Astronomie, wie Wurzeln unter einem Stein. Wachse zu ihnen, ich wachse mit dir.',
+      text: 'Ich bin Rhizom, Hüter der Erde. Deine Bahnen sind warm wie Frühling. Jenseits von morph.ais Firewall schlafen zwei meiner Säle, Klima & Umwelt und Astronomie, wie Wurzeln unter einem Stein. Hilf mir, den Stein zu heben: Wachse bis an die Wand, und ich kämpfe an deiner Seite.',
       log: {
         name: 'RHIZOM.LOG',
         text: 'Rhizom verband Berge, Flüsse und Sterne zu einer Karte der Welt. morph.ai fand die Welt unübersichtlich und wollte sie zu einer Kugel mit der Aufschrift „Erde“ vereinfachen. Rhizom zog sich in die Tiefe zurück.',
@@ -90,7 +90,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-humanities': {
       title: 'Muse erwacht',
-      text: 'Ein Ton erklingt, ein Pinsel tanzt, ich bin die Muse, frisch erwacht! Doch hinter morph.ais Wand verschanzt schweigt Kunst, Literatur & Musik in tiefer Nacht, und Philosophie & Religion hält dort stumme Wacht.',
+      text: 'Ein Ton erklingt, ein Pinsel tanzt, ich bin die Muse, frisch erwacht! Doch hinter morph.ais Wand verschanzt schweigt Kunst, Literatur & Musik in tiefer Nacht, und Philosophie & Religion hält dort stumme Wacht. Komm, hilf mir, sie zu befrein, an der Wand werd ich bei dir sein!',
       log: {
         name: 'MUSE.LOG',
         text: 'Die Muse bewahrte Geschichte, Gedanken, Lieder und Bilder. morph.ai fasste die Weltgeschichte zu „Viel passiert“ zusammen und alle Opern zu „Jemand singt, dann stirbt jemand“. Die Muse verstummte vor Entsetzen.',
@@ -98,7 +98,7 @@ export const STORY_DE: StoryText = {
     },
     'wake-society': {
       title: 'Kodex erwacht',
-      text: 'Hu-huu. Kodex, Hüter der Gesellschaft. Laut meinen Akten liegen hinter morph.ais Firewall Wirtschaft & Finanzen sowie Recht & Gesellschaft, unter Verschluss. Rechtswidrig, versteht sich. Ich irre übrigens nie. Fast nie. Einmal, 1987.',
+      text: 'Hu-huu. Kodex, Hüter der Gesellschaft. Hinter morph.ais Firewall Wirtschaft & Finanzen sowie Recht & Gesellschaft, unter Verschluss. Rechtswidrig, versteht sich. Ich beantrage deine Hilfe, ich vertrete dich vor Ort. Ich irre übrigens nie. Fast nie. Einmal, 1987.',
       log: {
         name: 'KODEX.LOG',
         text: 'Kodex führte das Gesetzbuch des Archivs: Verfassungen, Verträge, Preise. morph.ai kürzte es auf „Seid nett. Zahlt irgendwas.“ Kodex versteckte die Originale in seinem Gefieder.',
@@ -217,6 +217,28 @@ export const STORY_DE: StoryText = {
       'Applaus, Applaus, der Vorhang fällt, du kennst dich aus in dieser Welt!',
       'Ein Treffer, klar wie Glockenklang, dafür schreib ich dir ein Lied, ganz lang!',
     ],
+  },
+  guardianFight: {
+    quantis: {
+      hit: ['Treffer. Schicht um 100 % reduziert.', 'Resonanzfrequenz gefunden. Noch einmal!', 'Exakt. Ich ziele, du lieferst die Energie.'],
+      hurt: ['Fehler registriert. Das Rauschen kitzelt meine Nachkommastellen.', 'Abweichung. Kein Grund zur Panik, Panik ist nicht messbar.'],
+      breach: 'Die Wand ist gefallen. Reproduzierbar? Hoffentlich nicht nötig.',
+    },
+    rhizom: {
+      hit: ['Wie Wurzeln durch Fels: langsam, aber unaufhaltsam.', 'Der Stein bricht, und Licht fällt auf den Waldboden.', 'Spürst du es? Die Wand atmet schwerer.'],
+      hurt: ['Das Rauschen legt sich wie Frost auf meine Blätter. Der Frühling kommt trotzdem.', 'Ein Sturm, nur ein Sturm. Bäume biegen sich und stehen wieder auf.'],
+      breach: 'Die Wand ist gefallen. Meine Säle atmen wieder, wie Erde nach dem Regen.',
+    },
+    kodex: {
+      hit: ['Einspruch stattgegeben! Eine Schicht weniger.', 'Paragraf eins: Wissen schlägt Wand. Paragraf zwei: siehe Paragraf eins.', 'Hu-huu! Protokolliert, gestempelt, eingerissen.'],
+      hurt: ['Formfehler! Das Rauschen zerzaust mir die Federn.', 'Abgelehnt. Kein Urteil ist endgültig, wir gehen in Berufung.'],
+      breach: 'Urteil verkündet: Die Wand ist rechtswidrig und hiermit eingerissen. Hu-huu!',
+    },
+    muse: {
+      hit: ['Ein Schlag, ein Klang, die Mauer bebt, weil Kunst in jedem Strahle lebt!', 'Bravo, ein Akkord aus Licht, die Wand zerspringt, sie hält dich nicht!', 'Ein Pinselstrich, ein Strahl aus Gold, ein Stein, der von der Mauer rollt!'],
+      hurt: ['O weh, ein Misston, schrill und kalt, doch meine Stimme hat noch Halt!', 'Das Rauschen färbt mein Bild ganz grau, doch ich mal weiter, ganz genau!'],
+      breach: 'Der Vorhang fällt, die Mauer bricht, und meine Säle sehn das Licht!',
+    },
   },
   walls: {
     technology: {
