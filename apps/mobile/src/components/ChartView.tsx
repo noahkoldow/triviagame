@@ -1,13 +1,16 @@
+import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path, Polyline, Text as SvgText } from 'react-native-svg';
 import { chartText, type ChartSpec } from '@nexus/shared';
 import { useStrings } from '../strings';
-import { barLayout, formatNumber, timelineLayout } from './chart.logic';
+import { barLayout, formatNumber, lineLayout, pieSlices, slicePath, timelineLayout } from './chart.logic';
 
 const INK = '#101820';
 const BAR = ['#1CB0F6', '#58CC02', '#FF9600', '#CE82FF', '#FF86D0', '#FFC800'];
 
 /**
- * An image of a cache file, drawn by the game from its description: bars, a timeline or a table.
+ * An image of a cache file, drawn by the game from its description: bars, a timeline, a table,
+ * a line over the years, a pie of shares or the steps of a process.
  * Dark text on a light page, like a picture in an old document viewer.
  */
 export function ChartView({ chart, width, alt }: { chart: ChartSpec; width: number; alt?: string }) {
@@ -19,6 +22,84 @@ export function ChartView({ chart, width, alt }: { chart: ChartSpec; width: numb
       {chart.chart === 'bars' ? <Bars chart={chart} width={width - 24} /> : null}
       {chart.chart === 'timeline' ? <Timeline chart={chart} width={width - 24} /> : null}
       {chart.chart === 'table' ? <Table chart={chart} /> : null}
+      {chart.chart === 'line' ? <LineChart chart={chart} width={width - 24} /> : null}
+      {chart.chart === 'pie' ? <Pie chart={chart} width={width - 24} /> : null}
+      {chart.chart === 'flow' ? <Flow chart={chart} /> : null}
+    </View>
+  );
+}
+
+function LineChart({ chart, width }: { chart: Extract<ChartSpec, { chart: 'line' }>; width: number }) {
+  const t = useStrings();
+  const height = 140;
+  const pts = lineLayout(chart.points, width, height, { left: 22, right: 22, top: 18, bottom: 20 });
+  return (
+    <View style={{ gap: 4 }}>
+      <Svg width={width} height={height}>
+        <Path d={`M 22 ${height - 20} H ${width - 8}`} stroke={INK} strokeWidth={1.5} />
+        <Polyline points={pts.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={BAR[0]} strokeWidth={3} />
+        {pts.map((p) => (
+          <Fragment key={p.year}>
+            <Circle cx={p.x} cy={p.y} r={4} fill={BAR[0]} stroke={INK} strokeWidth={1.5} />
+            <SvgText x={p.x} y={p.y - 8} fontSize={11} fontWeight="bold" fill={INK} textAnchor="middle">
+              {formatNumber(p.value, t.lang)}
+            </SvgText>
+            <SvgText x={p.x} y={height - 6} fontSize={11} fill={INK} textAnchor="middle">
+              {String(p.year)}
+            </SvgText>
+          </Fragment>
+        ))}
+      </Svg>
+      {chart.unit ? <Text style={styles.unit}>{t.explorer.chartUnit(chart.unit)}</Text> : null}
+    </View>
+  );
+}
+
+function Pie({ chart, width }: { chart: Extract<ChartSpec, { chart: 'pie' }>; width: number }) {
+  const t = useStrings();
+  const size = Math.min(120, width * 0.4);
+  const r = size / 2 - 2;
+  const slices = pieSlices(chart.items);
+  return (
+    <View style={styles.pieRow}>
+      <Svg width={size} height={size}>
+        {slices.map((s, i) => (
+          <Path key={s.label} d={slicePath(size / 2, size / 2, r, s.from, s.to)} fill={BAR[i % BAR.length]} stroke="#FFFFFF" strokeWidth={1} />
+        ))}
+      </Svg>
+      <View style={{ flex: 1, gap: 4 }}>
+        {chart.items.map((it, i) => (
+          <View key={it.label} style={styles.barRow}>
+            <View style={[styles.swatch, { backgroundColor: BAR[i % BAR.length] }]} />
+            <Text style={[styles.label, { flex: 1 }]} maxFontSizeMultiplier={1.2}>
+              {it.label}
+            </Text>
+            <Text style={styles.value} maxFontSizeMultiplier={1.2}>
+              {formatNumber(it.value, t.lang)} %
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** The steps of a process as boxes with arrows; a cycle leads back to the first step. */
+function Flow({ chart }: { chart: Extract<ChartSpec, { chart: 'flow' }> }) {
+  return (
+    <View style={{ gap: 2 }}>
+      {chart.steps.map((step, i) => (
+        <Fragment key={step}>
+          {i > 0 ? <Text style={styles.arrow}>↓</Text> : null}
+          <View style={styles.step}>
+            <Text style={styles.stepNo}>{i + 1}</Text>
+            <Text style={[styles.label, { flex: 1 }]} maxFontSizeMultiplier={1.2}>
+              {step}
+            </Text>
+          </View>
+        </Fragment>
+      ))}
+      {chart.cycle ? <Text style={styles.arrow}>↺ 1</Text> : null}
     </View>
   );
 }
@@ -117,4 +198,9 @@ const styles = StyleSheet.create({
   tr: { flexDirection: 'row' },
   td: { flex: 1, color: INK, fontSize: 13, padding: 6, borderWidth: 0.5, borderColor: '#808080' },
   th: { backgroundColor: '#DFDFDF', fontWeight: '800' },
+  pieRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  swatch: { width: 12, height: 12, borderWidth: 1, borderColor: INK },
+  step: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: INK, backgroundColor: '#EAF6FF', padding: 8 },
+  stepNo: { color: '#FFFFFF', backgroundColor: INK, fontSize: 11, fontWeight: '900', width: 18, height: 18, textAlign: 'center', lineHeight: 18 },
+  arrow: { color: INK, fontSize: 16, fontWeight: '900', textAlign: 'center' },
 });

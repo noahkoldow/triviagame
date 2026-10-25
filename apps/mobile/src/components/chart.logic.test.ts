@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { barLayout, formatNumber, timelineLayout } from './chart.logic';
+import { barLayout, formatNumber, lineLayout, pieSlices, slicePath, timelineLayout } from './chart.logic';
 
 describe('chart layout', () => {
   it('writes numbers the German way', () => {
@@ -49,5 +49,40 @@ describe('chart layout', () => {
   it('copes with a single moment', () => {
     const t = timelineLayout([{ label: 'a', year: 2000 }, { label: 'b', year: 2000 }], 300);
     expect(t.every((e) => Number.isFinite(e.x))).toBe(true);
+  });
+});
+
+describe('line, pie', () => {
+  it('lays points out from left to right and from the bottom up', () => {
+    const pts = lineLayout(
+      [
+        { year: 1960, value: 317 },
+        { year: 1990, value: 354 },
+        { year: 2020, value: 414 },
+      ],
+      200,
+      100,
+    );
+    expect(pts[0]!.x).toBe(8);
+    expect(pts[2]!.x).toBe(192);
+    expect(pts[1]!.x).toBeCloseTo(100);
+    // a higher value is further up
+    expect(pts[2]!.y).toBeLessThan(pts[1]!.y);
+    expect(pts[1]!.y).toBeLessThan(pts[0]!.y);
+    expect(pts[2]!.y).toBeCloseTo(18);
+    for (const p of pts) expect(p.y).toBeLessThanOrEqual(82);
+  });
+
+  it('cuts the pie by shares, clockwise from the top', () => {
+    const s = pieSlices([
+      { label: 'a', value: 75 },
+      { label: 'b', value: 25 },
+    ]);
+    expect(s[0]!.from).toBeCloseTo(-Math.PI / 2);
+    expect(s[0]!.to - s[0]!.from).toBeCloseTo(Math.PI * 1.5);
+    expect(s[1]!.to).toBeCloseTo(Math.PI * 1.5);
+    expect(slicePath(50, 50, 40, s[0]!.from, s[0]!.to)).toContain(' 1 1 ');
+    expect(slicePath(50, 50, 40, s[1]!.from, s[1]!.to)).toContain(' 0 1 ');
+    expect(slicePath(50, 50, 40, 0, Math.PI * 2)).not.toContain('L');
   });
 });

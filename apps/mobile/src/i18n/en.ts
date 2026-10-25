@@ -262,6 +262,13 @@ export const en: Strings = {
     pairedWith: (a, b) => `${a}, paired with ${b}`,
     gapFilled: (n, word) => `Gap ${n}: ${word}, tap to clear`,
     gapEmpty: (n) => `Gap ${n}, empty`,
+    multiHint: 'Several answers are right. Pick all that are.',
+    sortHint: 'Put every entry into a folder. Tap again to move it.',
+    fileInto: (item, group) => `${item} into folder ${group}`,
+    spotHint: 'One sentence is wrong. Tap it.',
+    statement: (n, line) => `Sentence ${n}: ${line}`,
+    spotFound: 'Found it: this was the wrong sentence.',
+    spotMissed: (n) => `The wrong sentence was number ${n}.`,
   },
 
   explorer: {
@@ -292,7 +299,10 @@ export const en: Strings = {
     deleteAllText: 'Your whole folder structure will be emptied.',
     source: (s) => `Source: ${s}`,
     chartUnit: (unit) => `Values in ${unit}`,
-    kinds: { note: 'Text document', article: 'Article', image: 'Image' },
+    kinds: { note: 'Text document', article: 'Article', image: 'Image', profile: 'Fact sheet', quote: 'Quote', mail: 'Message' },
+    mailFrom: (from) => `From: ${from}`,
+    mailSubject: (subject) => `Subject: ${subject}`,
+    quoted: (text) => `“${text}”`,
   },
   cacheFiles: {
     title: 'Cache',

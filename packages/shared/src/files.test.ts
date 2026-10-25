@@ -23,12 +23,44 @@ describe('cache folders with files', () => {
     expect(files[0]!.text).toBe(f.text);
   });
 
-  it('several folders have files, of all three kinds', () => {
+  it('several folders have files, of every kind and every chart', () => {
     expect(withFiles.length).toBeGreaterThanOrEqual(12);
     const kinds = new Set(withFiles.flatMap(({ f }) => f.files!.map((x) => x.kind)));
-    expect([...kinds].sort()).toEqual(['article', 'image', 'note']);
+    expect([...kinds].sort()).toEqual(['article', 'image', 'mail', 'note', 'profile', 'quote']);
     const charts = new Set(withFiles.flatMap(({ f }) => f.files!.filter((x) => x.chart).map((x) => x.chart!.chart)));
-    expect([...charts].sort()).toEqual(['bars', 'table', 'timeline']);
+    expect([...charts].sort()).toEqual(['bars', 'flow', 'line', 'pie', 'table', 'timeline']);
+  });
+
+  it('checks the new formats: profiles, quotes, mails, lines, pies and flows', () => {
+    const ok = (file: unknown) => validateFiles([file]).errors;
+    expect(ok({ name: 'Wal.inf', kind: 'profile', fields: [['Klasse', 'Säugetiere'], ['Atmung', 'Lunge']] })).toEqual([]);
+    expect(ok({ name: 'Wal.inf', kind: 'profile', fields: [['Klasse', 'Säugetiere']] })).toContain('file 1: a profile has 2 to 8 lines');
+    expect(ok({ name: 'Wal.inf', kind: 'profile', fields: [['Klasse', 'a'], ['klasse', 'b']] })).toContain('file 1: profile labels must be unique');
+    // a quote has to say where it comes from, or nobody can check it
+    expect(ok({ name: 'Zitat.txt', kind: 'quote', text: 'Ich weiß, dass ich nichts weiß.' })).toContain('file 1: a quote needs its source (who, where)');
+    expect(ok({ name: 'Zitat.txt', kind: 'quote', text: 'Ich weiß, dass ich nichts weiß.', source: 'Sokrates, nach Platon' })).toEqual([]);
+    expect(ok({ name: 'Post.eml', kind: 'mail', text: 'Eine kurze Nachricht.' })).toContain('file 1: a mail needs a sender of 2 to 40 characters');
+    expect(ok({ name: 'Post.eml', kind: 'mail', from: 'Bolt', subject: 'Hallo', text: 'Eine kurze Nachricht.' })).toEqual([]);
+
+    const chart = (c: unknown) => validateChart(c).errors;
+    const points = [1960, 1980, 2000].map((year, i) => ({ year, value: 300 + i * 30 }));
+    expect(chart({ chart: 'line', title: 'CO2', unit: 'ppm', points })).toEqual([]);
+    expect(chart({ chart: 'line', title: 'CO2', points: [...points].reverse() })).toContain('point years must rise');
+    const pie = (values: number[]) => ({ chart: 'pie', title: 'Luft', items: values.map((value, i) => ({ label: `G${i}`, value })) });
+    expect(chart(pie([78, 21, 0.9, 0.1]))).toEqual([]);
+    expect(chart(pie([78, 21, 0.9]))).toEqual([]);
+    expect(chart(pie([50, 30]))[0]).toMatch(/add up to 100/);
+    expect(chart({ chart: 'flow', title: 'Wasser', steps: ['Verdunsten', 'Regnen'], cycle: true })).toEqual([]);
+    expect(chart({ chart: 'flow', title: 'Wasser', steps: ['Regnen'] })).toContain('a flow needs 2 to 6 steps');
+  });
+
+  it('makes every new format searchable', () => {
+    const text = fileText({ name: 'Post.eml', kind: 'mail', from: 'Kodex', subject: 'Veto', text: 'Fünf ständige Mitglieder.' });
+    expect(text).toContain('Kodex');
+    expect(text).toContain('Veto');
+    expect(fileText({ name: 'Wal.inf', kind: 'profile', fields: [['Atmung', 'Lunge']] })).toContain('Atmung: Lunge');
+    expect(chartText({ chart: 'flow', title: 'Kreislauf', steps: ['A', 'B'], cycle: true })).toBe('Kreislauf. A → B → A');
+    expect(chartText({ chart: 'pie', title: 'Luft', items: [{ label: 'Stickstoff', value: 78 }] })).toContain('Stickstoff 78 %');
   });
 
   it('every file passes the same rules as AI-written files', () => {

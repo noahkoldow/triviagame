@@ -4,22 +4,37 @@ export type Sector = 'science' | 'earth' | 'humanities' | 'society';
 
 export type FragmentKind = 'key' | 'context' | 'decoy';
 
-export type FileKind = 'note' | 'article' | 'image';
+/**
+ * What a file in a cache folder is: a note, a short article, an image (a chart the game draws),
+ * a profile (a fact sheet of a thing, place or person), a quote from a source, or a mail.
+ */
+export type FileKind = 'note' | 'article' | 'image' | 'profile' | 'quote' | 'mail';
 
 /** An image the game draws itself from a small description (no photos, no image model). */
 export type ChartSpec =
   | { chart: 'bars'; title: string; unit?: string; items: { label: string; value: number }[] }
   | { chart: 'timeline'; title: string; events: { label: string; year: number }[] }
-  | { chart: 'table'; title: string; columns: string[]; rows: string[][] };
+  | { chart: 'table'; title: string; columns: string[]; rows: string[][] }
+  /** A value over the years, e.g. a concentration or a population. */
+  | { chart: 'line'; title: string; unit?: string; points: { year: number; value: number }[] }
+  /** Shares of a whole in percent; they add up to 100. */
+  | { chart: 'pie'; title: string; items: { label: string; value: number }[] }
+  /** Steps of a process; `cycle` leads the last step back to the first. */
+  | { chart: 'flow'; title: string; steps: string[]; cycle?: boolean };
 
-/** One file inside a cache folder: a note, a short article or an image. */
+/** One file inside a cache folder. */
 export interface FragmentFile {
   name: string;
   kind: FileKind;
-  /** Notes and articles; paragraphs of an article are separated by a blank line. */
+  /** Notes, articles, quotes and mails; paragraphs of an article are separated by a blank line. */
   text?: string;
-  /** Where an article comes from. */
+  /** Where an article comes from; who said or wrote a quote, and where. */
   source?: string;
+  /** Profiles: label and value of every line. */
+  fields?: [string, string][];
+  /** Mails: sender and subject. */
+  from?: string;
+  subject?: string;
   /** Images. */
   chart?: ChartSpec;
   /** What an image shows, for screen readers and for the search. */
@@ -36,7 +51,7 @@ export interface Fragment {
   files?: FragmentFile[];
 }
 
-export type QuestionType = 'choice' | 'estimate' | 'order' | 'truefalse' | 'match' | 'cloze';
+export type QuestionType = 'choice' | 'estimate' | 'order' | 'truefalse' | 'match' | 'cloze' | 'multi' | 'sort' | 'spot';
 
 interface QuestionBase {
   id: string;
@@ -106,8 +121,35 @@ export interface ClozeQuestion extends QuestionBase {
   bank: string[];
 }
 
+/** Several right options: the player has to pick all of them and nothing else. */
+export interface MultiQuestion extends QuestionBase {
+  type: 'multi';
+  options: string[];
+  /** Indices of the right options, ascending. */
+  answers: number[];
+}
+
+/** Items to file into folders: every item belongs to exactly one group. */
+export interface SortQuestion extends QuestionBase {
+  type: 'sort';
+  groups: string[];
+  /** Each item with the index of its group. */
+  items: [string, number][];
+}
+
+/** A short text of statements of which exactly one is wrong; the player finds it. */
+export interface SpotQuestion extends QuestionBase {
+  type: 'spot';
+  lines: string[];
+  /** Index of the wrong statement. */
+  wrong: number;
+}
+
 export type Question =
   | ChoiceQuestion
+  | MultiQuestion
+  | SortQuestion
+  | SpotQuestion
   | EstimateQuestion
   | OrderQuestion
   | TrueFalseQuestion
@@ -121,7 +163,12 @@ export type Answer =
   | { type: 'truefalse'; value: boolean }
   /** left item → the right item the player connected it to */
   | { type: 'match'; pairs: Record<string, string> }
-  | { type: 'cloze'; words: string[] };
+  | { type: 'cloze'; words: string[] }
+  /** indices into the question's own (unshuffled) options */
+  | { type: 'multi'; indices: number[] }
+  /** item → the group index the player filed it in */
+  | { type: 'sort'; groups: Record<string, number> }
+  | { type: 'spot'; index: number };
 
 export type NodeKind = 'root' | 'deepen' | 'bridge' | 'debris';
 export type NodeState = 'open' | 'solved' | 'damaged';

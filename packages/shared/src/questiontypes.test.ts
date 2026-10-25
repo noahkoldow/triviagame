@@ -4,9 +4,15 @@ import {
   answerText,
   isCorrect,
   variantBank,
+  validateDraft,
   variantMatch,
+  variantMulti,
+  variantSort,
   type ClozeQuestion,
   type MatchQuestion,
+  type MultiQuestion,
+  type SortQuestion,
+  type SpotQuestion,
   type TrueFalseQuestion,
 } from './index';
 
@@ -15,7 +21,7 @@ const byType = <T extends { type: string }>(t: string) => MOCK_QUESTIONS.filter(
 describe('question types', () => {
   it('the pool uses every type, not only multiple choice', () => {
     const types = new Set(MOCK_QUESTIONS.map((q) => q.type));
-    for (const t of ['choice', 'estimate', 'order', 'truefalse', 'match', 'cloze']) expect(types.has(t as never)).toBe(true);
+    for (const t of ['choice', 'estimate', 'order', 'truefalse', 'match', 'cloze', 'multi', 'sort', 'spot']) expect(types.has(t as never)).toBe(true);
     const choice = MOCK_QUESTIONS.filter((q) => q.type === 'choice').length;
     expect(choice / MOCK_QUESTIONS.length).toBeLessThan(0.6);
   });
@@ -42,6 +48,56 @@ describe('question types', () => {
     expect(isCorrect(q, { type: 'cloze', words: q.answers })).toBe(true);
     expect(isCorrect(q, { type: 'cloze', words: [...q.answers].reverse() })).toBe(q.answers.length === 1);
     expect(isCorrect(q, { type: 'cloze', words: [] })).toBe(false);
+  });
+
+  it('checks several right answers: all of them and nothing else', () => {
+    const q = byType<MultiQuestion>('multi')[0]!;
+    expect(isCorrect(q, { type: 'multi', indices: q.answers })).toBe(true);
+    expect(isCorrect(q, { type: 'multi', indices: [...q.answers].reverse() })).toBe(true);
+    expect(isCorrect(q, { type: 'multi', indices: q.answers.slice(1) })).toBe(false);
+    const wrong = q.options.findIndex((_, i) => !q.answers.includes(i));
+    expect(isCorrect(q, { type: 'multi', indices: [...q.answers, wrong] })).toBe(false);
+    expect(answerText(q, 'de')).toBe('Kohlendioxid, Methan, Lachgas');
+  });
+
+  it('checks sorting into folders item by item', () => {
+    const q = byType<SortQuestion>('sort')[0]!;
+    const right = Object.fromEntries(q.items);
+    expect(isCorrect(q, { type: 'sort', groups: right })).toBe(true);
+    const [a, b] = [q.items[0]!, q.items.find((it) => it[1] !== q.items[0]![1])!];
+    expect(isCorrect(q, { type: 'sort', groups: { ...right, [a[0]]: b[1] } })).toBe(false);
+    expect(isCorrect(q, { type: 'sort', groups: {} })).toBe(false);
+    expect(answerText(q, 'de')).toContain('Säugetiere: Wal, Fledermaus');
+    for (let v = 0; v < 4; v++) expect([...variantSort(q, v)].sort()).toEqual(q.items.map((it) => it[0]).sort());
+    for (let v = 0; v < 4; v++) expect([...variantMulti(byType<MultiQuestion>('multi')[0]!, v)].sort()).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('checks the wrong statement of a text', () => {
+    const q = byType<SpotQuestion>('spot')[0]!;
+    expect(isCorrect(q, { type: 'spot', index: q.wrong })).toBe(true);
+    expect(isCorrect(q, { type: 'spot', index: (q.wrong + 1) % q.lines.length })).toBe(false);
+    expect(answerText(q, 'de')).toBe(q.lines[q.wrong]);
+  });
+
+  it('rejects AI drafts of the new types that do not fit', () => {
+    const draft = (q: unknown, patch: Record<string, unknown>) => {
+      const { id: _i, deepen: _d, bridge: _b, fragments, ...rest } = JSON.parse(JSON.stringify(q));
+      return validateDraft({ ...rest, fragments: fragments.map(({ id: _f, ...f }: Record<string, unknown>) => f), ...patch });
+    };
+    const multi = byType<MultiQuestion>('multi')[0]!;
+    expect(draft(multi, {}).ok).toBe(true);
+    // one right answer is a plain choice, all right is no question
+    expect(draft(multi, { answers: [0] }).ok).toBe(false);
+    expect(draft(multi, { answers: [0, 1, 2, 3, 4] }).ok).toBe(false);
+    expect(draft(multi, { answers: [0, 0, 2] }).ok).toBe(false);
+    const sort = byType<SortQuestion>('sort')[0]!;
+    expect(draft(sort, {}).ok).toBe(true);
+    expect(draft(sort, { items: sort.items.map(([l]) => [l, 0]) }).ok).toBe(false);
+    expect(draft(sort, { items: [...sort.items.slice(0, 5), ['Wal', 1]] }).ok).toBe(false);
+    const spot = byType<SpotQuestion>('spot')[0]!;
+    expect(draft(spot, {}).ok).toBe(true);
+    expect(draft(spot, { wrong: 9 }).ok).toBe(false);
+    expect(draft(spot, { lines: spot.lines.slice(0, 2) }).ok).toBe(false);
   });
 
   it('every new question is well formed', () => {

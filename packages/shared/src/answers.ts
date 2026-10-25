@@ -35,6 +35,15 @@ export function isCorrect(q: Question, a: Answer): boolean {
         a.words.length === q.answers.length &&
         a.words.every((w, i) => w === q.answers[i])
       );
+    case 'multi': {
+      if (a.type !== 'multi') return false;
+      const picked = [...new Set(a.indices)].sort((x, y) => x - y);
+      return picked.length === q.answers.length && picked.every((x, i) => x === q.answers[i]);
+    }
+    case 'sort':
+      return a.type === 'sort' && q.items.every(([item, g]) => a.groups[item] === g);
+    case 'spot':
+      return a.type === 'spot' && a.index === q.wrong;
   }
 }
 
@@ -54,6 +63,12 @@ export function answerText(q: Question, lang: Lang): string {
       return q.pairs.map(([l, r]) => `${l} – ${r}`).join(', ');
     case 'cloze':
       return q.answers.join(', ');
+    case 'multi':
+      return q.answers.map((i) => q.options[i]).join(', ');
+    case 'sort':
+      return q.groups.map((g, k) => `${g}: ${q.items.filter((it) => it[1] === k).map((it) => it[0]).join(', ')}`).join(' · ');
+    case 'spot':
+      return q.lines[q.wrong] ?? '';
   }
 }
 

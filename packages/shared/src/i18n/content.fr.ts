@@ -1089,4 +1089,177 @@ export const CONTENT_FR: Record<string, QuestionText> = {
     ],
     why: 'L’Allemagne se trouve dans la zone tempérée : il y a quatre saisons, et il n’y fait ni une chaleur tropicale ni un froid polaire.',
   },
+  'ear-greenhouse': {
+    topic: 'Effet de serre',
+    intro: 'Quelques gaz de l’air agissent comme les vitres d’une serre : ils retiennent la chaleur.',
+    stem: 'Lesquels de ces gaz sont des gaz à effet de serre ? Plusieurs réponses sont justes.',
+    options: ['Dioxyde de carbone', 'Azote', 'Méthane', 'Oxygène', 'Protoxyde d’azote'],
+    f: [
+      ['Deux atomes', 'Les gaz formés de deux atomes identiques, comme l’azote (N₂) et l’oxygène (O₂), laissent passer presque librement le rayonnement thermique.'],
+      ['Mesures', 'Depuis 1958, on mesure sur le Mauna Loa la quantité de dioxyde de carbone dans l’air ; elle augmente, et la Terre se réchauffe.'],
+      ['Vaches & champs', 'Le méthane des estomacs de bovins et le protoxyde d’azote des champs fertilisés retiennent bien plus la chaleur que la même quantité de dioxyde de carbone.'],
+      ['Vapeur d’eau', 'La vapeur d’eau retient aussi la chaleur ; c’est même le gaz à effet de serre le plus répandu.'],
+      ['Trou d’ozone', 'Le trou d’ozone au-dessus de l’Antarctique est dû surtout aux CFC des bombes aérosol et des réfrigérateurs.'],
+    ],
+    why: 'Le dioxyde de carbone, le méthane et le protoxyde d’azote retiennent le rayonnement thermique. L’azote et l’oxygène forment ensemble 99 % de l’air, mais laissent la chaleur filer presque librement vers l’espace.',
+    files: {
+      1: [
+        { name: 'Note.txt', kind: 'note', text: 'Les gaz formés de deux atomes identiques, comme l’azote (N₂) et l’oxygène (O₂), laissent passer presque librement le rayonnement thermique.' },
+        {
+          name: 'Air.png',
+          kind: 'image',
+          alt: 'Diagramme circulaire : parts de l’azote, de l’oxygène, de l’argon et des autres gaz dans l’air sec.',
+          chart: {
+            chart: 'pie',
+            title: 'Air sec',
+            items: [
+              { label: 'Azote', value: 78 },
+              { label: 'Oxygène', value: 21 },
+              { label: 'Argon', value: 0.9 },
+              { label: 'Autres gaz', value: 0.1 },
+            ],
+          },
+        },
+      ],
+      2: [
+        {
+          name: 'Mauna_Loa.png',
+          kind: 'image',
+          alt: 'Courbe : dioxyde de carbone dans l’air, mesuré sur le Mauna Loa, de 1960 à 2020 en ppm.',
+          chart: {
+            chart: 'line',
+            title: 'Dioxyde de carbone dans l’air',
+            unit: 'ppm',
+            points: [
+              { year: 1960, value: 317 },
+              { year: 1980, value: 339 },
+              { year: 2000, value: 370 },
+              { year: 2010, value: 390 },
+              { year: 2020, value: 414 },
+            ],
+          },
+        },
+        {
+          name: 'Station.eml',
+          kind: 'mail',
+          from: 'Rhizom',
+          subject: 'La courbe du Mauna Loa',
+          text: 'Depuis 1958, une station sur le volcan Mauna Loa mesure la quantité de dioxyde de carbone dans l’air. Depuis, la courbe ne connaît qu’une direction, et la Terre se réchauffe avec elle.',
+        },
+      ],
+      3: [
+        { name: 'Note.txt', kind: 'note', text: 'Le méthane des estomacs de bovins et le protoxyde d’azote des champs fertilisés retiennent bien plus la chaleur que la même quantité de dioxyde de carbone.' },
+        {
+          name: 'Effet_de_serre.png',
+          kind: 'image',
+          alt: 'L’effet de serre en quatre étapes, du Soleil à l’air plus chaud.',
+          chart: {
+            chart: 'flow',
+            title: 'Effet de serre',
+            steps: ['Le soleil chauffe le sol', 'Le sol rayonne de la chaleur', 'Les gaz à effet de serre en retiennent', 'L’air se réchauffe'],
+          },
+        },
+      ],
+    },
+  },
+  'sci-classes': {
+    topic: 'Classes d’animaux',
+    intro: 'Certains animaux ressemblent à d’autres, mais appartiennent à une tout autre classe.',
+    stem: 'Range chaque animal dans le bon dossier.',
+    groups: ['Mammifères', 'Oiseaux', 'Reptiles'],
+    items: ['Baleine', 'Chauve-souris', 'Manchot', 'Autruche', 'Crocodile', 'Tortue'],
+    f: [
+      ['Baleine', 'Les baleines respirent avec des poumons, mettent bas des petits vivants et les nourrissent de lait.'],
+      ['Chauve-souris', 'Les chauves-souris volent, mais elles ont des poils au lieu de plumes et allaitent leurs petits.'],
+      ['Plumes', 'Tous les oiseaux ont des plumes et pondent des œufs, même ceux qui ne volent pas, comme le manchot et l’autruche.'],
+      ['Écailles', 'Les reptiles comme les crocodiles et les tortues ont une peau sèche avec des écailles ou des plaques cornées et pondent sur la terre ferme.'],
+      ['Requin', 'Les requins sont des poissons : ils respirent avec des branchies, même s’ils ressemblent aux dauphins.'],
+    ],
+    why: 'La baleine et la chauve-souris allaitent leurs petits, le manchot et l’autruche ont des plumes, le crocodile et la tortue portent écailles et plaques cornées : ce sont des reptiles.',
+    files: {
+      1: [
+        {
+          name: 'Baleine.inf',
+          kind: 'profile',
+          fields: [
+            ['Classe', 'Mammifères'],
+            ['Respiration', 'Poumons'],
+            ['Petits', 'nés vivants, allaités'],
+            ['Habitat', 'Mer'],
+          ],
+        },
+        { name: 'Note.txt', kind: 'note', text: 'Les baleines respirent avec des poumons, mettent bas des petits vivants et les nourrissent de lait.' },
+      ],
+      3: [
+        {
+          name: 'Manchots.eml',
+          kind: 'mail',
+          from: 'Bolt',
+          subject: 'Question manchot',
+          text: 'Je croyais que les manchots étaient des poissons, tellement ils nagent bien. Faux ! Ils ont des plumes, pondent des œufs et sont des oiseaux. Ils ne volent que sous l’eau, dit Rhizom.',
+        },
+        {
+          name: 'Autruche.inf',
+          kind: 'profile',
+          fields: [
+            ['Classe', 'Oiseaux'],
+            ['Vole', 'non'],
+            ['Taille', 'jusqu’à 2,7 m'],
+            ['Œufs', 'les plus gros de tous les oiseaux'],
+          ],
+        },
+      ],
+    },
+  },
+  'soc-un-assembly': {
+    topic: 'Assemblée générale de l’ONU',
+    intro: 'Après la Seconde Guerre mondiale, des États se sont unis pour préserver la paix.',
+    stem: 'Ce compte rendu sur les Nations Unies contient une erreur. Quelle phrase est fausse ?',
+    lines: [
+      'Les Nations Unies ont été fondées en 1945.',
+      'Leur siège se trouve à New York.',
+      'Le Conseil de sécurité compte cinq membres permanents avec droit de veto.',
+      'À l’Assemblée générale, chaque pays a autant de voix qu’il a d’habitants.',
+    ],
+    f: [
+      ['Charte', 'La Charte des Nations Unies a été signée en juin 1945 à San Francisco et est entrée en vigueur en octobre 1945.'],
+      ['Assemblée générale', 'À l’Assemblée générale, chaque État membre a exactement une voix, qu’il soit grand ou petit.'],
+      ['Conseil', 'Les cinq membres permanents du Conseil de sécurité peuvent bloquer toute résolution par leur veto.'],
+      ['Siège', 'Le siège des Nations Unies se trouve au bord de l’East River, à New York.'],
+      ['Prédécesseur', 'La Société des Nations, un prédécesseur, a été fondée en 1920 ; les États-Unis n’y ont jamais adhéré.'],
+    ],
+    why: 'À l’Assemblée générale, la règle est : un État, une voix. Les autres phrases sont justes : fondées en 1945, siège à New York, cinq membres permanents avec droit de veto au Conseil de sécurité.',
+    files: {
+      1: [
+        {
+          name: 'Preambule.txt',
+          kind: 'quote',
+          text: 'Nous, peuples des Nations Unies, résolus à préserver les générations futures du fléau de la guerre …',
+          source: 'Charte des Nations Unies, préambule, 1945',
+        },
+        { name: 'Note.txt', kind: 'note', text: 'La Charte des Nations Unies a été signée en juin 1945 à San Francisco et est entrée en vigueur en octobre 1945.' },
+      ],
+      2: [
+        {
+          name: 'Assemblee_generale.inf',
+          kind: 'profile',
+          fields: [
+            ['Membres', '193 États'],
+            ['Voix', 'une par État'],
+            ['Siège', 'New York'],
+            ['Session', 'chaque année dès septembre'],
+          ],
+        },
+      ],
+      3: [
+        {
+          name: 'Conseil_de_securite.eml',
+          kind: 'mail',
+          from: 'Kodex',
+          subject: 'Les cinq permanents',
+          text: 'La Chine, la France, la Russie, le Royaume-Uni et les États-Unis siègent en permanence au Conseil de sécurité et ont un droit de veto. Dix autres pays sont élus pour deux ans.',
+        },
+      ],
+    },
+  },
 };

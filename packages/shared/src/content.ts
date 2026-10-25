@@ -230,6 +230,128 @@ const FILES: Record<string, FragmentFile[]> = {
         'Er wurde 1685 in Eisenach geboren und stammte aus einer Familie von Musikern.\n\nIn Leipzig leitete er mehr als zwei Jahrzehnte lang den Chor der Thomaskirche. Dort schrieb er einen großen Teil seiner Kirchenmusik.\n\nSeine Werke für Tasteninstrumente gelten bis heute als Maßstab für Pianistinnen und Pianisten.',
     },
   ],
+  // --- Treibhausgase
+  'ear-greenhouse-f1': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Gase aus zwei gleichen Atomen wie Stickstoff (N₂) und Sauerstoff (O₂) lassen Wärmestrahlung fast ungehindert durch.' },
+    {
+      name: 'Luft.png',
+      kind: 'image',
+      alt: 'Kreisdiagramm: Anteile von Stickstoff, Sauerstoff, Argon und übrigen Gasen an trockener Luft.',
+      chart: {
+        chart: 'pie',
+        title: 'Trockene Luft',
+        items: [
+          { label: 'Stickstoff', value: 78 },
+          { label: 'Sauerstoff', value: 21 },
+          { label: 'Argon', value: 0.9 },
+          { label: 'Übrige Gase', value: 0.1 },
+        ],
+      },
+    },
+  ],
+  'ear-greenhouse-f2': [
+    {
+      name: 'Mauna_Loa.png',
+      kind: 'image',
+      alt: 'Liniendiagramm: Kohlendioxid in der Luft, gemessen auf dem Mauna Loa, von 1960 bis 2020 in ppm.',
+      chart: {
+        chart: 'line',
+        title: 'Kohlendioxid in der Luft',
+        unit: 'ppm',
+        points: [
+          { year: 1960, value: 317 },
+          { year: 1980, value: 339 },
+          { year: 2000, value: 370 },
+          { year: 2010, value: 390 },
+          { year: 2020, value: 414 },
+        ],
+      },
+    },
+    {
+      name: 'Messstation.eml',
+      kind: 'mail',
+      from: 'Rhizom',
+      subject: 'Die Kurve vom Mauna Loa',
+      text: 'Seit 1958 misst eine Station auf dem Vulkan Mauna Loa, wie viel Kohlendioxid in der Luft ist. Die Kurve kennt seitdem nur eine Richtung, und mit ihr wird die Erde wärmer.',
+    },
+  ],
+  'ear-greenhouse-f3': [
+    { name: 'Notiz.txt', kind: 'note', text: 'Methan aus Rindermägen und Lachgas aus gedüngten Feldern halten Wärme viel stärker fest als dieselbe Menge Kohlendioxid.' },
+    {
+      name: 'Treibhauseffekt.png',
+      kind: 'image',
+      alt: 'Ablauf des Treibhauseffekts in vier Schritten, von der Sonne bis zur wärmeren Luft.',
+      chart: {
+        chart: 'flow',
+        title: 'Treibhauseffekt',
+        steps: ['Sonnenlicht erwärmt den Boden', 'Der Boden strahlt Wärme ab', 'Treibhausgase halten einen Teil fest', 'Die Luft wird wärmer'],
+      },
+    },
+  ],
+  // --- Tierklassen
+  'sci-classes-f1': [
+    {
+      name: 'Wal.inf',
+      kind: 'profile',
+      fields: [
+        ['Klasse', 'Säugetiere'],
+        ['Atmung', 'Lunge'],
+        ['Nachwuchs', 'lebend geboren, gesäugt'],
+        ['Lebensraum', 'Meer'],
+      ],
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Wale atmen mit Lungen, bringen lebende Junge zur Welt und säugen sie mit Milch.' },
+  ],
+  'sci-classes-f3': [
+    {
+      name: 'Pinguine.eml',
+      kind: 'mail',
+      from: 'Bolt',
+      subject: 'Pinguin-Frage',
+      text: 'Ich dachte, Pinguine wären Fische, weil sie so gut schwimmen. Falsch! Sie haben Federn, legen Eier und sind Vögel. Fliegen können sie nur unter Wasser, sagt Rhizom.',
+    },
+    {
+      name: 'Strauß.inf',
+      kind: 'profile',
+      fields: [
+        ['Klasse', 'Vögel'],
+        ['Fliegen', 'nein'],
+        ['Größe', 'bis 2,7 m'],
+        ['Eier', 'die größten aller Vögel'],
+      ],
+    },
+  ],
+  // --- Vereinte Nationen
+  'soc-un-assembly-f1': [
+    {
+      name: 'Präambel.txt',
+      kind: 'quote',
+      text: 'Wir, die Völker der Vereinten Nationen – fest entschlossen, künftige Geschlechter vor der Geißel des Krieges zu bewahren …',
+      source: 'Charta der Vereinten Nationen, Präambel, 1945',
+    },
+    { name: 'Notiz.txt', kind: 'note', text: 'Die Charta der Vereinten Nationen wurde im Juni 1945 in San Francisco unterzeichnet und trat im Oktober 1945 in Kraft.' },
+  ],
+  'soc-un-assembly-f2': [
+    {
+      name: 'Generalversammlung.inf',
+      kind: 'profile',
+      fields: [
+        ['Mitglieder', '193 Staaten'],
+        ['Stimmen', 'eine je Staat'],
+        ['Sitz', 'New York'],
+        ['Tagung', 'jährlich ab September'],
+      ],
+    },
+  ],
+  'soc-un-assembly-f3': [
+    {
+      name: 'Sicherheitsrat.eml',
+      kind: 'mail',
+      from: 'Kodex',
+      subject: 'Die ständigen Fünf',
+      text: 'China, Frankreich, Russland, das Vereinigte Königreich und die USA sitzen dauerhaft im Sicherheitsrat und haben ein Vetorecht. Zehn weitere Länder werden für je zwei Jahre gewählt.',
+    },
+  ],
 };
 
 function frags(id: string, list: F[]): Fragment[] {
@@ -314,6 +436,9 @@ const TOPICS: Record<string, string> = {
   'ear-planets': 'Sonnensystem',
   'ear-universe': 'Alter des Universums',
   'ear-zones': 'Klimazonen',
+  'ear-greenhouse': 'Treibhauseffekt',
+  'sci-classes': 'Tierklassen',
+  'soc-un-assembly': 'UN-Generalversammlung',
 };
 
 const INTROS: Record<string, string> = {
@@ -378,6 +503,9 @@ const INTROS: Record<string, string> = {
   'ear-planets': 'Acht Planeten ziehen ihre Bahnen um die Sonne, jeder in seinem eigenen Abstand.',
   'ear-universe': 'Alles begann mit einem gewaltigen Ereignis. Heute lässt sich recht genau sagen, wann.',
   'ear-zones': 'Je nachdem, wie weit ein Ort vom Äquator entfernt liegt, herrscht ein ganz anderes Klima.',
+  'ear-greenhouse': 'Ein paar Gase in der Luft wirken wie die Scheiben eines Gewächshauses: Sie halten Wärme fest.',
+  'sci-classes': 'Manche Tiere sehen aus wie andere, gehören aber zu einer ganz anderen Klasse.',
+  'soc-un-assembly': 'Nach dem Zweiten Weltkrieg schlossen sich Staaten zusammen, um den Frieden zu sichern.',
 };
 
 function base(c: Common) {
@@ -413,6 +541,15 @@ function match(c: Common & { pairs: [string, string][] }): Question {
 }
 function cloze(c: Common & { text: string; answers: string[]; bank: string[] }): Question {
   return { ...base(c), type: 'cloze', text: c.text, answers: c.answers, bank: c.bank };
+}
+function multi(c: Common & { options: string[]; answers: number[] }): Question {
+  return { ...base(c), type: 'multi', options: c.options, answers: c.answers };
+}
+function sorting(c: Common & { groups: string[]; items: [string, number][] }): Question {
+  return { ...base(c), type: 'sort', groups: c.groups, items: c.items };
+}
+function spot(c: Common & { lines: string[]; wrong: number }): Question {
+  return { ...base(c), type: 'spot', lines: c.lines, wrong: c.wrong };
 }
 
 /**
@@ -1398,7 +1535,7 @@ export const MOCK_QUESTIONS: Question[] = [
       ['decoy', 'Mitglieder', 'Den Vereinten Nationen gehören heute 193 Staaten an.'],
     ],
     why: 'Nur die fünf ständigen Mitglieder haben ein Vetorecht. Die zehn gewählten Mitglieder haben es nicht.',
-    deepen: ['soc-powers'],
+    deepen: ['soc-powers', 'soc-un-assembly'],
     bridge: ['his-wall'],
   }),
   match({
@@ -1588,6 +1725,69 @@ export const MOCK_QUESTIONS: Question[] = [
     why: 'Deutschland liegt in der gemäßigten Zone: Es gibt vier Jahreszeiten, und es ist weder tropisch heiß noch polar kalt.',
     deepen: ['nat-climate'],
     bridge: ['nat-rainforest'],
+  }),
+  multi({
+    id: 'ear-greenhouse',
+    area: 'climate',
+    d: 2,
+    stem: 'Welche dieser Gase sind Treibhausgase? Mehrere Antworten sind richtig.',
+    options: ['Kohlendioxid', 'Stickstoff', 'Methan', 'Sauerstoff', 'Lachgas'],
+    answers: [0, 2, 4],
+    f: [
+      ['key', 'Zwei Atome', 'Gase aus zwei gleichen Atomen wie Stickstoff (N₂) und Sauerstoff (O₂) lassen Wärmestrahlung fast ungehindert durch.'],
+      ['key', 'Messreihe', 'Seit 1958 wird auf dem Mauna Loa gemessen, wie viel Kohlendioxid in der Luft ist; der Wert steigt, und die Erde wird wärmer.'],
+      ['key', 'Kühe & Felder', 'Methan aus Rindermägen und Lachgas aus gedüngten Feldern halten Wärme viel stärker fest als dieselbe Menge Kohlendioxid.'],
+      ['context', 'Wasserdampf', 'Auch Wasserdampf hält Wärme zurück; er ist sogar das häufigste Treibhausgas.'],
+      ['decoy', 'Ozonloch', 'Das Ozonloch über der Antarktis entstand vor allem durch FCKW aus Spraydosen und Kühlschränken.'],
+    ],
+    why: 'Kohlendioxid, Methan und Lachgas halten Wärmestrahlung zurück. Stickstoff und Sauerstoff machen zusammen 99 % der Luft aus, lassen die Wärme aber fast ungehindert ins All.',
+    deepen: ['nat-climate'],
+    bridge: ['ear-zones'],
+  }),
+  sorting({
+    id: 'sci-classes',
+    area: 'biomedicine',
+    d: 1,
+    stem: 'Lege jedes Tier in den richtigen Ordner.',
+    groups: ['Säugetiere', 'Vögel', 'Reptilien'],
+    items: [
+      ['Wal', 0],
+      ['Fledermaus', 0],
+      ['Pinguin', 1],
+      ['Strauß', 1],
+      ['Krokodil', 2],
+      ['Schildkröte', 2],
+    ],
+    f: [
+      ['key', 'Wal', 'Wale atmen mit Lungen, bringen lebende Junge zur Welt und säugen sie mit Milch.'],
+      ['context', 'Fledermaus', 'Fledermäuse fliegen, haben aber Fell statt Federn und säugen ihre Jungen.'],
+      ['key', 'Federn', 'Alle Vögel haben Federn und legen Eier, auch die, die nicht fliegen können, wie Pinguin und Strauß.'],
+      ['key', 'Schuppen', 'Reptilien wie Krokodile und Schildkröten haben eine trockene Haut mit Schuppen oder Hornplatten und legen Eier an Land.'],
+      ['decoy', 'Hai', 'Haie sind Fische: Sie atmen mit Kiemen, auch wenn sie Delfinen ähnlich sehen.'],
+    ],
+    why: 'Wal und Fledermaus säugen ihre Jungen, Pinguin und Strauß haben Federn, Krokodil und Schildkröte tragen Schuppen und Hornplatten und sind Reptilien.',
+  }),
+  spot({
+    id: 'soc-un-assembly',
+    area: 'politics',
+    d: 3,
+    stem: 'In diesem Protokoll über die Vereinten Nationen steckt ein Fehler. Welcher Satz stimmt nicht?',
+    lines: [
+      'Die Vereinten Nationen wurden 1945 gegründet.',
+      'Ihr Hauptsitz steht in New York.',
+      'Im Sicherheitsrat sitzen fünf ständige Mitglieder mit Vetorecht.',
+      'In der Generalversammlung hat jedes Land so viele Stimmen, wie es Einwohner hat.',
+    ],
+    wrong: 3,
+    f: [
+      ['key', 'Charta', 'Die Charta der Vereinten Nationen wurde im Juni 1945 in San Francisco unterzeichnet und trat im Oktober 1945 in Kraft.'],
+      ['key', 'Generalversammlung', 'In der Generalversammlung hat jeder Mitgliedstaat genau eine Stimme, ob groß oder klein.'],
+      ['key', 'Sicherheitsrat', 'Die fünf ständigen Mitglieder des Sicherheitsrats können jeden Beschluss mit ihrem Veto stoppen.'],
+      ['context', 'Hauptsitz', 'Das Hauptquartier der Vereinten Nationen steht am East River in New York.'],
+      ['decoy', 'Völkerbund', 'Der Völkerbund, ein Vorläufer, wurde 1920 gegründet; die USA traten ihm nie bei.'],
+    ],
+    why: 'In der Generalversammlung gilt: ein Staat, eine Stimme. Die anderen Sätze stimmen: gegründet 1945, Sitz in New York, fünf ständige Mitglieder mit Vetorecht im Sicherheitsrat.',
+    bridge: ['his-euro'],
   }),
 ];
 

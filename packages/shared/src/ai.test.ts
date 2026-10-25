@@ -32,8 +32,8 @@ describe('AI drafts: the schema covers every question type', () => {
     expect(failed).toEqual([]);
   });
 
-  it('knows all six types', () => {
-    expect(QUESTION_TYPES).toHaveLength(6);
+  it('knows all nine types', () => {
+    expect(QUESTION_TYPES).toHaveLength(9);
     for (const t of QUESTION_TYPES) expect(MOCK_QUESTIONS.some((q) => q.type === t), t).toBe(true);
   });
 

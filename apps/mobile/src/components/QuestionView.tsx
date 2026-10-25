@@ -6,15 +6,21 @@ import {
   parseNumber,
   variantBank,
   variantMatch,
+  variantMulti,
   variantOptions,
   variantOrder,
+  variantSort,
   type Answer,
   type ClozeQuestion,
   type MatchQuestion,
+  type MultiQuestion,
   type Question,
+  type SortQuestion,
+  type SpotQuestion,
 } from '@nexus/shared';
 import { useStrings } from '../strings';
 import { colors } from '../theme';
+import { Icon } from './Icon';
 import { tap } from './ui';
 import { WIN, sunken } from './Win';
 
@@ -43,7 +49,10 @@ export function QuestionView({
       {q.type === 'truefalse' ? <TrueFalseView q={q} reveal={reveal} onChange={onChange} /> : null}
       {q.type === 'match' ? <MatchView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
       {q.type === 'cloze' ? <ClozeView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
-      {reveal && q.type !== 'choice' ? (
+      {q.type === 'multi' ? <MultiView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
+      {q.type === 'sort' ? <SortView q={q} variant={variant} reveal={reveal} onChange={onChange} /> : null}
+      {q.type === 'spot' ? <SpotView q={q} reveal={reveal} onChange={onChange} /> : null}
+      {reveal && q.type !== 'choice' && q.type !== 'multi' && q.type !== 'spot' ? (
         <Text style={styles.rightLine} maxFontSizeMultiplier={1.4}>
           {t.question.right(answerText(q, t.lang))}
         </Text>
@@ -360,6 +369,147 @@ function ClozeView({ q, variant, reveal, onChange }: Props<ClozeQuestion> & { va
   );
 }
 
+// -------------------------------------------------------------------- several right answers
+function MultiView({ q, variant, reveal, onChange }: Props<MultiQuestion> & { variant: number }) {
+  const t = useStrings();
+  const order = useMemo(() => variantMulti(q, variant), [q, variant]);
+  // indices into the question's own options
+  const [sel, setSel] = useState<number[]>([]);
+  useEffect(() => {
+    onChange(sel.length === 0 ? null : { type: 'multi', indices: sel });
+  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
+        {t.question.multiHint}
+      </Text>
+      {order.map((k) => {
+        const on = sel.includes(k);
+        const right = q.answers.includes(k);
+        // after answering: right ones green, wrongly picked red, a missed right one framed
+        const state = reveal ? (right ? 'right' : on ? 'wrong' : 'plain') : on ? 'selected' : 'plain';
+        return (
+          <Pressable
+            key={`${variant}-${k}`}
+            disabled={reveal}
+            onPress={() => {
+              tap();
+              setSel(on ? sel.filter((x) => x !== k) : [...sel, k]);
+            }}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: on }}
+            style={[styles.option, sunken, styles.checkRow, stateStyle(state), reveal && right && !on && styles.missed]}
+          >
+            <View style={[styles.box, on && styles.boxOn]}>{on ? <Text style={styles.tick}>✓</Text> : null}</View>
+            <Text style={[styles.optionText, { flex: 1 }]} maxFontSizeMultiplier={1.4}>
+              {q.options[k]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
+// -------------------------------------------------------------------- sort into folders
+function SortView({ q, variant, reveal, onChange }: Props<SortQuestion> & { variant: number }) {
+  const t = useStrings();
+  const items = useMemo(() => variantSort(q, variant), [q, variant]);
+  const [filed, setFiled] = useState<Record<string, number>>({});
+  useEffect(() => {
+    onChange(Object.keys(filed).length === q.items.length ? { type: 'sort', groups: filed } : null);
+  }, [filed]); // eslint-disable-line react-hooks/exhaustive-deps
+  const groupOf = (item: string) => q.items.find((it) => it[0] === item)![1];
+  return (
+    <>
+      <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
+        {t.question.sortHint}
+      </Text>
+      {items.map((item) => {
+        const at = filed[item];
+        const right = reveal && at === groupOf(item);
+        return (
+          <View
+            key={item}
+            style={[styles.option, sunken, { gap: 8 }, reveal && (right ? { backgroundColor: '#1F5A12' } : { backgroundColor: '#6A1B1B' })]}
+          >
+            <Text style={styles.optionText} maxFontSizeMultiplier={1.4}>
+              {item}
+            </Text>
+            <View style={styles.bank}>
+              {q.groups.map((g, k) => (
+                <Pressable
+                  key={g}
+                  disabled={reveal}
+                  onPress={() => {
+                    tap();
+                    setFiled({ ...filed, [item]: k });
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: at === k }}
+                  accessibilityLabel={t.question.fileInto(item, g)}
+                  style={[styles.chip, styles.folder, at === k && styles.folderOn, reveal && groupOf(item) === k && at !== k && styles.missed]}
+                >
+                  <Icon name="folder" size={18} />
+                  <Text style={[styles.chipText, at === k && { color: '#FFFFFF' }]} maxFontSizeMultiplier={1.3}>
+                    {g}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
+// -------------------------------------------------------------------- find the wrong statement
+function SpotView({ q, reveal, onChange }: Props<SpotQuestion>) {
+  const t = useStrings();
+  const [sel, setSel] = useState<number | null>(null);
+  useEffect(() => {
+    onChange(sel === null ? null : { type: 'spot', index: sel });
+  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the statements as one document, every sentence its own line to tap
+  return (
+    <>
+      <Text style={styles.hint} maxFontSizeMultiplier={1.4}>
+        {t.question.spotHint}
+      </Text>
+      <View style={[styles.doc, sunken]}>
+        {q.lines.map((line, i) => {
+          const state = reveal ? (i === q.wrong ? 'right' : i === sel ? 'wrong' : 'plain') : i === sel ? 'selected' : 'plain';
+          return (
+            <Pressable
+              key={i}
+              disabled={reveal}
+              onPress={() => {
+                tap();
+                setSel(i);
+              }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: sel === i }}
+              accessibilityLabel={t.question.statement(i + 1, line)}
+              style={[styles.docLine, stateStyle(state)]}
+            >
+              <Text style={styles.lineNo}>{i + 1}</Text>
+              <Text style={[styles.docText, reveal && i === q.wrong && styles.struck]} maxFontSizeMultiplier={1.4}>
+                {line}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {reveal ? (
+        <Text style={[styles.rightLine, sel !== q.wrong && { color: colors.bad }]} maxFontSizeMultiplier={1.4}>
+          {sel === q.wrong ? t.question.spotFound : t.question.spotMissed(q.wrong + 1)}
+        </Text>
+      ) : null}
+    </>
+  );
+}
+
 function stateStyle(state: 'plain' | 'selected' | 'right' | 'wrong') {
   if (state === 'selected') return { backgroundColor: WIN.titleA };
   if (state === 'right') return { backgroundColor: '#1F5A12' };
@@ -398,4 +548,16 @@ const styles = StyleSheet.create({
     borderBottomColor: WIN.dark,
   },
   chipText: { color: WIN.text, fontSize: 15, fontWeight: '700' },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  box: { width: 22, height: 22, borderWidth: 2, borderColor: colors.text, alignItems: 'center', justifyContent: 'center' },
+  boxOn: { backgroundColor: colors.text },
+  tick: { color: '#0B1220', fontSize: 15, fontWeight: '900', lineHeight: 18 },
+  missed: { borderWidth: 2, borderColor: colors.primary },
+  folder: { minHeight: 40, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  folderOn: { backgroundColor: WIN.titleA },
+  doc: { padding: 6, gap: 2 },
+  docLine: { flexDirection: 'row', gap: 10, padding: 10, minHeight: 44, alignItems: 'flex-start' },
+  lineNo: { color: colors.dim, fontSize: 13, fontWeight: '800', width: 16, marginTop: 2 },
+  docText: { color: colors.text, fontSize: 16, lineHeight: 22, flex: 1 },
+  struck: { textDecorationLine: 'line-through' },
 });

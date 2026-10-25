@@ -1093,4 +1093,177 @@ export const CONTENT_ES: Record<string, QuestionText> = {
     ],
     why: 'Alemania está en la zona templada: hay cuatro estaciones y no hace ni un calor tropical ni un frío polar.',
   },
+  'ear-greenhouse': {
+    topic: 'Efecto invernadero',
+    intro: 'Algunos gases del aire funcionan como los cristales de un invernadero: retienen el calor.',
+    stem: '¿Cuáles de estos gases son gases de efecto invernadero? Hay varias respuestas correctas.',
+    options: ['Dióxido de carbono', 'Nitrógeno', 'Metano', 'Oxígeno', 'Óxido nitroso'],
+    f: [
+      ['Dos átomos', 'Los gases formados por dos átomos iguales, como el nitrógeno (N₂) y el oxígeno (O₂), dejan pasar casi libremente la radiación térmica.'],
+      ['Mediciones', 'Desde 1958 se mide en el Mauna Loa cuánto dióxido de carbono hay en el aire; el valor sube y la Tierra se calienta.'],
+      ['Vacas y campos', 'El metano del estómago de las vacas y el óxido nitroso de los campos abonados retienen el calor mucho más que la misma cantidad de dióxido de carbono.'],
+      ['Vapor de agua', 'El vapor de agua también retiene calor; es incluso el gas de efecto invernadero más abundante.'],
+      ['Agujero de ozono', 'El agujero de ozono sobre la Antártida se debe sobre todo a los CFC de aerosoles y frigoríficos.'],
+    ],
+    why: 'El dióxido de carbono, el metano y el óxido nitroso retienen la radiación térmica. El nitrógeno y el oxígeno forman juntos el 99 % del aire, pero dejan escapar el calor al espacio casi libremente.',
+    files: {
+      1: [
+        { name: 'Nota.txt', kind: 'note', text: 'Los gases formados por dos átomos iguales, como el nitrógeno (N₂) y el oxígeno (O₂), dejan pasar casi libremente la radiación térmica.' },
+        {
+          name: 'Aire.png',
+          kind: 'image',
+          alt: 'Gráfico circular: proporción de nitrógeno, oxígeno, argón y otros gases en el aire seco.',
+          chart: {
+            chart: 'pie',
+            title: 'Aire seco',
+            items: [
+              { label: 'Nitrógeno', value: 78 },
+              { label: 'Oxígeno', value: 21 },
+              { label: 'Argón', value: 0.9 },
+              { label: 'Otros gases', value: 0.1 },
+            ],
+          },
+        },
+      ],
+      2: [
+        {
+          name: 'Mauna_Loa.png',
+          kind: 'image',
+          alt: 'Gráfico de líneas: dióxido de carbono en el aire, medido en el Mauna Loa, de 1960 a 2020 en ppm.',
+          chart: {
+            chart: 'line',
+            title: 'Dióxido de carbono en el aire',
+            unit: 'ppm',
+            points: [
+              { year: 1960, value: 317 },
+              { year: 1980, value: 339 },
+              { year: 2000, value: 370 },
+              { year: 2010, value: 390 },
+              { year: 2020, value: 414 },
+            ],
+          },
+        },
+        {
+          name: 'Estacion.eml',
+          kind: 'mail',
+          from: 'Rhizom',
+          subject: 'La curva del Mauna Loa',
+          text: 'Desde 1958, una estación en el volcán Mauna Loa mide cuánto dióxido de carbono hay en el aire. Desde entonces la curva solo conoce una dirección, y con ella la Tierra se calienta.',
+        },
+      ],
+      3: [
+        { name: 'Nota.txt', kind: 'note', text: 'El metano del estómago de las vacas y el óxido nitroso de los campos abonados retienen el calor mucho más que la misma cantidad de dióxido de carbono.' },
+        {
+          name: 'Efecto_invernadero.png',
+          kind: 'image',
+          alt: 'El efecto invernadero en cuatro pasos, del Sol al aire más cálido.',
+          chart: {
+            chart: 'flow',
+            title: 'Efecto invernadero',
+            steps: ['La luz del sol calienta el suelo', 'El suelo emite calor', 'Los gases retienen una parte', 'El aire se calienta'],
+          },
+        },
+      ],
+    },
+  },
+  'sci-classes': {
+    topic: 'Clases de animales',
+    intro: 'Algunos animales se parecen a otros, pero pertenecen a una clase totalmente distinta.',
+    stem: 'Guarda cada animal en la carpeta correcta.',
+    groups: ['Mamíferos', 'Aves', 'Reptiles'],
+    items: ['Ballena', 'Murciélago', 'Pingüino', 'Avestruz', 'Cocodrilo', 'Tortuga'],
+    f: [
+      ['Ballena', 'Las ballenas respiran con pulmones, paren crías vivas y las alimentan con leche.'],
+      ['Murciélago', 'Los murciélagos vuelan, pero tienen pelo en vez de plumas y amamantan a sus crías.'],
+      ['Plumas', 'Todas las aves tienen plumas y ponen huevos, también las que no vuelan, como el pingüino y el avestruz.'],
+      ['Escamas', 'Los reptiles como los cocodrilos y las tortugas tienen la piel seca con escamas o placas córneas y ponen huevos en tierra.'],
+      ['Tiburón', 'Los tiburones son peces: respiran con branquias, aunque se parezcan a los delfines.'],
+    ],
+    why: 'La ballena y el murciélago amamantan a sus crías, el pingüino y el avestruz tienen plumas, el cocodrilo y la tortuga tienen escamas y placas córneas y son reptiles.',
+    files: {
+      1: [
+        {
+          name: 'Ballena.inf',
+          kind: 'profile',
+          fields: [
+            ['Clase', 'Mamíferos'],
+            ['Respiración', 'Pulmones'],
+            ['Crías', 'nacen vivas, amamantadas'],
+            ['Hábitat', 'Mar'],
+          ],
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'Las ballenas respiran con pulmones, paren crías vivas y las alimentan con leche.' },
+      ],
+      3: [
+        {
+          name: 'Pinguinos.eml',
+          kind: 'mail',
+          from: 'Bolt',
+          subject: 'Pregunta pingüino',
+          text: 'Creía que los pingüinos eran peces, porque nadan muy bien. ¡Error! Tienen plumas, ponen huevos y son aves. Solo vuelan bajo el agua, dice Rhizom.',
+        },
+        {
+          name: 'Avestruz.inf',
+          kind: 'profile',
+          fields: [
+            ['Clase', 'Aves'],
+            ['Vuela', 'no'],
+            ['Altura', 'hasta 2,7 m'],
+            ['Huevos', 'los más grandes de todas las aves'],
+          ],
+        },
+      ],
+    },
+  },
+  'soc-un-assembly': {
+    topic: 'Asamblea General de la ONU',
+    intro: 'Después de la Segunda Guerra Mundial, varios Estados se unieron para asegurar la paz.',
+    stem: 'En este acta sobre las Naciones Unidas hay un error. ¿Qué frase no es correcta?',
+    lines: [
+      'Las Naciones Unidas se fundaron en 1945.',
+      'Su sede está en Nueva York.',
+      'En el Consejo de Seguridad hay cinco miembros permanentes con derecho de veto.',
+      'En la Asamblea General cada país tiene tantos votos como habitantes.',
+    ],
+    f: [
+      ['Carta', 'La Carta de las Naciones Unidas se firmó en junio de 1945 en San Francisco y entró en vigor en octubre de 1945.'],
+      ['Asamblea General', 'En la Asamblea General cada Estado miembro tiene exactamente un voto, sea grande o pequeño.'],
+      ['Consejo', 'Los cinco miembros permanentes del Consejo de Seguridad pueden frenar cualquier resolución con su veto.'],
+      ['Sede', 'La sede de las Naciones Unidas está a orillas del East River, en Nueva York.'],
+      ['Sociedad Naciones', 'La Sociedad de Naciones, una antecesora, se fundó en 1920; Estados Unidos nunca se unió a ella.'],
+    ],
+    why: 'En la Asamblea General rige: un Estado, un voto. Las otras frases son correctas: fundadas en 1945, sede en Nueva York, cinco miembros permanentes con veto en el Consejo de Seguridad.',
+    files: {
+      1: [
+        {
+          name: 'Preambulo.txt',
+          kind: 'quote',
+          text: 'Nosotros los pueblos de las Naciones Unidas resueltos a preservar a las generaciones venideras del flagelo de la guerra …',
+          source: 'Carta de las Naciones Unidas, preámbulo, 1945',
+        },
+        { name: 'Nota.txt', kind: 'note', text: 'La Carta de las Naciones Unidas se firmó en junio de 1945 en San Francisco y entró en vigor en octubre de 1945.' },
+      ],
+      2: [
+        {
+          name: 'Asamblea_General.inf',
+          kind: 'profile',
+          fields: [
+            ['Miembros', '193 Estados'],
+            ['Votos', 'uno por Estado'],
+            ['Sede', 'Nueva York'],
+            ['Sesiones', 'cada año desde septiembre'],
+          ],
+        },
+      ],
+      3: [
+        {
+          name: 'Consejo_de_Seguridad.eml',
+          kind: 'mail',
+          from: 'Kodex',
+          subject: 'Los cinco permanentes',
+          text: 'China, Francia, Rusia, el Reino Unido y Estados Unidos ocupan un puesto permanente en el Consejo de Seguridad y tienen derecho de veto. Otros diez países se eligen por dos años.',
+        },
+      ],
+    },
+  },
 };

@@ -46,6 +46,12 @@ function rightAnswer(q: Question): Answer {
       return { type: 'match', pairs: Object.fromEntries(q.pairs) };
     case 'cloze':
       return { type: 'cloze', words: q.answers };
+    case 'multi':
+      return { type: 'multi', indices: q.answers };
+    case 'sort':
+      return { type: 'sort', groups: Object.fromEntries(q.items) };
+    case 'spot':
+      return { type: 'spot', index: q.wrong };
   }
 }
 

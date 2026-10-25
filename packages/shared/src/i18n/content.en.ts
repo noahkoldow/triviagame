@@ -1084,4 +1084,177 @@ export const CONTENT_EN: Record<string, QuestionText> = {
     ],
     why: 'Germany lies in the temperate zone: there are four seasons, and it is neither tropically hot nor polar cold.',
   },
+  'ear-greenhouse': {
+    topic: 'Greenhouse effect',
+    intro: 'A few gases in the air work like the panes of a greenhouse: they hold on to heat.',
+    stem: 'Which of these gases are greenhouse gases? Several answers are right.',
+    options: ['Carbon dioxide', 'Nitrogen', 'Methane', 'Oxygen', 'Nitrous oxide'],
+    f: [
+      ['Two atoms', 'Gases made of two identical atoms, such as nitrogen (N₂) and oxygen (O₂), let heat radiation pass almost freely.'],
+      ['Measurements', 'Since 1958 the amount of carbon dioxide in the air has been measured on Mauna Loa; it keeps rising, and Earth gets warmer.'],
+      ['Cows & fields', 'Methane from cattle stomachs and nitrous oxide from fertilised fields trap heat far more strongly than the same amount of carbon dioxide.'],
+      ['Water vapour', 'Water vapour also holds back heat; it is even the most common greenhouse gas.'],
+      ['Ozone hole', 'The ozone hole over Antarctica was caused mainly by CFCs from spray cans and fridges.'],
+    ],
+    why: 'Carbon dioxide, methane and nitrous oxide hold back heat radiation. Nitrogen and oxygen make up 99 % of the air together, but they let the heat escape into space almost freely.',
+    files: {
+      1: [
+        { name: 'Note.txt', kind: 'note', text: 'Gases made of two identical atoms, such as nitrogen (N₂) and oxygen (O₂), let heat radiation pass almost freely.' },
+        {
+          name: 'Air.png',
+          kind: 'image',
+          alt: 'Pie chart: shares of nitrogen, oxygen, argon and other gases in dry air.',
+          chart: {
+            chart: 'pie',
+            title: 'Dry air',
+            items: [
+              { label: 'Nitrogen', value: 78 },
+              { label: 'Oxygen', value: 21 },
+              { label: 'Argon', value: 0.9 },
+              { label: 'Other gases', value: 0.1 },
+            ],
+          },
+        },
+      ],
+      2: [
+        {
+          name: 'Mauna_Loa.png',
+          kind: 'image',
+          alt: 'Line chart: carbon dioxide in the air, measured on Mauna Loa, from 1960 to 2020 in ppm.',
+          chart: {
+            chart: 'line',
+            title: 'Carbon dioxide in the air',
+            unit: 'ppm',
+            points: [
+              { year: 1960, value: 317 },
+              { year: 1980, value: 339 },
+              { year: 2000, value: 370 },
+              { year: 2010, value: 390 },
+              { year: 2020, value: 414 },
+            ],
+          },
+        },
+        {
+          name: 'Station.eml',
+          kind: 'mail',
+          from: 'Rhizom',
+          subject: 'The curve from Mauna Loa',
+          text: 'Since 1958 a station on the volcano Mauna Loa has measured how much carbon dioxide is in the air. Since then the curve has known only one direction, and Earth grows warmer with it.',
+        },
+      ],
+      3: [
+        { name: 'Note.txt', kind: 'note', text: 'Methane from cattle stomachs and nitrous oxide from fertilised fields trap heat far more strongly than the same amount of carbon dioxide.' },
+        {
+          name: 'Greenhouse_effect.png',
+          kind: 'image',
+          alt: 'The greenhouse effect in four steps, from the Sun to warmer air.',
+          chart: {
+            chart: 'flow',
+            title: 'Greenhouse effect',
+            steps: ['Sunlight warms the ground', 'The ground gives off heat', 'Greenhouse gases hold some back', 'The air gets warmer'],
+          },
+        },
+      ],
+    },
+  },
+  'sci-classes': {
+    topic: 'Animal classes',
+    intro: 'Some animals look like others but belong to a completely different class.',
+    stem: 'Put every animal into the right folder.',
+    groups: ['Mammals', 'Birds', 'Reptiles'],
+    items: ['Whale', 'Bat', 'Penguin', 'Ostrich', 'Crocodile', 'Tortoise'],
+    f: [
+      ['Whale', 'Whales breathe with lungs, give birth to live young and feed them with milk.'],
+      ['Bat', 'Bats fly, but they have fur instead of feathers and suckle their young.'],
+      ['Feathers', 'All birds have feathers and lay eggs, even those that cannot fly, like the penguin and the ostrich.'],
+      ['Scales', 'Reptiles such as crocodiles and tortoises have dry skin with scales or horny plates and lay their eggs on land.'],
+      ['Shark', 'Sharks are fish: they breathe with gills, even though they look like dolphins.'],
+    ],
+    why: 'Whale and bat suckle their young, penguin and ostrich have feathers, crocodile and tortoise carry scales and horny plates and are reptiles.',
+    files: {
+      1: [
+        {
+          name: 'Whale.inf',
+          kind: 'profile',
+          fields: [
+            ['Class', 'Mammals'],
+            ['Breathing', 'Lungs'],
+            ['Young', 'born alive, suckled'],
+            ['Habitat', 'Sea'],
+          ],
+        },
+        { name: 'Note.txt', kind: 'note', text: 'Whales breathe with lungs, give birth to live young and feed them with milk.' },
+      ],
+      3: [
+        {
+          name: 'Penguins.eml',
+          kind: 'mail',
+          from: 'Bolt',
+          subject: 'Penguin question',
+          text: 'I thought penguins were fish because they swim so well. Wrong! They have feathers, lay eggs and are birds. They can only fly under water, says Rhizom.',
+        },
+        {
+          name: 'Ostrich.inf',
+          kind: 'profile',
+          fields: [
+            ['Class', 'Birds'],
+            ['Flies', 'no'],
+            ['Height', 'up to 2.7 m'],
+            ['Eggs', 'the largest of all birds'],
+          ],
+        },
+      ],
+    },
+  },
+  'soc-un-assembly': {
+    topic: 'UN General Assembly',
+    intro: 'After the Second World War, states joined forces to keep the peace.',
+    stem: 'There is a mistake in this record about the United Nations. Which sentence is wrong?',
+    lines: [
+      'The United Nations was founded in 1945.',
+      'Its headquarters stand in New York.',
+      'The Security Council has five permanent members with a veto.',
+      'In the General Assembly every country has as many votes as it has inhabitants.',
+    ],
+    f: [
+      ['Charter', 'The Charter of the United Nations was signed in San Francisco in June 1945 and came into force in October 1945.'],
+      ['General Assembly', 'In the General Assembly every member state has exactly one vote, large or small.'],
+      ['Security Council', 'The five permanent members of the Security Council can stop any resolution with their veto.'],
+      ['Headquarters', 'The headquarters of the United Nations stand on the East River in New York.'],
+      ['League of Nations', 'The League of Nations, a forerunner, was founded in 1920; the USA never joined it.'],
+    ],
+    why: 'In the General Assembly the rule is: one state, one vote. The other sentences are right: founded in 1945, seated in New York, five permanent members with a veto in the Security Council.',
+    files: {
+      1: [
+        {
+          name: 'Preamble.txt',
+          kind: 'quote',
+          text: 'We the peoples of the United Nations determined to save succeeding generations from the scourge of war …',
+          source: 'Charter of the United Nations, Preamble, 1945',
+        },
+        { name: 'Note.txt', kind: 'note', text: 'The Charter of the United Nations was signed in San Francisco in June 1945 and came into force in October 1945.' },
+      ],
+      2: [
+        {
+          name: 'General_Assembly.inf',
+          kind: 'profile',
+          fields: [
+            ['Members', '193 states'],
+            ['Votes', 'one per state'],
+            ['Seat', 'New York'],
+            ['Session', 'every year from September'],
+          ],
+        },
+      ],
+      3: [
+        {
+          name: 'Security_Council.eml',
+          kind: 'mail',
+          from: 'Kodex',
+          subject: 'The permanent five',
+          text: 'China, France, Russia, the United Kingdom and the USA sit permanently on the Security Council and have a veto. Ten more countries are elected for two years each.',
+        },
+      ],
+    },
+  },
 };

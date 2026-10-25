@@ -24,7 +24,14 @@ import { WIN, Window, pressedIn, raised } from './Win';
 
 const INK = '#101820';
 
-const ICON_OF: Record<FragmentFile['kind'], IconName> = { note: 'file', article: 'file', image: 'image' };
+const ICON_OF: Record<FragmentFile['kind'], IconName> = {
+  note: 'file',
+  article: 'file',
+  image: 'image',
+  profile: 'user',
+  quote: 'book',
+  mail: 'file',
+};
 
 /** Text with the words of the query marked, like a viewer that highlights search hits. */
 function Highlighted({ text, query, style }: { text: string; query: string; style?: object }) {
@@ -45,9 +52,44 @@ function Highlighted({ text, query, style }: { text: string; query: string; styl
   return <Text style={style}>{parts}</Text>;
 }
 
-/** The content of one file: a drawn chart, or the text of a note or article. */
+/** The content of one file: a drawn chart, a fact sheet, a quote, a mail, or the text of a note or article. */
 export function FileView({ file, width, query = '' }: { file: FragmentFile; width: number; query?: string }) {
   const t = useStrings();
+  if (file.kind === 'profile' && file.fields) {
+    // like the properties dialog of an old desktop: label left, value right
+    return (
+      <View style={styles.sheet}>
+        <Text style={styles.articleTitle} maxFontSizeMultiplier={1.3}>
+          {file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ')}
+        </Text>
+        {file.fields.map(([k, v]) => (
+          <View key={k} style={styles.field}>
+            <Highlighted text={`${k}:`} query={query} style={[styles.body, styles.fieldKey]} />
+            <Highlighted text={v} query={query} style={[styles.body, { flex: 1 }]} />
+          </View>
+        ))}
+      </View>
+    );
+  }
+  if (file.kind === 'quote') {
+    return (
+      <View style={styles.quote}>
+        <Highlighted text={t.explorer.quoted(file.text ?? '')} query={query} style={[styles.body, styles.quoteText]} />
+        {file.source ? <Highlighted text={`— ${file.source}`} query={query} style={styles.source} /> : null}
+      </View>
+    );
+  }
+  if (file.kind === 'mail') {
+    return (
+      <View style={{ gap: 8 }}>
+        <View style={styles.mailHead}>
+          <Highlighted text={t.explorer.mailFrom(file.from ?? '')} query={query} style={styles.mailLine} />
+          <Highlighted text={t.explorer.mailSubject(file.subject ?? '')} query={query} style={[styles.mailLine, { fontWeight: '800' }]} />
+        </View>
+        <Highlighted text={file.text ?? ''} query={query} style={styles.body} />
+      </View>
+    );
+  }
   return (
     <View style={{ gap: 10 }}>
       {file.kind === 'image' && file.chart ? (
@@ -435,6 +477,13 @@ const styles = StyleSheet.create({
   articleTitle: { color: INK, fontSize: 18, fontWeight: '900' },
   body: { color: INK, fontSize: 15, lineHeight: 22 },
   source: { color: '#505860', fontSize: 12, fontStyle: 'italic' },
+  sheet: { gap: 6 },
+  field: { flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderBottomColor: '#DFDFDF', paddingVertical: 4 },
+  fieldKey: { width: 110, fontWeight: '800' },
+  quote: { gap: 8, borderLeftWidth: 4, borderLeftColor: '#000080', paddingLeft: 10 },
+  quoteText: { fontStyle: 'italic', fontSize: 16 },
+  mailHead: { gap: 2, backgroundColor: '#ECECEC', padding: 8, borderWidth: 1, borderColor: '#C0C0C0' },
+  mailLine: { color: INK, fontSize: 13 },
   empty: { color: '#505860', fontSize: 14, padding: 12 },
   mark: { backgroundColor: '#FFE680', color: INK, fontWeight: '800' },
   status: { color: WIN.dark, fontSize: 12 },

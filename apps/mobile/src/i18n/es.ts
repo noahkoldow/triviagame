@@ -262,6 +262,13 @@ export const es: Strings = {
     pairedWith: (a, b) => `${a}, unido con ${b}`,
     gapFilled: (n, word) => `Hueco ${n}: ${word}, toca para vaciar`,
     gapEmpty: (n) => `Hueco ${n}, vacío`,
+    multiHint: 'Hay varias respuestas correctas. Elige todas las que lo sean.',
+    sortHint: 'Guarda cada entrada en una carpeta. Toca de nuevo para moverla.',
+    fileInto: (item, group) => `${item} en la carpeta ${group}`,
+    spotHint: 'Una frase no es correcta. Tócala.',
+    statement: (n, line) => `Frase ${n}: ${line}`,
+    spotFound: 'Encontrada: esta era la frase falsa.',
+    spotMissed: (n) => `La frase falsa era la número ${n}.`,
   },
 
   explorer: {
@@ -292,7 +299,10 @@ export const es: Strings = {
     deleteAllText: 'Toda tu estructura de carpetas quedará vacía.',
     source: (s) => `Fuente: ${s}`,
     chartUnit: (unit) => `Valores en ${unit}`,
-    kinds: { note: 'Documento de texto', article: 'Artículo', image: 'Imagen' },
+    kinds: { note: 'Documento de texto', article: 'Artículo', image: 'Imagen', profile: 'Ficha', quote: 'Cita', mail: 'Mensaje' },
+    mailFrom: (from) => `De: ${from}`,
+    mailSubject: (subject) => `Asunto: ${subject}`,
+    quoted: (text) => `«${text}»`,
   },
   cacheFiles: {
     title: 'Caché',

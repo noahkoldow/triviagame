@@ -12,7 +12,7 @@ import type { Fragment, FragmentKind, Question, QuestionType, Sector } from './t
  * a backend function or any provider, without changing the game.
  */
 
-export const QUESTION_TYPES: QuestionType[] = ['choice', 'estimate', 'order', 'truefalse', 'match', 'cloze'];
+export const QUESTION_TYPES: QuestionType[] = ['choice', 'estimate', 'order', 'truefalse', 'match', 'cloze', 'multi', 'sort', 'spot'];
 
 export interface GenerationRequest {
   /** One of the fixed taxonomy areas: the model picks within it, it does not invent topics. */
@@ -53,14 +53,17 @@ const SHAPES: Record<QuestionType, string> = {
   truefalse: '{ "type": "truefalse", "answer": true | false }   // "stem" is the statement to judge',
   match: '{ "type": "match", "pairs": [["left", "right"], …] }   // 3 to 6 pairs, every left and right unique',
   cloze: '{ "type": "cloze", "text": "… {0} … {1} …", "answers": ["…", "…"], "bank": ["…", …] }   // gaps {0}, {1}; bank holds all answers plus wrong words',
+  multi: '{ "type": "multi", "options": ["…", "…", "…", "…", "…"], "answers": [<index>, <index>] }   // 4 to 6 options; "answers" lists ALL right options (2 to 4), at least one option is wrong; "stem" says that several are right',
+  sort: '{ "type": "sort", "groups": ["…", "…"], "items": [["…", <group index>], …] }   // 2 or 3 groups (folders), 4 to 8 items; every item fits exactly one group, every group gets at least one item',
+  spot: '{ "type": "spot", "lines": ["…", "…", "…", "…"], "wrong": <index> }   // 3 to 5 statements on one topic, all true except exactly one plausible but false statement; "stem" asks the player to find it',
 };
 
 /** File names the prompt shows as examples, so the model names files in the right language. */
-const FILE_EXAMPLES: Record<Lang, { note: string; article: string; image: string }> = {
-  de: { note: 'Notizen.txt', article: 'Artikel.txt', image: 'Diagramm.png' },
-  en: { note: 'Notes.txt', article: 'Article.txt', image: 'Chart.png' },
-  fr: { note: 'Notes.txt', article: 'Article.txt', image: 'Diagramme.png' },
-  es: { note: 'Notas.txt', article: 'Articulo.txt', image: 'Grafico.png' },
+const FILE_EXAMPLES: Record<Lang, { note: string; article: string; image: string; profile: string; quote: string; mail: string }> = {
+  de: { note: 'Notizen.txt', article: 'Artikel.txt', image: 'Diagramm.png', profile: 'Steckbrief.inf', quote: 'Zitat.txt', mail: 'Nachricht.eml' },
+  en: { note: 'Notes.txt', article: 'Article.txt', image: 'Chart.png', profile: 'Profile.inf', quote: 'Quote.txt', mail: 'Message.eml' },
+  fr: { note: 'Notes.txt', article: 'Article.txt', image: 'Diagramme.png', profile: 'Fiche.inf', quote: 'Citation.txt', mail: 'Message.eml' },
+  es: { note: 'Notas.txt', article: 'Articulo.txt', image: 'Grafico.png', profile: 'Ficha.inf', quote: 'Cita.txt', mail: 'Mensaje.eml' },
 };
 
 export function buildGenerationPrompt(req: GenerationRequest): string {
@@ -97,9 +100,16 @@ export function buildGenerationPrompt(req: GenerationRequest): string {
     `  { "name": "${files.image}", "kind": "image", "alt": "<what it shows, 10-200 chars>", "chart": <one of:`,
     '      { "chart": "bars", "title": "…", "unit": "…", "items": [ { "label": "…", "value": <number> } ] }   // 2-6 bars',
     '      { "chart": "timeline", "title": "…", "events": [ { "label": "…", "year": <whole number> } ] }   // 2-6 events',
-    '      { "chart": "table", "title": "…", "columns": ["…", "…"], "rows": [ ["…", "…"] ] }   // 2-5 columns, 1-6 rows',
+      '      { "chart": "table", "title": "…", "columns": ["…", "…"], "rows": [ ["…", "…"] ] }   // 2-5 columns, 1-6 rows',
+    '      { "chart": "line", "title": "…", "unit": "…", "points": [ { "year": <whole number>, "value": <number> } ] }   // 3-8 points, years rising',
+    '      { "chart": "pie", "title": "…", "items": [ { "label": "…", "value": <percent> } ] }   // 2-6 slices, adding up to 100',
+    '      { "chart": "flow", "title": "…", "steps": ["…", "…", "…"], "cycle": true | false }   // 2-6 steps of a process; cycle = the last step leads back to the first',
     '  > }',
-    'Images are drawn from this description, so use real, checkable numbers. File names must not give the answer away.',
+    `  { "name": "${files.profile}", "kind": "profile", "fields": [ ["<label, max 24>", "<value, max 60>"], … ] }   // fact sheet of one thing, place, being or person, 2-8 lines`,
+    `  { "name": "${files.quote}", "kind": "quote", "text": "<the exact words, 10-300 chars>", "source": "<who said or wrote it, in which work or speech, and when>" }`,
+    `  { "name": "${files.mail}", "kind": "mail", "from": "<sender, e.g. a researcher, an archivist or the robot Bolt>", "subject": "…", "text": "<a short message, 10-400 chars>" }`,
+    'Pick the format that fits the knowledge: values over the years → line; shares of a whole → pie; amounts side by side → bars; dates → timeline; steps of a process or a cycle → flow; several properties of one thing → profile; what a source really says (a law, a charter, a famous speech or book) → quote; context someone passes on → mail; explanations → article; a single fact → note. Mix formats: do not fill a folder with notes only.',
+    'Images are drawn from this description, so use real, checkable numbers. Quotes must be verbatim and well documented; if you are not sure of the exact words, write an article instead. File names must not give the answer away.',
   ]
     .filter((l) => l !== '')
     .join('\n');
@@ -110,7 +120,7 @@ export function buildCheckPrompt(q: Question): string {
   const language = LANG_IN_ENGLISH[q.lang ?? DEFAULT_LANG];
   return [
     `You check a quiz question for a knowledge game played in ${language}. Answer with JSON only: { "ok": true | false, "issues": ["…"] }.`,
-    `Check: 1) Is every stated fact correct? 2) Is exactly one answer right, unambiguously? 3) Are the decoy fragments irrelevant or wrong, and do the key fragments really allow solving the question? 4) Do topic, intro and hints avoid giving the answer away? 5) Is every text the player reads written in correct, natural ${language}?`,
+    `Check: 1) Is every stated fact correct, including every number in a chart and table? 2) Is the answer unambiguous: exactly one right option; for "multi" all listed answers and no other option right; for "sort" every item in exactly one group; for "spot" exactly one statement false? 3) Are the decoy fragments irrelevant or wrong, and do the key fragments really allow solving the question? 4) Do topic, intro, hints and file names avoid giving the answer away, and is the key fact not simply in every file? 5) Is every quote verbatim and attributed to the right source? 6) Is every text the player reads written in correct, natural ${language}?`,
     'Question:',
     JSON.stringify(q),
   ].join('\n');
@@ -304,6 +314,47 @@ export function validateDraft(raw: unknown, expect?: { area?: string; type?: Que
       for (const a of answers) if (!bank.map(norm).includes(norm(a))) errors.push(`the bank does not contain the answer "${a}"`);
       secrets.push(...answers);
       typed = { type, text, answers, bank };
+      break;
+    }
+    case 'multi': {
+      const options = Array.isArray(d['options']) ? (d['options'] as unknown[]).map(clean) : [];
+      const raw = Array.isArray(d['answers']) ? (d['answers'] as unknown[]) : [];
+      if (options.length < 4 || options.length > 6) errors.push('4 to 6 options are needed');
+      if (options.some((o) => o === '' || o.length > 80)) errors.push('options must be 1 to 80 characters');
+      if (new Set(options.map(norm)).size !== options.length) errors.push('options must be unique');
+      const answers = [...new Set(raw)].filter((a): a is number => Number.isInteger(a)).sort((a, b) => a - b);
+      if (answers.length !== raw.length || answers.some((a) => a < 0 || a >= options.length)) errors.push('answers must be indices of options, each once');
+      if (answers.length < 2 || answers.length > 4) errors.push('2 to 4 options must be right');
+      if (answers.length >= options.length) errors.push('at least one option must be wrong');
+      secrets.push(...answers.map((a) => options[a] ?? '').filter((o) => o));
+      typed = { type, options, answers };
+      break;
+    }
+    case 'sort': {
+      const groups = Array.isArray(d['groups']) ? (d['groups'] as unknown[]).map(clean) : [];
+      const items = (Array.isArray(d['items']) ? (d['items'] as unknown[]) : []).map((it) =>
+        Array.isArray(it) ? ([clean(it[0]), it[1]] as [string, number]) : (['', -1] as [string, number]),
+      );
+      if (groups.length < 2 || groups.length > 3) errors.push('2 or 3 groups are needed');
+      if (groups.some((g) => g === '' || g.length > 30)) errors.push('groups must be 1 to 30 characters');
+      if (new Set(groups.map(norm)).size !== groups.length) errors.push('groups must be unique');
+      if (items.length < 4 || items.length > 8) errors.push('4 to 8 items are needed');
+      if (items.some(([l, g]) => !l || l.length > 40 || !Number.isInteger(g) || g < 0 || g >= groups.length)) {
+        errors.push('items need a label (max 40 characters) and the index of a group');
+      }
+      if (new Set(items.map(([l]) => norm(l))).size !== items.length) errors.push('items must be unique');
+      if (groups.some((_, k) => !items.some(([, g]) => g === k))) errors.push('every group needs at least one item');
+      typed = { type, groups, items };
+      break;
+    }
+    case 'spot': {
+      const lines = Array.isArray(d['lines']) ? (d['lines'] as unknown[]).map(clean) : [];
+      const wrong = d['wrong'];
+      if (lines.length < 3 || lines.length > 5) errors.push('3 to 5 statements are needed');
+      if (lines.some((l) => l.length < 10 || l.length > 160)) errors.push('statements must be 10 to 160 characters');
+      if (new Set(lines.map(norm)).size !== lines.length) errors.push('statements must be unique');
+      if (!Number.isInteger(wrong) || (wrong as number) < 0 || (wrong as number) >= lines.length) errors.push('wrong must be the index of a statement');
+      typed = { type, lines, wrong };
       break;
     }
     default:

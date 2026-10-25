@@ -3,7 +3,8 @@ import type { ChartSpec, FileKind, Fragment, FragmentFile } from './types';
 
 /**
  * The files inside a cache folder. A fragment has a short fact (`text`); its folder can
- * hold several files: notes, short articles and images (charts the game draws itself).
+ * hold several files: notes, short articles, images (charts the game draws itself), profiles
+ * (fact sheets), quotes from sources and mails.
  * The fact is in one of them, the others add context or are red herrings, so the player
  * has to look and search.
  */
@@ -34,13 +35,23 @@ export function chartText(c: ChartSpec): string {
       return [c.title, ...[...c.events].sort((a, b) => a.year - b.year).map((e) => `${e.year}: ${e.label}`)].join('. ');
     case 'table':
       return [c.title, c.columns.join(' | '), ...c.rows.map((r) => r.join(' | '))].join('. ');
+    case 'line':
+      return [c.title, ...c.points.map((p) => `${p.year}: ${p.value}${c.unit ? ' ' + c.unit : ''}`)].join('. ');
+    case 'pie':
+      return [c.title, ...c.items.map((i) => `${i.label} ${i.value} %`)].join('. ');
+    case 'flow':
+      return [c.title, c.steps.join(' → ') + (c.cycle ? ` → ${c.steps[0]}` : '')].join('. ');
   }
 }
 
 /** Everything searchable in a file. */
 export function fileText(file: FragmentFile): string {
   const parts = [file.name];
+  if (file.from) parts.push(file.from);
+  if (file.subject) parts.push(file.subject);
   if (file.text) parts.push(file.text);
+  if (file.source) parts.push(file.source);
+  if (file.fields) parts.push(...file.fields.map(([k, v]) => `${k}: ${v}`));
   if (file.alt) parts.push(file.alt);
   if (file.chart) parts.push(chartText(file.chart));
   return parts.join('\n');
@@ -170,11 +181,52 @@ export function validateChart(raw: unknown): { chart?: ChartSpec; errors: string
       if (errors.length === 0) return { chart: { chart: 'table', title, columns, rows }, errors };
       break;
     }
+    case 'line': {
+      const points = (Array.isArray(c['points']) ? (c['points'] as unknown[]) : []).map((e) => {
+        const o = (e && typeof e === 'object' ? e : {}) as Record<string, unknown>;
+        return { year: o['year'] as number, value: o['value'] as number };
+      });
+      if (points.length < 3 || points.length > 8) errors.push('a line chart needs 3 to 8 points');
+      if (points.some((p) => !Number.isInteger(p.year) || typeof p.value !== 'number' || !Number.isFinite(p.value))) {
+        errors.push('points need a whole year and a number');
+      }
+      if (points.some((p, i) => i > 0 && p.year <= points[i - 1]!.year)) errors.push('point years must rise');
+      const unit = clean(c['unit']);
+      if (errors.length === 0) return { chart: { chart: 'line', title, unit: unit || undefined, points }, errors };
+      break;
+    }
+    case 'pie': {
+      const items = (Array.isArray(c['items']) ? (c['items'] as unknown[]) : []).map((i) => {
+        const o = (i && typeof i === 'object' ? i : {}) as Record<string, unknown>;
+        return { label: clean(o['label']), value: o['value'] as number };
+      });
+      if (items.length < 2 || items.length > 6) errors.push('a pie chart needs 2 to 6 slices');
+      if (items.some((i) => !i.label || i.label.length > 24 || typeof i.value !== 'number' || !(i.value > 0))) {
+        errors.push('slices need a label (max 24 characters) and a share above 0');
+      }
+      if (new Set(items.map((i) => i.label.toLowerCase())).size !== items.length) errors.push('slice labels must be unique');
+      const sum = items.reduce((a, i) => a + (typeof i.value === 'number' ? i.value : 0), 0);
+      // shares are rounded, so a little off is fine
+      if (Math.abs(sum - 100) > 1) errors.push(`pie shares must add up to 100 (they add up to ${sum})`);
+      if (errors.length === 0) return { chart: { chart: 'pie', title, items }, errors };
+      break;
+    }
+    case 'flow': {
+      const steps = Array.isArray(c['steps']) ? (c['steps'] as unknown[]).map(clean) : [];
+      if (steps.length < 2 || steps.length > 6) errors.push('a flow needs 2 to 6 steps');
+      if (steps.some((x) => x === '' || x.length > 40)) errors.push('steps must be 1 to 40 characters');
+      if (new Set(steps.map((x) => x.toLowerCase())).size !== steps.length) errors.push('steps must be unique');
+      if (c['cycle'] !== undefined && typeof c['cycle'] !== 'boolean') errors.push('cycle must be true or false');
+      if (errors.length === 0) return { chart: { chart: 'flow', title, steps, ...(c['cycle'] === true ? { cycle: true } : {}) }, errors };
+      break;
+    }
     default:
-      errors.push('chart must be "bars", "timeline" or "table"');
+      errors.push('chart must be "bars", "timeline", "table", "line", "pie" or "flow"');
   }
   return { errors };
 }
+
+const FILE_KINDS: FileKind[] = ['note', 'article', 'image', 'profile', 'quote', 'mail'];
 
 /** Checks the files of one fragment. Returns the cleaned files and every problem found. */
 export function validateFiles(raw: unknown): { files: FragmentFile[]; errors: string[] } {
@@ -191,7 +243,7 @@ export function validateFiles(raw: unknown): { files: FragmentFile[]; errors: st
     if (name.length < 3 || name.length > 40) errors.push(`${at}: name must be 3 to 40 characters`);
     if (names.has(name.toLowerCase())) errors.push(`${at}: duplicate name "${name}"`);
     names.add(name.toLowerCase());
-    if (!['note', 'article', 'image'].includes(kind)) {
+    if (!FILE_KINDS.includes(kind)) {
       errors.push(`${at}: unknown kind`);
       return;
     }
@@ -203,12 +255,32 @@ export function validateFiles(raw: unknown): { files: FragmentFile[]; errors: st
       if (c.chart) out.push({ name, kind, chart: c.chart, alt });
       return;
     }
+    if (kind === 'profile') {
+      const fields = (Array.isArray(o['fields']) ? (o['fields'] as unknown[]) : []).map((f) =>
+        Array.isArray(f) ? ([clean(f[0]), clean(f[1])] as [string, string]) : (['', ''] as [string, string]),
+      );
+      if (fields.length < 2 || fields.length > 8) errors.push(`${at}: a profile has 2 to 8 lines`);
+      if (fields.some(([k, v]) => !k || !v || k.length > 24 || v.length > 60)) errors.push(`${at}: profile lines need a label (max 24) and a value (max 60)`);
+      if (new Set(fields.map(([k]) => k.toLowerCase())).size !== fields.length) errors.push(`${at}: profile labels must be unique`);
+      out.push({ name, kind, fields });
+      return;
+    }
     const text = clean(o['text']);
-    const max = kind === 'article' ? 900 : 400;
+    const max = kind === 'article' ? 900 : kind === 'quote' ? 300 : 400;
     if (text.length < 10 || text.length > max) errors.push(`${at}: text must be 10 to ${max} characters`);
     if (kind === 'article' && !(text.includes('\n\n') || text.length < 200)) errors.push(`${at}: an article is split into paragraphs`);
     const source = clean(o['source']);
     if (source.length > 80) errors.push(`${at}: source is too long`);
+    // a quote without its origin cannot be checked
+    if (kind === 'quote' && source.length < 3) errors.push(`${at}: a quote needs its source (who, where)`);
+    if (kind === 'mail') {
+      const from = clean(o['from']);
+      const subject = clean(o['subject']);
+      if (from.length < 2 || from.length > 40) errors.push(`${at}: a mail needs a sender of 2 to 40 characters`);
+      if (subject.length < 2 || subject.length > 60) errors.push(`${at}: a mail needs a subject of 2 to 60 characters`);
+      out.push({ name, kind, from, subject, text });
+      return;
+    }
     out.push({ name, kind, text, source: source || undefined });
   });
   return { files: out, errors };

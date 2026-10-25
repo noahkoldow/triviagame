@@ -53,6 +53,22 @@ export function variantOptions(
   return { options: idx.map((i) => q.options[i]!), answer: idx.indexOf(q.answer) };
 }
 
+/** The options of a question with several right answers, shuffled per attempt (as indices into `q.options`). */
+export function variantMulti(q: Extract<Question, { type: 'multi' }>, variant: number): number[] {
+  return shuffle(
+    q.options.map((_, i) => i),
+    seededRng(`multi:${q.id}:${variant}`),
+  );
+}
+
+/** The items of a sorting question, shuffled per attempt. */
+export function variantSort(q: Extract<Question, { type: 'sort' }>, variant: number): string[] {
+  return shuffle(
+    q.items.map((it) => it[0]),
+    seededRng(`sort:${q.id}:${variant}`),
+  );
+}
+
 /** The right-hand column of a matching question, shuffled per attempt; never already in order. */
 export function variantMatch(q: Extract<Question, { type: 'match' }>, variant: number): string[] {
   const rights = q.pairs.map((p) => p[1]);

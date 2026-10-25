@@ -262,6 +262,13 @@ export const fr: Strings = {
     pairedWith: (a, b) => `${a}, relié à ${b}`,
     gapFilled: (n, word) => `Trou ${n} : ${word}, touche pour vider`,
     gapEmpty: (n) => `Trou ${n}, vide`,
+    multiHint: 'Plusieurs réponses sont justes. Choisis toutes celles qui le sont.',
+    sortHint: 'Range chaque entrée dans un dossier. Touche encore pour la déplacer.',
+    fileInto: (item, group) => `${item} dans le dossier ${group}`,
+    spotHint: 'Une phrase est fausse. Touche-la.',
+    statement: (n, line) => `Phrase ${n} : ${line}`,
+    spotFound: 'Trouvé : c’était bien cette phrase qui était fausse.',
+    spotMissed: (n) => `La phrase fausse était la numéro ${n}.`,
   },
 
   explorer: {
@@ -292,7 +299,10 @@ export const fr: Strings = {
     deleteAllText: 'Toute ta structure de dossiers sera vidée.',
     source: (s) => `Source : ${s}`,
     chartUnit: (unit) => `Valeurs en ${unit}`,
-    kinds: { note: 'Document texte', article: 'Article', image: 'Image' },
+    kinds: { note: 'Document texte', article: 'Article', image: 'Image', profile: 'Fiche', quote: 'Citation', mail: 'Message' },
+    mailFrom: (from) => `De : ${from}`,
+    mailSubject: (subject) => `Objet : ${subject}`,
+    quoted: (text) => `« ${text} »`,
   },
   cacheFiles: {
     title: 'Cache',

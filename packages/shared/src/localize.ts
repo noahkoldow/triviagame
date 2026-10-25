@@ -21,12 +21,16 @@ export interface QuestionText {
   f: [string, string][];
   /** The files of the fragments that have some in the source, by fragment number (1 = "-f1"). */
   files?: Record<number, FragmentFile[]>;
-  /** choice: the options in the source's order (the answer index stays). */
+  /** choice and multi: the options in the source's order (the answer indices stay). */
   options?: string[];
   /** estimate */
   unit?: string;
-  /** order: the items in the right order. */
+  /** order: the items in the right order; sort: the item labels in the source's order (their groups stay). */
   items?: string[];
+  /** sort: the groups in the source's order. */
+  groups?: string[];
+  /** spot: the statements in the source's order (the wrong one stays). */
+  lines?: string[];
   /** match: the pairs in the source's order. */
   pairs?: [string, string][];
   /** cloze */
@@ -93,5 +97,16 @@ function typedText(base: Omit<Question, 'type'>, q: Question, t: QuestionText): 
       return { ...base, type: 'match', pairs: t.pairs ?? q.pairs };
     case 'cloze':
       return { ...base, type: 'cloze', text: t.text ?? q.text, answers: t.answers ?? q.answers, bank: t.bank ?? q.bank };
+    case 'multi':
+      return { ...base, type: 'multi', options: t.options ?? q.options, answers: q.answers };
+    case 'sort':
+      return {
+        ...base,
+        type: 'sort',
+        groups: t.groups ?? q.groups,
+        items: q.items.map(([label, g], i) => [t.items?.[i] ?? label, g] as [string, number]),
+      };
+    case 'spot':
+      return { ...base, type: 'spot', lines: t.lines ?? q.lines, wrong: q.wrong };
   }
 }

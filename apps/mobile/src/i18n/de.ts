@@ -267,6 +267,13 @@ export const de = {
     pairedWith: (a: string, b: string) => `${a}, verbunden mit ${b}`,
     gapFilled: (n: number, word: string) => `Lücke ${n}: ${word}, antippen zum Leeren`,
     gapEmpty: (n: number) => `Lücke ${n}, leer`,
+    multiHint: 'Mehrere Antworten sind richtig. Wähle alle, die stimmen.',
+    sortHint: 'Lege jeden Eintrag in einen Ordner. Ein neuer Tipp legt ihn um.',
+    fileInto: (item: string, group: string) => `${item} in Ordner ${group}`,
+    spotHint: 'Ein Satz stimmt nicht. Tippe ihn an.',
+    statement: (n: number, line: string) => `Satz ${n}: ${line}`,
+    spotFound: 'Gefunden: Genau dieser Satz war falsch.',
+    spotMissed: (n: number) => `Der falsche Satz war Nummer ${n}.`,
   },
 
   explorer: {
@@ -297,7 +304,10 @@ export const de = {
     deleteAllText: 'Deine ganze Ordnerstruktur wird geleert.',
     source: (s: string) => `Quelle: ${s}`,
     chartUnit: (unit: string) => `Angaben in ${unit}`,
-    kinds: { note: 'Textdokument', article: 'Artikel', image: 'Bild' },
+    kinds: { note: 'Textdokument', article: 'Artikel', image: 'Bild', profile: 'Steckbrief', quote: 'Zitat', mail: 'Nachricht' },
+    mailFrom: (from: string) => `Von: ${from}`,
+    mailSubject: (subject: string) => `Betreff: ${subject}`,
+    quoted: (text: string) => `„${text}“`,
   },
   cacheFiles: {
     title: 'Cache',

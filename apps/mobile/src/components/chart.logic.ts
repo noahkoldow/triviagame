@@ -50,3 +50,49 @@ export function timelineLayout(
     above: i % 2 === 0,
   }));
 }
+
+/**
+ * Points of a line chart in a box of `width` × `height`: years from left to right, values from
+ * the bottom (a little below the smallest value, so changes show) to the top.
+ */
+export function lineLayout(
+  points: { year: number; value: number }[],
+  width: number,
+  height: number,
+  pad = { left: 8, right: 8, top: 18, bottom: 18 },
+): { year: number; value: number; x: number; y: number }[] {
+  const lo = Math.min(...points.map((p) => p.value));
+  const hi = Math.max(...points.map((p) => p.value));
+  const span = Math.max(1e-9, hi - lo);
+  const floor = lo - span * 0.15;
+  const y0 = points[0]!.year;
+  const years = Math.max(1, points[points.length - 1]!.year - y0);
+  const w = width - pad.left - pad.right;
+  const h = height - pad.top - pad.bottom;
+  return points.map((p) => ({
+    ...p,
+    x: pad.left + ((p.year - y0) / years) * w,
+    y: pad.top + h - ((p.value - floor) / (hi - floor)) * h,
+  }));
+}
+
+/** Slices of a pie, clockwise from twelve o'clock, as start and end angles in radians. */
+export function pieSlices(items: { label: string; value: number }[]): { label: string; value: number; from: number; to: number }[] {
+  const total = items.reduce((a, i) => a + i.value, 0) || 1;
+  let at = -Math.PI / 2;
+  return items.map((i) => {
+    const from = at;
+    at += (i.value / total) * Math.PI * 2;
+    return { ...i, from, to: at };
+  });
+}
+
+/** An SVG path of a pie slice around (cx, cy); a slice of the whole circle is drawn as two halves. */
+export function slicePath(cx: number, cy: number, r: number, from: number, to: number): string {
+  const pt = (a: number) => `${(cx + Math.cos(a) * r).toFixed(2)} ${(cy + Math.sin(a) * r).toFixed(2)}`;
+  if (to - from >= Math.PI * 2 - 1e-6) {
+    return `M ${pt(from)} A ${r} ${r} 0 1 1 ${pt(from + Math.PI)} A ${r} ${r} 0 1 1 ${pt(from)} Z`;
+  }
+  const large = to - from > Math.PI ? 1 : 0;
+  return `M ${cx} ${cy} L ${pt(from)} A ${r} ${r} 0 ${large} 1 ${pt(to)} Z`;
+}
