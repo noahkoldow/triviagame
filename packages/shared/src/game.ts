@@ -1,4 +1,4 @@
-import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, firewallReached, type BossOutcome, type Firewall } from './boss';
+import { BOSS_REWARD, FINALE_PASS, FINALE_REWARD, firewallReached, type BossOutcome, type Firewall } from './boss';
 import { cacheWithoutArea, type CacheEntry, type CacheFile } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
@@ -153,18 +153,18 @@ export function ctxFor(p: PlayerState, pool: Pool, seed: string): SpawnContext {
 }
 
 /**
- * The result of a firewall fight. With enough right answers the wall breaks where the network
- * stands at it: a reward, a gap of a few cells, and the area behind opens with a first node.
- * Otherwise the network loses one integrity and the next fight draws new questions.
+ * The result of a firewall fight (`won`, see `wallFightState`). A won fight breaks the wall where
+ * the network stands at it: a reward, a gap of a few cells, and the area behind opens with a
+ * first node. Otherwise the network loses one integrity and the next fight draws new questions.
  */
-export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, correct: number): BossOutcome {
+export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, won: boolean): BossOutcome {
   const fw = p.network.firewalls?.find((f) => f.id === firewallId);
   const at = fw && !fw.broken ? approachOf(Object.values(p.network.nodes), fw.area) : undefined;
   // a firewall the network has not grown to cannot be attacked
   if (!fw || !at || at.cells > WALL_REACH) {
     return { player: p, passed: false, spawned: [], areas: [] };
   }
-  const passed = correct >= BOSS_PASS;
+  const passed = won;
   const firewalls = p.network.firewalls!.map((f) =>
     f.id === firewallId ? { ...f, broken: passed, attempts: passed ? f.attempts : f.attempts + 1 } : f,
   );

@@ -109,8 +109,8 @@ export const de = {
     wallBroken: (area: string) => `Diese Firewall ist durchbrochen. Durch die Lücke wächst dein Netz in ${area}.`,
     wallFar: (area: string, steps: number) =>
       `Hinter dieser Wand liegt ${area}. morph.ai hat sie hochgezogen. Wachse bis direkt an die Wand, dann kannst du sie angreifen. Entfernung: etwa ${steps} Schritte.`,
-    wallText: (questions: number, from: string, area: string, pass: number) =>
-      `Dein Netz steht an der Wand. Um durchzubrechen, beantwortest du ${questions} Fragen, je zur Hälfte aus ${from} und ${area}. ${pass} müssen stimmen. Es gibt keinen Cache, nur dein Wissen.`,
+    wallText: (layers: number, rounds: number, from: string, area: string) =>
+      `Dein Netz steht an der Wand. Die Firewall hat ${layers} Schichten: Jede richtige Antwort reißt eine ein, jede falsche lässt morph.ai eine wieder aufbauen. Du hast ${rounds} Fragen, je zur Hälfte aus ${from} und ${area}. Es gibt keinen Cache, nur dein Wissen.`,
     wallReward: (gems: number, bits: number, xp: number, area: string) =>
       `Belohnung: ${gems} Gems, ${bits} Bits, ${xp} XP, und die Wand bricht an dieser Stelle auf: ${area} öffnet sich.`,
     openNow: (cost: number) => `Sofort öffnen · ${cost}`,
@@ -225,7 +225,22 @@ export const de = {
     needed: (right: number, pass: number) => `${right} / ${pass} nötig`,
     finaleIntro: (pass: number) =>
       `morph.ai: „Acht Fragen, alle vier Sektoren, kein Cache, keine Ordner. Ich wette, am Ende fragst du doch mich.“ ${pass} müssen stimmen.`,
-    wallIntro: 'morph.ai: „Hier kommst du nicht durch. Es sei denn, du weißt wirklich etwas.“ Kein Cache, keine Ordner, nur dein Kopf.',
+    wallIntro: 'morph.ai: „Vier Schichten Firewall. Und jeden Fehler flicke ich sofort.“ Jede richtige Antwort reißt eine Schicht ein. Kein Cache, keine Ordner, nur dein Kopf.',
+    attack: 'Angreifen',
+    layers: (hp: number, max: number) => `FIREWALL ${hp}/${max}`,
+    sceneA11y: (hp: number, max: number) => `Firewall, ${hp} von ${max} Schichten stehen`,
+    roundsLeft: (n: number) => (n === 1 ? 'Noch 1 Frage' : `Noch ${n} Fragen`),
+    crack: ['Treffer! Eine Schicht ist weg.', 'Volltreffer, die Wand bröckelt.', 'Da fliegen die Steine!'],
+    breach: 'Durchbruch! Die Firewall fällt.',
+    morphLow: '„Moment … das war so nicht geplant.“',
+    repair: [
+      '„Kleiner Fehler, schon geflickt.“',
+      '„Siehst du? Ich repariere schneller, als du denkst.“',
+      '„Danke, genau dieser Stein hat mir noch gefehlt.“',
+    ],
+    hold: ['„Daneben. Meine Wand steht noch ganz.“', '„Nicht mal ein Kratzer.“'],
+    wallLost: (hp: number, integrity: number) =>
+      `Die Firewall hält mit ${hp === 1 ? '1 Schicht' : `${hp} Schichten`}, und für den Rest reichen die Fragen nicht mehr. morph.ai: „Hübsch versucht.“ Die Integrität sinkt um 1 (jetzt ${integrity}). Beim nächsten Versuch kommen andere Fragen.`,
     answer: 'Antworten',
     result: 'Ergebnis',
     nextQuestion: 'Weiter >',

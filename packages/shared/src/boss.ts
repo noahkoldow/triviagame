@@ -20,9 +20,10 @@ import {
 
 /**
  * Firewalls (bosses) are the walls around the eight outer areas (see `walls.ts`). Once the
- * network stands right at one, the player can attack it: a short series of questions, half from
- * the area the network comes from and half from the area behind the wall. Breaking it tears a
- * gap into the wall at that spot and opens the area behind.
+ * network stands right at one, the player can attack it like a boss: the wall has layers, every
+ * right answer tears one down, every wrong one lets morph.ai rebuild one (`strikeWall`). The
+ * questions come half from the area the network comes from and half from the area behind the
+ * wall. Breaking it tears a gap into the wall at that spot and opens the area behind.
  */
 export interface Firewall {
   /** `fw-<area>` */
@@ -38,9 +39,10 @@ export interface Firewall {
   bought?: boolean;
 }
 
-/** Questions in a fight (half from each side) and how many must be right. */
-export const BOSS_QUESTIONS = 4;
-export const BOSS_PASS = 3;
+/** Layers of a firewall: a right answer tears one down, a wrong one lets morph.ai rebuild one. */
+export const FIREWALL_HP = 4;
+/** Questions in the attack window (half from each side); the wall holds when too few are left to break it. */
+export const FIREWALL_ROUNDS = 8;
 /** What breaking a firewall pays. */
 export const BOSS_REWARD = { xp: 60, bits: 40, gems: 3 };
 
@@ -136,13 +138,13 @@ function interleave(lists: Question[][]): Question[] {
 }
 
 /**
- * The questions of one fight, alternating between the two sides of the wall: two of the area
- * the network comes from (`from`, see `fightFrom`) and two of the area behind the wall, near the
+ * The questions of one fight, alternating between the two sides of the wall: half of the area
+ * the network comes from (`from`, see `fightFrom`) and half of the area behind the wall, near the
  * player's level. Deterministic for a firewall, attempt and side.
  */
 export function bossQuestions(pool: Pool, fw: Firewall, skill: SkillMap, from: string): Question[] {
   const rng = seededRng(`boss:${fw.id}:${fw.attempts}`);
-  const half = BOSS_QUESTIONS / 2;
+  const half = FIREWALL_ROUNDS / 2;
   const qa = nearArea(pool, from, half, skill, rng, new Set());
   const qb = nearArea(pool, fw.area, half, skill, rng, new Set(qa.map((q) => q.id)));
   return interleave([qa, qb]);
@@ -155,6 +157,41 @@ export function finaleQuestions(pool: Pool, attempt: number, skill: SkillMap): Q
   return interleave(
     SECTORS.map((s) => nearLevel(pool.list.filter((q) => sectorOfArea(q.area) === s), per, skill, rng, 1)),
   );
+}
+
+/** A fight against a firewall while it runs. */
+export interface WallFight {
+  /** Layers still standing (0 = broken). */
+  hp: number;
+  /** Questions in the attack window. */
+  rounds: number;
+  /** Every answer so far, right or wrong. */
+  log: boolean[];
+}
+
+/**
+ * What an answer did to the wall: `crack` tore a layer down, `breach` the last one, `repair` let
+ * morph.ai rebuild one, `hold` was wrong while the wall was whole (nothing to rebuild).
+ */
+export type WallHit = 'crack' | 'breach' | 'repair' | 'hold';
+
+export function startWallFight(rounds: number): WallFight {
+  return { hp: FIREWALL_HP, rounds, log: [] };
+}
+
+/** `won` once the wall is down, `lost` once fewer questions are left than layers stand. */
+export function wallFightState(f: WallFight): 'on' | 'won' | 'lost' {
+  if (f.hp <= 0) return 'won';
+  return f.rounds - f.log.length < f.hp ? 'lost' : 'on';
+}
+
+/** One answer against the wall. A finished fight stays as it is. */
+export function strikeWall(f: WallFight, ok: boolean): { fight: WallFight; hit: WallHit } {
+  if (wallFightState(f) !== 'on') return { fight: f, hit: 'hold' };
+  const log = [...f.log, ok];
+  if (ok) return { fight: { ...f, hp: f.hp - 1, log }, hit: f.hp === 1 ? 'breach' : 'crack' };
+  if (f.hp < FIREWALL_HP) return { fight: { ...f, hp: f.hp + 1, log }, hit: 'repair' };
+  return { fight: { ...f, log }, hit: 'hold' };
 }
 
 export interface BossOutcome {

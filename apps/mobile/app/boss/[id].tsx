@@ -1,10 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  BOSS_PASS,
   BOSS_REWARD,
+  FIREWALL_HP,
+  FIREWALL_ROUNDS,
   FINALE_ID,
   FINALE_PASS,
   FINALE_REWARD,
@@ -25,12 +26,18 @@ import {
   synapseQuestions,
   synapseSpots,
   sectorOfArea,
+  startWallFight,
   storyFacts,
+  strikeWall,
+  wallFightState,
   type Answer,
   type BossOutcome,
+  type WallFight,
+  type WallHit,
 } from '@nexus/shared';
-import { Bolt } from '../../src/components/Bolt';
-import { Morph } from '../../src/components/Morph';
+import { Bolt, type Mood } from '../../src/components/Bolt';
+import { FirewallScene } from '../../src/components/FirewallScene';
+import { Morph, type MorphForm } from '../../src/components/Morph';
 import { QuestionView } from '../../src/components/QuestionView';
 import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { WIN, Window } from '../../src/components/Win';
@@ -89,37 +96,216 @@ export default function BossScreen() {
     );
   }
   if (isSynapse) return <Fight synId={id} />;
-  return <Fight fwId={isFinale ? undefined : id} />;
+  if (!isFinale) return <WallFightView fwId={id} />;
+  return <Fight />;
 }
 
-function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
+/** Picks one of a few lines, so the same event does not always say the same thing. */
+const pick = (lines: readonly string[], n: number) => lines[n % lines.length]!;
+
+/**
+ * A firewall as a boss fight: the wall has `FIREWALL_HP` layers, every right answer tears one
+ * down, every wrong one lets morph.ai rebuild one. The fight ends with the wall down, or when
+ * fewer questions are left than layers stand (`wallFightState`).
+ */
+function WallFightView({ fwId }: { fwId: string }) {
   const router = useRouter();
   const t = useStrings();
-  const fw = useGame((p) => (fwId ? p.network.firewalls!.find((f) => f.id === fwId) : undefined));
+  const { width } = useWindowDimensions();
+  const fw = useGame((p) => p.network.firewalls!.find((f) => f.id === fwId))!;
+  // the questions are fixed when the fight starts (a lost fight raises the attempt count)
+  const attempt = useMemo(() => fw.attempts, [fwId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const questions = useMemo(
+    () => bossQuestions(pool, { ...fw, attempts: attempt }, getState().skill, fightFrom(pool, Object.values(getState().network.nodes), fw)),
+    [fwId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const [fight, setFight] = useState<WallFight>(() => startWallFight(Math.min(FIREWALL_ROUNDS, questions.length)));
+  const [hit, setHit] = useState<{ kind: WallHit; seq: number } | null>(null);
+  const [answer, setAnswer] = useState<Answer | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [outcome, setOutcome] = useState<BossOutcome | null>(null);
+
+  // while an answer is shown, its question stays on screen
+  const i = fight.log.length - (checked ? 1 : 0);
+  const q = questions[i];
+  const state = wallFightState(fight);
+  const right = fight.log.filter((x) => x).length;
+  const sceneW = Math.min(width - 24, 480) - 28;
+
+  const check = () => {
+    if (!q || !answer) return;
+    const ok = isCorrect(q, answer);
+    const r = strikeWall(fight, ok);
+    tap(ok ? 'success' : 'error');
+    setFight(r.fight);
+    setHit({ kind: r.hit, seq: r.fight.log.length });
+    setChecked(true);
+  };
+
+  const next = () => {
+    if (state === 'on') {
+      setAnswer(null);
+      setChecked(false);
+      return;
+    }
+    const r = recordBoss(getState(), pool, fwId, state === 'won');
+    update(() => r.player);
+    if (r.passed) setRecentlySpawned(r.spawned);
+    setOutcome(r);
+  };
+
+  if (questions.length < FIREWALL_HP) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <ScrollView contentContainerStyle={styles.body}>
+          <Window title={t.boss.firewall} icon="warn" onClose={() => router.back()}>
+            <P>{t.boss.tooFew}</P>
+            <Button label={t.common.back} onPress={() => router.back()} />
+          </Window>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (outcome) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <ScrollView contentContainerStyle={styles.body}>
+          <Window
+            title={outcome.passed ? t.boss.broken : t.boss.wallHolds}
+            icon={outcome.passed ? 'check' : 'warn'}
+            onClose={() => router.back()}
+          >
+            {outcome.passed ? (
+              <>
+                <H1>{t.boss.through}</H1>
+                <P style={{ color: colors.text }}>{t.boss.wallWon(right, fight.log.length, areaName(fw.area, t.lang))}</P>
+                <View style={styles.row}>
+                  <Chip label={`+${BOSS_REWARD.xp} XP`} color={colors.accent} />
+                  <Chip icon="bit" label={`+${BOSS_REWARD.bits}`} color={colors.bit} />
+                  <Chip icon="gem" label={`+${BOSS_REWARD.gems}`} color={colors.gem} />
+                </View>
+                {outcome.areas.map((a) => (
+                  <Card key={a} style={{ borderColor: colors.primary }}>
+                    <P style={{ color: colors.primary }}>{t.common.newArea(areaName(a, t.lang))}</P>
+                  </Card>
+                ))}
+              </>
+            ) : (
+              <>
+                <View style={{ alignItems: 'center' }}>
+                  <Morph size={90} form="crown" />
+                </View>
+                <H1>{t.boss.notEnough}</H1>
+                <P style={{ color: colors.text }}>{t.boss.wallLost(fight.hp, getState().integrity)}</P>
+              </>
+            )}
+            <Button label={t.boss.toMap} onPress={() => router.back()} />
+          </Window>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // who speaks after an answer, and how the two look
+  const seq = hit?.seq ?? 0;
+  const line = !checked
+    ? null
+    : hit?.kind === 'breach'
+      ? { morph: false, text: t.boss.breach }
+      : hit?.kind === 'crack'
+        ? fight.hp === 1
+          ? { morph: true, text: t.boss.morphLow }
+          : { morph: false, text: pick(t.boss.crack, seq) }
+        : hit?.kind === 'repair'
+          ? { morph: true, text: pick(t.boss.repair, seq) }
+          : { morph: true, text: pick(t.boss.hold, seq) };
+  const struck = checked && (hit?.kind === 'crack' || hit?.kind === 'breach');
+  const morphForm: MorphForm = fight.hp <= 1 || struck ? 'glitch' : fight.hp === FIREWALL_HP ? 'crown' : 'glasses';
+  const boltMood: Mood = !checked ? 'think' : hit?.kind === 'breach' ? 'proud' : struck ? 'happy' : 'worried';
+  const left = fight.rounds - fight.log.length;
+  const area = q?.area ?? fw.area;
+
+  return (
+    <SafeAreaView style={styles.root}>
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <Window title={t.boss.title(areaName(fw.area, t.lang))} icon="warn" onClose={() => router.back()}>
+          {/* the boss's life: one block per layer */}
+          <View style={styles.hpRow} accessible accessibilityLabel={t.boss.sceneA11y(fight.hp, FIREWALL_HP)}>
+            <Text style={styles.hpLabel}>{t.boss.layers(fight.hp, FIREWALL_HP)}</Text>
+            <View style={[styles.segments, { flex: 1 }]}>
+              {Array.from({ length: FIREWALL_HP }, (_, k) => (
+                <View key={k} style={[styles.segment, k < fight.hp && { backgroundColor: WALL_RED }]} />
+              ))}
+            </View>
+          </View>
+          <FirewallScene
+            width={sceneW}
+            hp={fight.hp}
+            max={FIREWALL_HP}
+            hit={hit}
+            color={colors.sector[sectorOfArea(fw.area)]}
+            morphForm={morphForm}
+            boltMood={boltMood}
+            label={t.boss.sceneA11y(fight.hp, FIREWALL_HP)}
+          />
+          <View style={styles.row}>
+            <Pill label={areaName(area, t.lang)} color={colors.sector[sectorOfArea(area)]} />
+            <Pill label={t.boss.roundsLeft(left)} color={left <= fight.hp ? colors.bad : colors.dim} />
+          </View>
+          {fight.log.length === 0 ? <P style={{ color: colors.dim }}>{t.boss.wallIntro}</P> : null}
+          {line ? (
+            <View style={styles.intro}>
+              <Text style={[styles.speaker, { color: line.morph ? MORPH_PINK : colors.accent }]}>
+                {line.morph ? t.speakers.morph : t.speakers.bolt}
+              </Text>
+              <P style={{ color: colors.text, flex: 1 }}>{line.text}</P>
+            </View>
+          ) : null}
+
+          {q ? (
+            <>
+              <Text style={styles.stem} maxFontSizeMultiplier={1.4}>
+                {q.stem}
+              </Text>
+              <QuestionView key={`${i}-${attempt}`} q={q} variant={attempt} reveal={checked} onChange={setAnswer} />
+              {checked ? (
+                <Card>
+                  <P style={{ color: colors.text }}>{q.explanation}</P>
+                </Card>
+              ) : null}
+            </>
+          ) : null}
+
+          {!checked ? (
+            <Button label={t.boss.attack} disabled={answer === null} onPress={check} />
+          ) : (
+            <Button label={state === 'on' ? t.boss.nextQuestion : t.boss.result} onPress={next} />
+          )}
+        </Window>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+/** A synapse probe (`synId`) or, without one, the final duel against morph.ai. */
+function Fight({ synId }: { synId?: string }) {
+  const router = useRouter();
+  const t = useStrings();
   const finaleAttempts = useGame((p) => p.story.finaleAttempts);
-  const finale = !fwId && !synId;
+  const finale = !synId;
   const pair = synId ? synapsePair(synId) : undefined;
   // the questions are fixed when the fight starts (a lost fight raises the attempt count)
   const attempt = useMemo(
-    () => (fw ? fw.attempts : synId ? (getState().network.synapseTries?.[synId]?.attempts ?? 0) : finaleAttempts),
-    [fwId, synId], // eslint-disable-line react-hooks/exhaustive-deps
+    () => (synId ? (getState().network.synapseTries?.[synId]?.attempts ?? 0) : finaleAttempts),
+    [synId], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const questions = useMemo(
-    () =>
-      fw
-        ? bossQuestions(
-            pool,
-            { ...fw, attempts: attempt },
-            getState().skill,
-            fightFrom(pool, Object.values(getState().network.nodes), fw),
-          )
-        : synId
-          ? synapseQuestions(getState(), pool, synId)
-          : finaleQuestions(pool, attempt, getState().skill),
-    [fwId, synId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
+    () => (synId ? synapseQuestions(getState(), pool, synId) : finaleQuestions(pool, attempt, getState().skill)),
+    [synId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const pass = finale ? FINALE_PASS : synId ? SYNAPSE_PASS : BOSS_PASS;
-  const reward = finale ? FINALE_REWARD : synId ? SYNAPSE_REWARD : BOSS_REWARD;
+  const pass = finale ? FINALE_PASS : SYNAPSE_PASS;
+  const reward = finale ? FINALE_REWARD : SYNAPSE_REWARD;
   const [i, setI] = useState(0);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [checked, setChecked] = useState(false);
@@ -128,12 +314,8 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
   const [outcome, setOutcome] = useState<BossOutcome | null>(null);
 
   const q = questions[i];
-  const sector = q ? sectorOfArea(q.area) : fw ? sectorOfArea(fw.area) : 'science';
-  const title = fw
-    ? t.boss.title(areaName(fw.area, t.lang))
-    : pair
-      ? t.boss.synapseTitle(areaName(pair[0], t.lang), areaName(pair[1], t.lang))
-      : t.boss.coreTitle;
+  const sector = q ? sectorOfArea(q.area) : 'science';
+  const title = pair ? t.boss.synapseTitle(areaName(pair[0], t.lang), areaName(pair[1], t.lang)) : t.boss.coreTitle;
 
   const check = () => {
     if (!q || !answer) return;
@@ -151,11 +333,9 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
       setChecked(false);
       return;
     }
-    const r: BossOutcome = fwId
-      ? recordBoss(getState(), pool, fwId, right)
-      : synId
-        ? { ...recordSynapse(getState(), pool, synId, right, today()), spawned: [], areas: [] }
-        : { ...recordFinale(getState(), pool, right), spawned: [], areas: [] };
+    const r: BossOutcome = synId
+      ? { ...recordSynapse(getState(), pool, synId, right, today()), spawned: [], areas: [] }
+      : { ...recordFinale(getState(), pool, right), spawned: [], areas: [] };
     update(() => r.player);
     if (r.passed) setRecentlySpawned(r.spawned);
     tap(r.passed ? 'success' : 'error');
@@ -174,12 +354,8 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
                   ? t.boss.synapseJoined
                   : t.boss.synapseHolds
                 : outcome.passed
-                  ? finale
-                    ? t.boss.beaten
-                    : t.boss.broken
-                  : finale
-                    ? t.boss.morphHolds
-                    : t.boss.wallHolds
+                  ? t.boss.beaten
+                  : t.boss.morphHolds
             }
             icon={outcome.passed ? 'check' : 'warn'}
             onClose={() => router.back()}
@@ -188,17 +364,15 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
               <>
                 <H1>{t.boss.through}</H1>
                 <P style={{ color: colors.text }}>
-                  {finale
-                    ? t.boss.finaleWon(right, questions.length)
-                    : pair
-                      ? t.boss.synapseWon(
-                          right,
-                          questions.length,
-                          areaName(pair[0], t.lang),
-                          areaName(pair[1], t.lang),
-                          Math.round(networkBonus(getState()) * 100),
-                        )
-                      : t.boss.wallWon(right, questions.length, areaName(fw!.area, t.lang))}
+                  {pair
+                    ? t.boss.synapseWon(
+                        right,
+                        questions.length,
+                        areaName(pair[0], t.lang),
+                        areaName(pair[1], t.lang),
+                        Math.round(networkBonus(getState()) * 100),
+                      )
+                    : t.boss.finaleWon(right, questions.length)}
                 </P>
                 <View style={styles.row}>
                   <Chip label={`+${reward.xp} XP`} color={colors.accent} />
@@ -240,7 +414,7 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
     return (
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
-          <Window title={synId ? t.boss.synapse : finale ? t.boss.core : t.boss.firewall} icon="warn" onClose={() => router.back()}>
+          <Window title={synId ? t.boss.synapse : t.boss.core} icon="warn" onClose={() => router.back()}>
             <P>{t.boss.tooFew}</P>
             <Button label={t.common.back} onPress={() => router.back()} />
           </Window>
@@ -274,10 +448,8 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
           </View>
           {i === 0 && !checked ? (
             <View style={styles.intro}>
-              {finale ? <Morph size={56} form="crown" /> : synId ? <Bolt size={56} mood="think" /> : null}
-              <P style={{ color: colors.dim, flex: 1 }}>
-                {finale ? t.boss.finaleIntro(pass) : synId ? t.boss.synapseIntro : t.boss.wallIntro}
-              </P>
+              {finale ? <Morph size={56} form="crown" /> : <Bolt size={56} mood="think" />}
+              <P style={{ color: colors.dim, flex: 1 }}>{finale ? t.boss.finaleIntro(pass) : t.boss.synapseIntro}</P>
             </View>
           ) : null}
 
@@ -304,6 +476,9 @@ function Fight({ fwId, synId }: { fwId?: string; synId?: string }) {
   );
 }
 
+const WALL_RED = '#D93645';
+const MORPH_PINK = '#FF86D0';
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#008080' },
   body: { padding: 12 },
@@ -312,4 +487,7 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 3 },
   segment: { flex: 1, height: 12, backgroundColor: '#1A2430' },
   stem: { color: colors.text, fontSize: 20, fontWeight: '800', lineHeight: 28 },
+  hpRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  hpLabel: { color: WALL_RED, fontSize: 13, fontWeight: '900', letterSpacing: 0.6 },
+  speaker: { fontSize: 13, fontWeight: '900' },
 });

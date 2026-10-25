@@ -22,7 +22,6 @@ vi.mock('react-native-reanimated', () => ({ useDerivedValue: (f: () => unknown) 
 
 import {
   AREAS,
-  BOSS_QUESTIONS,
   CORE_ZONE,
   MOCK_QUESTIONS,
   Pool,
@@ -111,7 +110,7 @@ describe('map scene', () => {
   });
 
   it('opens a gap the trace runs through once the wall is broken', () => {
-    const p = recordBoss(atWall(initialPlayer(pool)), pool, 'fw-biomedicine', BOSS_QUESTIONS).player;
+    const p = recordBoss(atWall(initialPlayer(pool)), pool, 'fw-biomedicine', true).player;
     const sight = wallsInSight(Object.values(p.network.nodes), p.network.firewalls!);
     const { sites, edges } = sitesAndEdges(p);
     const s = buildHexScene(sites, edges, sight.cells);

@@ -3,9 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  BOSS_PASS,
-  BOSS_QUESTIONS,
   BOSS_REWARD,
+  FIREWALL_HP,
+  FIREWALL_ROUNDS,
   DEBRIS_COST,
   HEAL_COST,
   dailyBonusDue,
@@ -539,7 +539,7 @@ export default function Home() {
                 ) : (
                   <>
                     <Text style={styles.fragText}>
-                      {t.map.wallText(BOSS_QUESTIONS, area(fightFrom(pool, nodes, firewall)), wallArea, BOSS_PASS)}
+                      {t.map.wallText(FIREWALL_HP, FIREWALL_ROUNDS, area(fightFrom(pool, nodes, firewall)), wallArea)}
                     </Text>
                     <Text style={styles.cardSub}>
                       {t.map.wallReward(BOSS_REWARD.gems, BOSS_REWARD.bits, BOSS_REWARD.xp, wallArea)}

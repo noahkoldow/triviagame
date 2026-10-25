@@ -105,8 +105,8 @@ export const en: Strings = {
     wallBroken: (area) => `This firewall is broken. Your network grows into ${area} through the gap.`,
     wallFar: (area, steps) =>
       `${area} lies behind this wall. morph.ai put it up. Grow right up to the wall and then you can attack it. Distance: about ${steps} steps.`,
-    wallText: (questions, from, area, pass) =>
-      `Your network stands at the wall. To break through, you answer ${questions} questions, half from ${from} and half from ${area}. ${pass} must be right. There is no cache, only your knowledge.`,
+    wallText: (layers, rounds, from, area) =>
+      `Your network stands at the wall. The firewall has ${layers} layers: every right answer tears one down, every wrong one lets morph.ai rebuild one. You have ${rounds} questions, half from ${from} and half from ${area}. There is no cache, only your knowledge.`,
     wallReward: (gems, bits, xp, area) =>
       `Reward: ${gems} gems, ${bits} bits, ${xp} XP, and the wall breaks open at this spot: ${area} opens.`,
     openNow: (cost) => `Open now · ${cost}`,
@@ -220,7 +220,22 @@ export const en: Strings = {
     needed: (right, pass) => `${right} / ${pass} needed`,
     finaleIntro: (pass) =>
       `morph.ai: “Eight questions, all four sectors, no cache, no folders. I bet you’ll end up asking me after all.” ${pass} must be right.`,
-    wallIntro: 'morph.ai: “You won’t get through here. Unless you really know something.” No cache, no folders, just your head.',
+    wallIntro: 'morph.ai: “Four layers of firewall. And I patch every mistake at once.” Every right answer tears a layer down. No cache, no folders, just your head.',
+    attack: 'Attack',
+    layers: (hp, max) => `FIREWALL ${hp}/${max}`,
+    sceneA11y: (hp, max) => `Firewall, ${hp} of ${max} layers standing`,
+    roundsLeft: (n) => (n === 1 ? '1 question left' : `${n} questions left`),
+    crack: ['Hit! One layer is gone.', 'Direct hit, the wall is crumbling.', 'Look at those bricks fly!'],
+    breach: 'Breakthrough! The firewall falls.',
+    morphLow: '“Wait … that was not the plan.”',
+    repair: [
+      '“Small mistake, already patched.”',
+      '“See? I repair faster than you think.”',
+      '“Thanks, that was just the brick I was missing.”',
+    ],
+    hold: ['“Missed. My wall is still whole.”', '“Not even a scratch.”'],
+    wallLost: (hp, integrity) =>
+      `The firewall holds with ${hp === 1 ? '1 layer' : `${hp} layers`}, and there are not enough questions left for the rest. morph.ai: “Nice try.” Integrity drops by 1 (now ${integrity}). The next attempt brings other questions.`,
     answer: 'Answer',
     result: 'Result',
     nextQuestion: 'Next >',

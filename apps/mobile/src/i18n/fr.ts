@@ -105,8 +105,8 @@ export const fr: Strings = {
     wallBroken: (area) => `Ce pare-feu est percé. Par la brèche, ton réseau grandit vers ${area}.`,
     wallFar: (area, steps) =>
       `Derrière ce mur se trouve ${area}. morph.ai l’a dressé. Avance jusqu’au pied du mur, puis tu pourras l’attaquer. Distance : environ ${steps} étapes.`,
-    wallText: (questions, from, area, pass) =>
-      `Ton réseau est au pied du mur. Pour le percer, tu réponds à ${questions} questions, moitié ${from}, moitié ${area}. ${pass} doivent être justes. Pas de cache, seulement ton savoir.`,
+    wallText: (layers, rounds, from, area) =>
+      `Ton réseau est au pied du mur. Le pare-feu a ${layers} couches : chaque bonne réponse en abat une, chaque mauvaise laisse morph.ai en reconstruire une. Tu as ${rounds} questions, moitié ${from}, moitié ${area}. Pas de cache, seulement ton savoir.`,
     wallReward: (gems, bits, xp, area) =>
       `Récompense : ${gems} gemmes, ${bits} bits, ${xp} XP, et le mur s’ouvre à cet endroit : ${area} s’ouvre.`,
     openNow: (cost) => `Ouvrir tout de suite · ${cost}`,
@@ -220,7 +220,22 @@ export const fr: Strings = {
     needed: (right, pass) => `${right} / ${pass} requis`,
     finaleIntro: (pass) =>
       `morph.ai : « Huit questions, les quatre secteurs, pas de cache, pas de dossiers. Je parie que tu finiras par me demander. » ${pass} doivent être justes.`,
-    wallIntro: 'morph.ai : « Tu ne passeras pas. À moins de vraiment savoir quelque chose. » Pas de cache, pas de dossiers, juste ta tête.',
+    wallIntro: 'morph.ai : « Quatre couches de pare-feu. Et je répare chaque erreur aussitôt. » Chaque bonne réponse abat une couche. Pas de cache, pas de dossiers, juste ta tête.',
+    attack: 'Attaquer',
+    layers: (hp, max) => `PARE-FEU ${hp}/${max}`,
+    sceneA11y: (hp, max) => `Pare-feu, ${hp} couches sur ${max} debout`,
+    roundsLeft: (n) => (n === 1 ? 'Encore 1 question' : `Encore ${n} questions`),
+    crack: ['Touché ! Une couche en moins.', 'En plein dans le mille, le mur s’effrite.', 'Regarde voler les briques !'],
+    breach: 'Percée ! Le pare-feu tombe.',
+    morphLow: '« Attends… ce n’était pas prévu. »',
+    repair: [
+      '« Petite erreur, déjà réparée. »',
+      '« Tu vois ? Je répare plus vite que tu ne penses. »',
+      '« Merci, c’était justement la brique qui me manquait. »',
+    ],
+    hold: ['« Raté. Mon mur est encore intact. »', '« Pas même une égratignure. »'],
+    wallLost: (hp, integrity) =>
+      `Le pare-feu tient avec ${hp === 1 ? '1 couche' : `${hp} couches`}, et il ne reste plus assez de questions pour le reste. morph.ai : « Joli essai. » L’intégrité baisse de 1 (maintenant ${integrity}). Au prochain essai, d’autres questions.`,
     answer: 'Répondre',
     result: 'Résultat',
     nextQuestion: 'Suivant >',

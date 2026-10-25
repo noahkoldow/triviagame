@@ -105,8 +105,8 @@ export const es: Strings = {
     wallBroken: (area) => `Este cortafuegos está roto. Por la brecha, tu red crece hacia ${area}.`,
     wallFar: (area, steps) =>
       `Detrás de este muro está ${area}. morph.ai lo levantó. Crece hasta el pie del muro y podrás atacarlo. Distancia: unos ${steps} pasos.`,
-    wallText: (questions, from, area, pass) =>
-      `Tu red está al pie del muro. Para atravesarlo respondes ${questions} preguntas, la mitad de ${from} y la mitad de ${area}. ${pass} tienen que ser correctas. No hay caché, solo tu saber.`,
+    wallText: (layers, rounds, from, area) =>
+      `Tu red está al pie del muro. El cortafuegos tiene ${layers} capas: cada respuesta correcta derriba una, cada fallo deja que morph.ai reconstruya una. Tienes ${rounds} preguntas, la mitad de ${from} y la mitad de ${area}. No hay caché, solo tu saber.`,
     wallReward: (gems, bits, xp, area) =>
       `Recompensa: ${gems} gemas, ${bits} bits, ${xp} XP, y el muro se abre en este punto: ${area} queda abierta.`,
     openNow: (cost) => `Abrir ya · ${cost}`,
@@ -220,7 +220,22 @@ export const es: Strings = {
     needed: (right, pass) => `${right} / ${pass} necesarias`,
     finaleIntro: (pass) =>
       `morph.ai: “Ocho preguntas, los cuatro sectores, sin caché ni carpetas. Apuesto a que al final me preguntarás a mí.” ${pass} tienen que ser correctas.`,
-    wallIntro: 'morph.ai: “Por aquí no pasas. A no ser que de verdad sepas algo.” Sin caché, sin carpetas, solo tu cabeza.',
+    wallIntro: 'morph.ai: “Cuatro capas de cortafuegos. Y cada error lo parcheo al instante.” Cada respuesta correcta derriba una capa. Sin caché, sin carpetas, solo tu cabeza.',
+    attack: 'Atacar',
+    layers: (hp, max) => `CORTAFUEGOS ${hp}/${max}`,
+    sceneA11y: (hp, max) => `Cortafuegos, ${hp} de ${max} capas en pie`,
+    roundsLeft: (n) => (n === 1 ? 'Queda 1 pregunta' : `Quedan ${n} preguntas`),
+    crack: ['¡Impacto! Una capa menos.', 'De lleno, el muro se desmorona.', '¡Mira cómo vuelan los ladrillos!'],
+    breach: '¡Brecha! El cortafuegos cae.',
+    morphLow: '“Un momento… esto no estaba previsto.”',
+    repair: [
+      '“Un pequeño error, ya está parcheado.”',
+      '“¿Ves? Reparo más rápido de lo que crees.”',
+      '“Gracias, justo me faltaba ese ladrillo.”',
+    ],
+    hold: ['“Fallaste. Mi muro sigue entero.”', '“Ni un rasguño.”'],
+    wallLost: (hp, integrity) =>
+      `El cortafuegos aguanta con ${hp === 1 ? '1 capa' : `${hp} capas`} y ya no quedan preguntas suficientes para el resto. morph.ai: “Buen intento.” La integridad baja 1 (ahora ${integrity}). En el próximo intento habrá otras preguntas.`,
     answer: 'Responder',
     result: 'Resultado',
     nextQuestion: 'Siguiente >',

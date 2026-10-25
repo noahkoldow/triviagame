@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BOSS_PASS,
-  BOSS_QUESTIONS,
   BOSS_REWARD,
+  FIREWALL_HP,
+  FIREWALL_ROUNDS,
   CORE_ZONE,
   MOCK_QUESTIONS,
   OUTER_ZONES,
@@ -19,6 +19,9 @@ import {
   initialPlayer,
   recordBoss,
   recordCorrect,
+  startWallFight,
+  strikeWall,
+  wallFightState,
   sectorOfArea,
   WALL_REACH,
   WALL_SIGHT,
@@ -43,6 +46,47 @@ function atWall(p: PlayerState, area: string): PlayerState {
 
 const fwOf = (p: PlayerState, area: string) => p.network.firewalls!.find((f) => f.area === area)!;
 
+describe('a fight against a firewall', () => {
+  const play = (answers: boolean[]) => {
+    let f = startWallFight(FIREWALL_ROUNDS);
+    const hits = answers.map((ok) => {
+      const r = strikeWall(f, ok);
+      f = r.fight;
+      return r.hit;
+    });
+    return { f, hits };
+  };
+
+  it('loses a layer with every right answer and breaks with the last one', () => {
+    const { f, hits } = play(Array(FIREWALL_HP).fill(true));
+    expect(hits).toEqual([...Array(FIREWALL_HP - 1).fill('crack'), 'breach']);
+    expect(f.hp).toBe(0);
+    expect(wallFightState(f)).toBe('won');
+  });
+
+  it('is rebuilt by morph.ai after a wrong answer, but never above its layers', () => {
+    const { f, hits } = play([false, true, false, true, true]);
+    expect(hits).toEqual(['hold', 'crack', 'repair', 'crack', 'crack']);
+    expect(f.hp).toBe(FIREWALL_HP - 2);
+    expect(wallFightState(f)).toBe('on');
+  });
+
+  it('holds once fewer questions are left than layers stand', () => {
+    // 4 layers, 8 questions: after 5 wrong answers 3 are left
+    const { f } = play([false, false, false, false, false]);
+    expect(f.hp).toBe(FIREWALL_HP);
+    expect(wallFightState(f)).toBe('lost');
+    // a finished fight does not change any more
+    expect(strikeWall(f, true).fight).toBe(f);
+  });
+
+  it('can still be won on the last question', () => {
+    const { f } = play([true, false, true, true, false, true, true, true]);
+    expect(f.log).toHaveLength(FIREWALL_ROUNDS);
+    expect(wallFightState(f)).toBe('won');
+  });
+});
+
 describe('firewalls (bosses)', () => {
   it('stand around the eight outer areas', () => {
     const fws = createFirewalls();
@@ -55,9 +99,13 @@ describe('firewalls (bosses)', () => {
   it('draw questions from both sides of the wall, alternating, deterministic', () => {
     for (const fw of createFirewalls()) {
       const qs = bossQuestions(pool, fw, {}, 'physics');
-      expect(qs).toHaveLength(BOSS_QUESTIONS);
-      expect(qs.map((q) => q.area)).toEqual(['physics', fw.area, 'physics', fw.area]);
-      expect(new Set(qs.map((q) => q.id)).size).toBe(BOSS_QUESTIONS);
+      expect(qs).toHaveLength(FIREWALL_ROUNDS);
+      // an area with too few questions is filled up from its sector
+      expect(qs.map((q) => sectorOfArea(q.area))).toEqual(
+        qs.map((_, i) => sectorOfArea(i % 2 === 0 ? 'physics' : fw.area)),
+      );
+      expect(qs[0]!.area).toBe('physics');
+      expect(new Set(qs.map((q) => q.id)).size).toBe(FIREWALL_ROUNDS);
       expect(bossQuestions(pool, fw, {}, 'physics').map((q) => q.id)).toEqual(qs.map((q) => q.id));
     }
   });
@@ -75,7 +123,7 @@ describe('firewalls (bosses)', () => {
     const nodes = Object.values(p.network.nodes);
     expect(firewallReached(nodes, fw)).toBe(false);
     expect(firewallSteps(nodes, fw)).toBeGreaterThan(1);
-    expect(recordBoss(p, pool, fw.id, BOSS_QUESTIONS)).toEqual({ player: p, passed: false, spawned: [], areas: [] });
+    expect(recordBoss(p, pool, fw.id, true)).toEqual({ player: p, passed: false, spawned: [], areas: [] });
     const there = atWall(p, 'biomedicine');
     expect(firewallReached(Object.values(there.network.nodes), fw)).toBe(true);
     expect(fightFrom(pool, Object.values(there.network.nodes), fw)).toBe('physics');
@@ -101,7 +149,7 @@ describe('firewalls (bosses)', () => {
   it('breaking one pays the reward and tears a gap where the network stands', () => {
     const p = atWall(initialPlayer(pool), 'biomedicine');
     const fw = fwOf(p, 'biomedicine');
-    const r = recordBoss(p, pool, fw.id, BOSS_PASS);
+    const r = recordBoss(p, pool, fw.id, true);
     expect(r.passed).toBe(true);
     const after = fwOf(r.player, 'biomedicine');
     expect(after.broken).toBe(true);
@@ -126,7 +174,7 @@ describe('firewalls (bosses)', () => {
 
   it('the area behind the gap grows on its own side', () => {
     const p = atWall(initialPlayer(pool), 'biomedicine');
-    const r = recordBoss(p, pool, fwOf(p, 'biomedicine').id, BOSS_QUESTIONS);
+    const r = recordBoss(p, pool, fwOf(p, 'biomedicine').id, true);
     const grown = recordCorrect(r.player, pool, r.spawned[0]!, '2026-10-01', 0);
     for (const id of grown.spawned) {
       const n = grown.player.network.nodes[id]!;
@@ -138,7 +186,7 @@ describe('firewalls (bosses)', () => {
   it('failing costs integrity and counts the attempt, but breaks nothing', () => {
     const p = atWall(initialPlayer(pool), 'technology');
     const fw = fwOf(p, 'technology');
-    const r = recordBoss(p, pool, fw.id, BOSS_PASS - 1);
+    const r = recordBoss(p, pool, fw.id, false);
     expect(r.passed).toBe(false);
     expect(r.player.integrity).toBe(p.integrity - 1);
     const after = fwOf(r.player, 'technology');
@@ -152,7 +200,7 @@ describe('firewalls (bosses)', () => {
   it('leaves the cache alone', () => {
     const p = atWall(initialPlayer(pool), 'biomedicine');
     const withCache = { ...p, cache: [{ questionId: 'sci-light', fragmentId: 'sci-light-f1', file: 'Notiz.txt' }] };
-    const r = recordBoss(withCache, pool, fwOf(p, 'biomedicine').id, BOSS_QUESTIONS);
+    const r = recordBoss(withCache, pool, fwOf(p, 'biomedicine').id, true);
     expect(r.player.cache).toEqual(withCache.cache);
   });
 
@@ -170,7 +218,7 @@ describe('firewalls (bosses)', () => {
     const at = there.network.nodes[sign.node]!;
     expect(hexDistance(worldToHex(at.pos.x, at.pos.y), worldToHex(sign.x, sign.y))).toBeLessThanOrEqual(WALL_REACH);
     // once broken, the gap shows and the rest of that wall guards nothing any more
-    const r = recordBoss(there, pool, 'fw-biomedicine', BOSS_QUESTIONS).player;
+    const r = recordBoss(there, pool, 'fw-biomedicine', true).player;
     const after = wallsInSight(Object.values(r.network.nodes), r.network.firewalls!);
     expect(after.cells.some((c) => c.look === 'gap')).toBe(true);
     expect(after.cells.some((c) => c.firewall === 'fw-biomedicine')).toBe(false);
@@ -180,8 +228,8 @@ describe('firewalls (bosses)', () => {
   it('can only be broken once', () => {
     const p = atWall(initialPlayer(pool), 'biomedicine');
     const fw = fwOf(p, 'biomedicine');
-    const once = recordBoss(p, pool, fw.id, BOSS_QUESTIONS).player;
-    const again = recordBoss(once, pool, fw.id, BOSS_QUESTIONS);
+    const once = recordBoss(p, pool, fw.id, true).player;
+    const again = recordBoss(once, pool, fw.id, true);
     expect(again.passed).toBe(false);
     expect(again.player).toBe(once);
   });

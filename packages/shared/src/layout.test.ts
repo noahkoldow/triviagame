@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BOSS_QUESTIONS,
   LAYOUT_VERSION,
   MAX_LINK,
   MOCK_QUESTIONS,
@@ -36,9 +35,9 @@ const DAY = '2026-10-01';
 function grow(steps: number): PlayerState {
   let p = initialPlayer(pool);
   for (let i = 0; i < steps; i++) {
-    const fw = p.network.firewalls!.find((f) => recordBoss(p, pool, f.id, BOSS_QUESTIONS).passed);
+    const fw = p.network.firewalls!.find((f) => recordBoss(p, pool, f.id, true).passed);
     if (fw) {
-      p = recordBoss(p, pool, fw.id, BOSS_QUESTIONS).player;
+      p = recordBoss(p, pool, fw.id, true).player;
       continue;
     }
     const open = Object.values(p.network.nodes)

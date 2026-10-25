@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BOSS_QUESTIONS,
   LANGS,
   REVEAL_STEPS,
   STORY_CUES,
@@ -52,7 +51,7 @@ function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
     const wall =
       ch.n === 3 ? p.network.firewalls!.find((f) => !f.broken && firewallReached(Object.values(p.network.nodes), f)) : undefined;
     if (wall) {
-      p = recordBoss(p, pool, wall.id, BOSS_QUESTIONS).player;
+      p = recordBoss(p, pool, wall.id, true).player;
       continue;
     }
     if (ch.n === 4) {
