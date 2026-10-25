@@ -15,12 +15,13 @@ import { HEX_R, hexDistance, hexKey, hexNeighbors, hexToWorld, worldToHex, type 
 /** The zone of the four starting areas. Every other zone is named after its area. */
 export const CORE_ZONE = 'core';
 /** Radius of the firewall ring around the core zone (world units); the roots sit at 150. */
-export const WALL_RADIUS = 650;
+export const WALL_RADIUS = 520;
 /** The walls between the outer areas run out this far (the camera stops at 3600). */
 export const WALL_OUTER = 3500;
 /** Ring and outer edge of a map placed with layout `layout` (`NetworkState.layout`, D69). */
 export function wallsOfLayout(layout: number): { radius: number; outer: number } {
-  if (layout >= 4) return { radius: WALL_RADIUS, outer: WALL_OUTER };
+  if (layout >= 5) return { radius: WALL_RADIUS, outer: WALL_OUTER };
+  if (layout === 4) return { radius: 650, outer: 3500 };
   return layout === 3 ? { radius: 800, outer: 3500 } : { radius: 470, outer: 2500 };
 }
 /** Nodes keep this far from a wall (world units), so a node tile never touches it. */

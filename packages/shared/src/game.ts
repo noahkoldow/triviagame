@@ -3,7 +3,9 @@ import {
   FINALE_PASS,
   FINALE_REWARD,
   FIREWALL_HP,
-  firewallReached,
+  answeredNodes,
+  firewallReady,
+  wallQuotaLeft,
   pushBackCount,
   pushBackTargets,
   pushedBack,
@@ -180,9 +182,16 @@ export function recordBoss(
   layersLeft = FIREWALL_HP,
 ): BossOutcome {
   const fw = p.network.firewalls?.find((f) => f.id === firewallId);
-  const at = fw && !fw.broken ? approachOf(Object.values(p.network.nodes), fw.area) : undefined;
-  // a firewall the network has not grown to, or whose damaged nodes still wait for repair, cannot be attacked
-  if (!fw || !at || at.cells > WALL_REACH || pushedBack(p.network.nodes, fw).length > 0) {
+  const at = fw && !fw.broken ? approachOf(answeredNodes(Object.values(p.network.nodes)), fw.area) : undefined;
+  // a firewall the network has not grown to, before enough nodes are answered (D73), or whose
+  // damaged nodes still wait for repair cannot be attacked
+  if (
+    !fw ||
+    !at ||
+    at.cells > WALL_REACH ||
+    wallQuotaLeft(Object.values(p.network.nodes), p.network.firewalls) > 0 ||
+    pushedBack(p.network.nodes, fw).length > 0
+  ) {
     return { player: p, passed: false, spawned: [], areas: [] };
   }
   const passed = won;
@@ -243,12 +252,12 @@ function breakWall(
   return { player: { ...player, network: c.state }, spawned: c.node ? [c.node.id] : [] };
 }
 
-/** Areas whose wall the network stands at now but did not before (for the result of an answer). */
+/** Areas whose wall can be attacked now but could not before (for the result of an answer). */
 function newlyReached(before: NetworkState, after: NetworkState): string[] {
   const was = Object.values(before.nodes);
   const now = Object.values(after.nodes);
   return (after.firewalls ?? [])
-    .filter((f) => !f.broken && firewallReached(now, f) && !firewallReached(was, f))
+    .filter((f) => firewallReady(now, after.firewalls, f) && !firewallReady(was, before.firewalls, f))
     .map((f) => f.area);
 }
 

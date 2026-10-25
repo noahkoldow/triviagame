@@ -6,7 +6,7 @@ import {
   STORY_TEXT,
   brainReveal,
   storyBeats,
-  firewallReached,
+  firewallReady,
   REVEAL_ID,
   LEAGUE_NOTICED_ID,
   leagueIsNew,
@@ -56,7 +56,7 @@ function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
   for (let i = 0; i < steps && !until?.(p); i++) {
     const ch = chapterOf(storyFacts(p, pool), 'de');
     const wall =
-      ch.n === 3 ? p.network.firewalls!.find((f) => !f.broken && firewallReached(Object.values(p.network.nodes), f)) : undefined;
+      ch.n === 3 ? p.network.firewalls!.find((f) => firewallReady(Object.values(p.network.nodes), p.network.firewalls, f)) : undefined;
     if (wall) {
       p = recordBoss(p, pool, wall.id, true, '2026-10-01').player;
       continue;
@@ -192,7 +192,8 @@ describe('foreshadowing the firewalls', () => {
     expect(storyFacts(first, pool).wallSeen).toBe(false);
     expect(pendingBeats(first, pool).map((b) => b.id)).toEqual(['first-link']);
     const p = play(400, (x) => storyFacts(x, pool).wallSeen);
-    expect(storyFacts(p, pool).solved).toBeGreaterThan(4);
+    // the beat waits for a second answer, so it does not land on top of the first one
+    expect(storyFacts(p, pool).solved).toBeGreaterThanOrEqual(2);
     expect(storyFacts(p, pool).broken).toBe(0);
     expect(pendingBeats(p, pool).map((b) => b.id)).toContain('first-wall');
     // once a wall is broken the moment has passed

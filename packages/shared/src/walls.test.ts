@@ -184,20 +184,20 @@ describe('walls', () => {
     for (const g of gap) expect(g.zones).toEqual(expect.arrayContaining(['biomedicine', CORE_ZONE]));
   });
 
-  it('moves a gap from the smaller walls before onto the same spot of the bigger walls', () => {
+  it.each([3, 4])('moves a gap from the walls of layout %i onto the same spot of the walls today', (layout) => {
     const cell = wallBetween('biomedicine', CORE_ZONE)[3]!;
-    // the ring lay at 470 before
-    const old = { x: (cell.x * 470) / WALL_RADIUS, y: (cell.y * 470) / WALL_RADIUS, from: CORE_ZONE };
+    const was = wallsOfLayout(layout).radius;
+    const old = { x: (cell.x * was) / WALL_RADIUS, y: (cell.y * was) / WALL_RADIUS, from: CORE_ZONE };
     expect(breachCells('biomedicine', old)).toHaveLength(0);
-    const moved = moveBreach('biomedicine', old, wallsOfLayout(2));
+    const moved = moveBreach('biomedicine', old, wallsOfLayout(layout));
     expect(Math.hypot(moved.x - cell.x, moved.y - cell.y)).toBeLessThan(60);
     expect(breachCells('biomedicine', moved).length).toBeGreaterThanOrEqual(3);
     // a gap on its wall stays
     const now = { x: cell.x, y: cell.y, from: CORE_ZONE };
-    expect(moveBreach('biomedicine', now, wallsOfLayout(2))).toBe(now);
+    expect(moveBreach('biomedicine', now, wallsOfLayout(layout))).toBe(now);
   });
 
-  it.each([2, 3])('a save from layout %i gets its gaps moved onto the current walls and its nodes into their zones', (layout) => {
+  it.each([2, 3, 4])('a save from layout %i gets its gaps moved onto the current walls and its nodes into their zones', (layout) => {
     const p = grow(160);
     const was = wallsOfLayout(layout);
     const scale = (v: { x: number; y: number }) => {

@@ -236,6 +236,8 @@ export const en: Strings = {
       '“Thanks, that was just the brick I was missing.”',
     ],
     hold: ['“Missed. My wall is still whole.”', '“Not even a scratch.”'],
+    wallQuota: (n) =>
+      `morph.ai is still holding the wall shut. Answer ${n === 1 ? 'one more node' : `${n} more nodes`} first, then you can attack.`,
     pushBack: (n) =>
       `morph.ai strikes back: ${n === 1 ? 'one node by the wall is' : `${n} nodes by the wall are`} damaged. Repair ${n === 1 ? 'it' : 'them'} before you attack again.`,
     pushedBack: (n) =>

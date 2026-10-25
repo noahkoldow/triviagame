@@ -22,6 +22,11 @@ import {
   recordBoss,
   recordCorrect,
   recordReviewResult,
+  firewallReady,
+  wallQuota,
+  wallQuotaLeft,
+  WALL_QUOTA,
+  WALL_QUOTA_STEP,
   pushBackCount,
   pushBackTargets,
   pushedBack,
@@ -35,20 +40,30 @@ import {
   wallsInSight,
   worldToHex,
   zoneOf,
+  type NetNode,
   type PlayerState,
 } from './index';
 import { servedPool } from './served.testutil';
 
 const pool = servedPool();
 
-/** The network already stands at the wall around `area`: the first node moves right in front of it. */
-function atWall(p: PlayerState, area: string): PlayerState {
+/**
+ * The network already stands at the wall around `area`: the first node, answered, moves right in
+ * front of it, and `answered` more answered nodes sit close to the core (the quota, D73).
+ */
+function atWall(p: PlayerState, area: string, answered = WALL_QUOTA): PlayerState {
   const z = OUTER_ZONES.find((o) => o.area === area)!;
   const mid = (z.from + z.to) / 2;
   const r = WALL_RADIUS - WALL_MARGIN;
   const n0 = p.network.nodes['n0']!;
-  const moved = { ...n0, pos: { ...n0.pos, x: Math.cos(mid) * r, y: Math.sin(mid) * r } };
-  return { ...p, network: { ...p.network, nodes: { ...p.network.nodes, n0: moved } } };
+  const moved = { ...n0, state: 'solved' as const, pos: { ...n0.pos, x: Math.cos(mid) * r, y: Math.sin(mid) * r } };
+  const extra = Object.fromEntries(
+    Array.from({ length: answered }, (_, k) => {
+      const a = (k / answered) * 2 * Math.PI;
+      return [`x${k}`, { ...n0, id: `x${k}`, kind: 'deepen' as const, state: 'solved' as const, pos: { ...n0.pos, x: Math.cos(a) * 60, y: Math.sin(a) * 60 } }];
+    }),
+  );
+  return { ...p, network: { ...p.network, nodes: { ...p.network.nodes, ...extra, n0: moved } } };
 }
 
 const fwOf = (p: PlayerState, area: string) => p.network.firewalls!.find((f) => f.area === area)!;
@@ -160,6 +175,27 @@ describe('firewalls (bosses)', () => {
     expect(fightFrom(pool, Object.values(there.network.nodes), fw)).toBe('physics');
     // the wall next to it is still out of reach
     expect(firewallReached(Object.values(there.network.nodes), fwOf(p, 'astronomy'))).toBe(false);
+  });
+
+  it('opens for attack only once the node in front is answered and enough nodes are (D73)', () => {
+    const p = initialPlayer(pool);
+    const fw = fwOf(p, 'biomedicine');
+    // the node at the wall still open: the wall is reached by nobody
+    const open = atWall(p, 'biomedicine');
+    const n0 = { ...open.network.nodes['n0']!, state: 'open' as const };
+    const unanswered = { ...open, network: { ...open.network, nodes: { ...open.network.nodes, n0 } } };
+    expect(firewallReached(Object.values(unanswered.network.nodes), fw)).toBe(false);
+    // at the wall, but too few answered nodes
+    const early = atWall(p, 'biomedicine', 3);
+    const nodes = Object.values(early.network.nodes);
+    expect(firewallReached(nodes, fw)).toBe(true);
+    expect(wallQuotaLeft(nodes, early.network.firewalls)).toBeGreaterThan(0);
+    expect(firewallReady(nodes, early.network.firewalls, fw)).toBe(false);
+    expect(recordBoss(early, pool, fw.id, true, '2026-10-01').player).toBe(early);
+    expect(wallsInSight(nodes, early.network.firewalls!).cells.some((c) => c.look === 'active')).toBe(false);
+    // every broken wall raises the quota
+    expect(wallQuota(createFirewalls())).toBe(WALL_QUOTA);
+    expect(wallQuota(createFirewalls().map((f, i) => ({ ...f, broken: i < 2 })))).toBe(WALL_QUOTA + 2 * WALL_QUOTA_STEP);
   });
 
   it('branches lean toward the walls of their own sector until the network reaches them', () => {
@@ -293,5 +329,29 @@ describe('firewalls (bosses)', () => {
     const again = recordBoss(once, pool, fw.id, true, '2026-10-01');
     expect(again.passed).toBe(false);
     expect(again.player).toBe(once);
+  });
+});
+
+describe('pace to the first wall (D73)', () => {
+  // how players pick their next node: breadth first, always the newest, always the one furthest out
+  const num = (n: NetNode) => Number(n.id.slice(1));
+  const styles: Record<string, (open: NetNode[]) => NetNode> = {
+    oldest: (o) => [...o].sort((a, b) => num(a) - num(b))[0]!,
+    newest: (o) => [...o].sort((a, b) => num(b) - num(a))[0]!,
+    outward: (o) => [...o].sort((a, b) => Math.hypot(b.pos.x, b.pos.y) - Math.hypot(a.pos.x, a.pos.y))[0]!,
+  };
+
+  it.each(Object.keys(styles))('a player who picks the %s node can attack the first wall after about 15 answers', (style) => {
+    let p = initialPlayer(pool);
+    let answers = 0;
+    while (answers < 60) {
+      const nodes = Object.values(p.network.nodes);
+      if (p.network.firewalls!.some((f) => firewallReady(nodes, p.network.firewalls, f))) break;
+      const open = nodes.filter((n) => n.state === 'open' && !n.locked);
+      p = recordCorrect(p, pool, styles[style]!(open).id, '2026-10-01', 0).player;
+      answers++;
+    }
+    expect(answers).toBeGreaterThanOrEqual(WALL_QUOTA - 1);
+    expect(answers).toBeLessThanOrEqual(WALL_QUOTA + 5);
   });
 });

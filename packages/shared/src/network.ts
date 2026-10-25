@@ -24,7 +24,7 @@ import { CORE_ZONE, clampToZone, moveBreach, traceVia, wallsOfLayout, zoneOf, zo
 /** How strongly a new node leans toward the wall its branch is growing to. */
 const WALL_PULL = { deepen: 0.7, bridge: 0.4 };
 /** Version of the placement rules; a map placed with older ones is repaired once (`relayout`). */
-export const LAYOUT_VERSION = 4;
+export const LAYOUT_VERSION = 5;
 
 export class Pool {
   readonly byId = new Map<string, Question>();

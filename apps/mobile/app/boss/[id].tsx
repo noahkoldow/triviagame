@@ -33,6 +33,7 @@ import {
   storyFacts,
   strikeWall,
   timeOutWall,
+  wallQuotaLeft,
   wallAlly,
   wallFightState,
   wallVoices,
@@ -84,9 +85,11 @@ export default function BossScreen() {
         ? t.boss.alreadyBroken
         : !firewallReached(Object.values(getState().network.nodes), fw)
           ? t.boss.notReached
-          : pushedBack(getState().network.nodes, fw).length > 0
-            ? t.boss.pushedBack(pushedBack(getState().network.nodes, fw).length)
-            : null;
+          : wallQuotaLeft(Object.values(getState().network.nodes), getState().network.firewalls) > 0
+            ? t.boss.wallQuota(wallQuotaLeft(Object.values(getState().network.nodes), getState().network.firewalls))
+            : pushedBack(getState().network.nodes, fw).length > 0
+              ? t.boss.pushedBack(pushedBack(getState().network.nodes, fw).length)
+              : null;
   // decided once when the screen opens: winning breaks the firewall (or ends the finale) and
   // losing can drop integrity to 0, but the outcome of this fight must stay on screen
   const [reason] = useState(

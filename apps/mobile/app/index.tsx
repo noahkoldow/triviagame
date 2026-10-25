@@ -43,6 +43,7 @@ import {
   markSeen,
   pendingBeats,
   pushedBack,
+  wallQuotaLeft,
   hallsOf,
   REVEAL_ID,
   fightFrom,
@@ -243,6 +244,7 @@ export default function Home() {
   const wallArea = firewall ? area(firewall.area) : '';
   const wallCost = firewall ? areaCost(firewall.area) : 0;
   const wallPushed = firewall ? pushedBack(network.nodes, firewall) : [];
+  const wallQuotaMissing = firewall ? wallQuotaLeft(nodes, firewalls) : 0;
 
   const debrisProp = useMemo(
     () =>
@@ -546,6 +548,9 @@ export default function Home() {
                 ) : !firewallReached(nodes, firewall) ? (
                   // the network has to grow right up to the wall first
                   <Text style={styles.fragText}>{t.map.wallFar(wallArea, firewallSteps(nodes, firewall))}</Text>
+                ) : wallQuotaMissing > 0 ? (
+                  // reached, but morph.ai only lets a network with enough answered nodes at its walls (D73)
+                  <Text style={styles.fragText}>{t.boss.wallQuota(wallQuotaMissing)}</Text>
                 ) : wallPushed.length > 0 ? (
                   // morph.ai struck back after the last lost fight: those nodes need their repair first
                   <>

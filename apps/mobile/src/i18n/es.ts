@@ -236,6 +236,8 @@ export const es: Strings = {
       '“Gracias, justo me faltaba ese ladrillo.”',
     ],
     hold: ['“Fallaste. Mi muro sigue entero.”', '“Ni un rasguño.”'],
+    wallQuota: (n) =>
+      `morph.ai aún mantiene el muro cerrado. Responde primero ${n === 1 ? 'un nodo más' : `${n} nodos más`} y podrás atacar.`,
     pushBack: (n) =>
       `morph.ai contraataca: ${n === 1 ? 'un nodo junto al muro está dañado' : `${n} nodos junto al muro están dañados`}. Repára${n === 1 ? 'lo' : 'los'} antes de volver a atacar.`,
     pushedBack: (n) =>

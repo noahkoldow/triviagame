@@ -53,12 +53,39 @@ export function createFirewalls(): Firewall[] {
   return OUTER_ZONES.map((z) => ({ id: `fw-${z.area}`, area: z.area, broken: false, attempts: 0 }));
 }
 
-type Placed = { pos: { x: number; y: number } };
+type Placed = { pos: { x: number; y: number }; state?: NetNode['state'] };
 
-/** A firewall can only be attacked once a node stands right at its wall (`WALL_REACH` cells). */
+/** Only answered nodes hold ground at a wall: the open node right in front of it has to be solved first (D73). */
+export function answeredNodes<N extends Placed>(nodes: N[]): N[] {
+  return nodes.filter((n) => n.state !== 'open');
+}
+
+/** A firewall can only be attacked once an answered node stands right at its wall (`WALL_REACH` cells). */
 export function firewallReached(nodes: Placed[], fw: Firewall): boolean {
-  const a = approachOf(nodes, fw.area);
+  const a = approachOf(answeredNodes(nodes), fw.area);
   return !!a && a.cells <= WALL_REACH;
+}
+
+/**
+ * Answered nodes the network needs before morph.ai lets it at a wall (D73): 15 for the first,
+ * 5 more for every wall already broken. Distance alone does not hold a player back who follows
+ * one branch outward; this does.
+ */
+export const WALL_QUOTA = 15;
+export const WALL_QUOTA_STEP = 5;
+
+export function wallQuota(firewalls: Firewall[] | undefined): number {
+  return WALL_QUOTA + WALL_QUOTA_STEP * (firewalls ?? []).filter((f) => f.broken).length;
+}
+
+/** How many more nodes have to be answered before a reached wall can be attacked (0 = it can). */
+export function wallQuotaLeft(nodes: Placed[], firewalls: Firewall[] | undefined): number {
+  return Math.max(0, wallQuota(firewalls) - answeredNodes(nodes).length);
+}
+
+/** A firewall can be attacked: an answered node stands at it and the network has answered enough nodes. */
+export function firewallReady(nodes: Placed[], firewalls: Firewall[] | undefined, fw: Firewall): boolean {
+  return !fw.broken && firewallReached(nodes, fw) && wallQuotaLeft(nodes, firewalls) === 0;
 }
 
 /**
@@ -94,7 +121,8 @@ export function pushedBack(nodes: Record<string, NetNode>, fw: Firewall): string
 
 /** Roughly how many more nodes the network needs to reach a firewall (for the player). */
 export function firewallSteps(nodes: Placed[], fw: Firewall): number {
-  const a = approachOf(nodes, fw.area);
+  // before anything is answered, measure from the starting nodes
+  const a = approachOf(answeredNodes(nodes), fw.area) ?? approachOf(nodes, fw.area);
   if (!a) return 1;
   // a cell is about 40 world units, a step about 110
   return Math.max(1, Math.ceil(((a.cells - WALL_REACH) * 40) / 110));
@@ -131,7 +159,7 @@ export function wallTarget(
 
 /** The area a fight against a firewall comes from: that of the node nearest to its wall. */
 export function fightFrom(pool: Pool, nodes: NetNode[], fw: Firewall): string {
-  const a = approachOf(nodes, fw.area);
+  const a = approachOf(answeredNodes(nodes), fw.area);
   return a ? pool.get(a.node.questionId).area : areasOfSector(sectorOfArea(fw.area))[0]!.id;
 }
 
@@ -275,7 +303,8 @@ export interface BossOutcome {
 
 /**
  * How a wall cell looks: `active` stands in front of the network and can be attacked, `locked`
- * still waits for it, `calm` no longer guards anything (both sides are open), `gap` has fallen.
+ * still waits for it (not reached, or too few answered nodes), `calm` no longer guards anything
+ * (both sides are open), `gap` has fallen.
  */
 export type WallLook = 'active' | 'locked' | 'calm' | 'gap';
 
@@ -298,7 +327,7 @@ export function wallsInSight(nodes: (Placed & { id: string })[], firewalls: Fire
   const fallen = [...firewalls.flatMap((f) => (f.breach ? [{ area: f.area, breach: f.breach }] : [])), ...gaps];
   const gapKeys = new Set(fallen.flatMap((g) => breachCells(g.area, g.breach).map((c) => c.key)));
   const standing = new Map(firewalls.filter((f) => !f.broken).map((f) => [f.area, f]));
-  const reached = new Map([...standing.values()].map((f) => [f.id, firewallReached(nodes, f)]));
+  const reached = new Map([...standing.values()].map((f) => [f.id, firewallReady(nodes, firewalls, f)]));
   const cells: WallSight['cells'] = [];
   const seen = new Set<string>();
   for (const c of wallCells()) {

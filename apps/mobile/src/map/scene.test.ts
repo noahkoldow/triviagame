@@ -26,6 +26,7 @@ import {
   MOCK_QUESTIONS,
   Pool,
   WALL_MARGIN,
+  WALL_QUOTA,
   WALL_RADIUS,
   breachesOf,
   initialPlayer,
@@ -69,12 +70,18 @@ function sitesAndEdges(p: ReturnType<typeof initialPlayer>): { sites: Site[]; ed
   return { sites, edges };
 }
 
-/** The first node moved right in front of the wall around biomedicine. */
+/** The first node, answered, moved right in front of the wall around biomedicine, with enough answered nodes near the core (D73). */
 function atWall(p: PlayerState): PlayerState {
   const r = WALL_RADIUS - WALL_MARGIN;
   const a = -Math.PI * 0.375;
   const n0 = p.network.nodes['n0']!;
-  return { ...p, network: { ...p.network, nodes: { ...p.network.nodes, n0: { ...n0, pos: { ...n0.pos, x: Math.cos(a) * r, y: Math.sin(a) * r } } } } };
+  const extra = Object.fromEntries(
+    Array.from({ length: WALL_QUOTA }, (_, k) => {
+      const b = (k / WALL_QUOTA) * 2 * Math.PI;
+      return [`x${k}`, { ...n0, id: `x${k}`, kind: 'deepen' as const, state: 'solved' as const, pos: { ...n0.pos, x: Math.cos(b) * 60, y: Math.sin(b) * 60 } }];
+    }),
+  );
+  return { ...p, network: { ...p.network, nodes: { ...p.network.nodes, ...extra, n0: { ...n0, state: 'solved', pos: { ...n0.pos, x: Math.cos(a) * r, y: Math.sin(a) * r } } } } };
 }
 
 describe('map scene', () => {
