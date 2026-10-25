@@ -9,8 +9,10 @@ import {
   OVERALL,
   POOL_MAX_COUNT,
   RANKING_TOP,
+  REPORTS_TO_BLOCK,
   acceptScores,
   avoidTopicsOf,
+  blockEntry,
   buildCheckPrompt,
   choosePoolEntries,
   generateQuestions,
@@ -20,6 +22,7 @@ import {
   nextQuestionType,
   parseCheck,
   parsePoolRequest,
+  parseReport,
   poolEntryOf,
   poolKey,
   rankEntries,
@@ -39,7 +42,8 @@ import {
  * language (one pool per language and area). Only when the
  * pool has nothing new for that player does the server let the model write more, with the
  * prompt built here from the fixed taxonomy, the shared validator and a second checker pass,
- * inside a daily budget and per-client limits. `league` runs the ranking of all players.
+ * inside a daily budget and per-client limits. `report` lets players flag a question, and enough
+ * reports withhold it. `league` runs the ranking of all players.
  */
 
 if (getApps().length === 0) initializeApp();
@@ -64,6 +68,7 @@ const QUESTIONS_PER_HOUR = 60;
 const GENERATIONS_PER_HOUR = 6;
 const JOINS_PER_HOUR = 5;
 const SYNCS_PER_HOUR = 120;
+const REPORTS_PER_HOUR = 20;
 const HOUR = 3_600_000;
 
 const SYSTEM_INSTRUCTION =
@@ -240,6 +245,50 @@ export const questions = onRequest(
       response.status(200).json({ questions: out });
     } catch (error) {
       fail(response, error, 'questions');
+    }
+  },
+);
+
+// --- reports -----------------------------------------------------------
+
+/**
+ * A player flags a question (Apple 1.2). Every report is kept for review (`reports`), one per
+ * client and question; a generated question with `REPORTS_TO_BLOCK` of them is withheld from
+ * the pool. Built-in questions only collect reports, they are fixed in an app update.
+ */
+export const report = onRequest(
+  { region: REGION, timeoutSeconds: 30, memory: '256MiB', maxInstances: 3, concurrency: 40 },
+  async (request, response) => {
+    if (!jsonPost(request, response)) return;
+    const parsed = parseReport(request.body);
+    if (!parsed.ok) {
+      response.status(400).json({ error: parsed.error });
+      return;
+    }
+    const { questionId, reason, lang } = parsed.report;
+    try {
+      const key = clientKey(request);
+      if (!(await allow('report', key, REPORTS_PER_HOUR))) throw new HttpError(429, 'too many requests');
+      const reportRef = db.collection('reports').doc(`${questionId}_${key}`);
+      const questionRef = db.collection('questions').doc(questionId);
+      await db.runTransaction(async (tx) => {
+        // a transaction reads everything before it writes
+        const [mine, question] = await Promise.all([tx.get(reportRef), tx.get(questionRef)]);
+        if (mine.exists) return;
+        const reports = Number(question.get('reports') ?? 0) + 1;
+        const block = question.exists && reports >= REPORTS_TO_BLOCK && question.get('status') === 'checked';
+        const indexRef = block ? db.collection('poolIndex').doc(poolKey(String(question.get('area')), question.get('lang'))) : null;
+        const entries = indexRef ? (((await tx.get(indexRef)).get('entries') ?? []) as PoolEntry[]) : [];
+
+        tx.set(reportRef, { questionId, reason, lang, createdAt: FieldValue.serverTimestamp() });
+        if (!question.exists) return;
+        tx.update(questionRef, { reports, ...(block ? { status: 'reported' } : {}) });
+        const next = blockEntry(entries, questionId);
+        if (indexRef && next !== entries) tx.update(indexRef, { entries: next, updatedAt: FieldValue.serverTimestamp() });
+      });
+      response.status(200).json({ ok: true });
+    } catch (error) {
+      fail(response, error, 'report');
     }
   },
 );

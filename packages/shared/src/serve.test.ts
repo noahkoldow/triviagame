@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blockEntry,
+  parseReport,
   AREAS,
   FIRST_SOLVED,
   FIRST_XP,
@@ -159,5 +161,29 @@ describe('ranking', () => {
     for (const bad of ['Hans', 'Flinke Eule', 'Flinke Eule 123', 'Böse Eule 12', 'Flinke Owl 12', 'Swift Rusée 12', 42, '']) {
       expect(isAlias(bad)).toBe(false);
     }
+  });
+});
+
+describe('content API: reports', () => {
+  it('accepts a question id, a reason and a language, nothing else', () => {
+    expect(parseReport({ questionId: 'ai-abc', reason: 'wrong', lang: 'en' })).toEqual({
+      ok: true,
+      report: { questionId: 'ai-abc', reason: 'wrong', lang: 'en' },
+    });
+    expect(parseReport({ questionId: 'ai-abc', reason: 'boring', lang: 'en' }).ok).toBe(false);
+    expect(parseReport({ questionId: 'AI ABC', reason: 'wrong', lang: 'en' }).ok).toBe(false);
+    expect(parseReport({ questionId: 'ai-abc', reason: 'wrong', lang: 'en', note: 'x' }).ok).toBe(false);
+    expect(parseReport('ai-abc').ok).toBe(false);
+  });
+  it('blocks an entry once', () => {
+    const entries = [
+      { id: 'a', difficulty: 2, type: 'choice' as const, topic: 'x' },
+      { id: 'b', difficulty: 2, type: 'choice' as const, topic: 'y' },
+    ];
+    const blocked = blockEntry(entries, 'a');
+    expect(blocked[0]!.blocked).toBe(true);
+    expect(blocked[1]).toBe(entries[1]);
+    expect(blockEntry(blocked, 'a')).toBe(blocked);
+    expect(blockEntry(entries, 'zz')).toBe(entries);
   });
 });

@@ -53,6 +53,38 @@ export function parsePoolRequest(body: unknown): { ok: true; req: PoolRequest } 
   return { ok: true, req: { area: b.area, difficulty: d as PoolRequest['difficulty'], count: c as number, have, lang } };
 }
 
+// --- reports -------------------------------------------------------------
+
+/** Why a player reports a question (Apple 1.2: a way to flag objectionable content). */
+export const REPORT_REASONS = ['wrong', 'unclear', 'offensive', 'other'] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export interface QuestionReport {
+  questionId: string;
+  reason: ReportReason;
+  lang: Lang;
+}
+
+/** Reports from different clients before a generated question is withheld from the pool. */
+export const REPORTS_TO_BLOCK = 3;
+
+/** Strict check of a report body: a question id, a reason and the language, nothing else. */
+export function parseReport(body: unknown): { ok: true; report: QuestionReport } | { ok: false; error: string } {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, error: 'body must be an object' };
+  const b = body as Record<string, unknown>;
+  const extra = Object.keys(b).filter((k) => !['questionId', 'reason', 'lang'].includes(k));
+  if (extra.length) return { ok: false, error: `unknown fields: ${extra.join(', ')}` };
+  if (typeof b.questionId !== 'string' || !ID.test(b.questionId)) return { ok: false, error: 'questionId must be a question id' };
+  if (!REPORT_REASONS.includes(b.reason as ReportReason)) return { ok: false, error: `reason must be one of ${REPORT_REASONS.join(', ')}` };
+  if (!isLang(b.lang)) return { ok: false, error: `lang must be one of ${LANGS.join(', ')}` };
+  return { ok: true, report: { questionId: b.questionId, reason: b.reason as ReportReason, lang: b.lang } };
+}
+
+/** The index with one entry blocked; the same array if it is not there or already blocked. */
+export function blockEntry(entries: PoolEntry[], id: string): PoolEntry[] {
+  return entries.some((e) => e.id === id && !e.blocked) ? entries.map((e) => (e.id === id ? { ...e, blocked: true } : e)) : entries;
+}
+
 /** What the server keeps per question in the index of an area. */
 export interface PoolEntry {
   id: string;
