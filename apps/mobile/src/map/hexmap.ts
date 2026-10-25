@@ -7,13 +7,16 @@ import {
   hexLine,
   hexNeighbors,
   hexToWorld,
+  wallCells,
   worldToHex,
+  zoneOf,
   type Hex,
   type Sector,
+  type WallSight,
 } from '@nexus/shared';
 import { colors, mix } from '../theme';
 import { SQUASH } from './camera';
-import { LIFT } from './hexAtlas';
+import { LIFT, WALL_LEVEL } from './hexAtlas';
 import { PROP_VARIANTS, propSprite } from './propAtlas';
 import { areaTint, type Site } from './scenery';
 import { computerness } from './style';
@@ -63,11 +66,15 @@ export interface HexScene {
   circuit: Circuit[];
   /** Cells that flicker around disturbed places, in three groups that blink independently. */
   noise: SkPath[];
+  /** The top edges of the walls that can be attacked now; they glow. */
+  glow: SkPath;
 }
 
 export interface TraceEdge {
   from: { x: number; y: number };
   to: { x: number; y: number };
+  /** Gaps in walls the trace passes on its way (see `traceVia`). */
+  via?: { x: number; y: number }[];
   sector: Sector;
   lit: boolean;
 }
@@ -96,11 +103,21 @@ interface Cell {
   sector: Sector | 'core';
   /** Every topic area that reaches this cell, with its weight (closer = more). None for the core and trace chains. */
   areas?: { area: string; w: number }[];
-  /** Disturbed ground (outposts, MORPH noise): no scenery grows there. */
+  /** Disturbed ground (MORPH noise): no scenery grows there. */
   noisy?: boolean;
   trace: boolean;
   flat: boolean;
+  /** A raised wall cell, or the rubble of a gap. */
+  wall?: 'stand' | 'gap';
 }
+
+/** Wall colours by look; the far cells fade into the fog. */
+const WALL_COLOR = { active: '#E0452B', locked: '#7A3B33', calm: '#4A5866', gap: '#2E2224' } as const;
+const WALL_FADE = ['FF', 'FF', 'FF', 'FF', 'B8', '70'];
+
+let wallKeys: Set<string> | undefined;
+/** Every wall cell, seen or not: land never grows on one. */
+const isWall = (k: string) => (wallKeys ??= new Set(wallCells().map((c) => c.key))).has(k);
 
 type PB = ReturnType<typeof Skia.PathBuilder.Make>;
 
@@ -115,7 +132,7 @@ function hexPoly(b: PB, x: number, y: number, lift: number, R: number) {
   b.close();
 }
 
-export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
+export function buildHexScene(sites: Site[], edges: TraceEdge[], walls: WallSight['cells'] = []): HexScene {
   const cells = new Map<string, Cell>();
 
   // 1. land around every place. Where places overlap, they blend: colour and scenery come from
@@ -142,6 +159,9 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   ];
   const cover = new Map<string, { hex: Hex; parts: { p: number; w: number }[] }>();
   places.forEach((p, pi) => {
+    // land stays on its side of the walls: beyond them lies fog
+    const c0 = hexToWorld(p.c);
+    const zone = zoneOf(c0.x, c0.y);
     for (let dq = -p.r; dq <= p.r; dq++) {
       for (let dr = Math.max(-p.r, -dq - p.r); dr <= Math.min(p.r, -dq + p.r); dr++) {
         const hex = { q: p.c.q + dq, r: p.c.r + dr };
@@ -149,6 +169,8 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
         // ragged edge: the outermost ring is only partly there
         if (d === p.r && p.r > 1 && hashString(`${p.seed}:${hexKey(hex)}`) % 100 < 38) continue;
         const k = hexKey(hex);
+        const w0 = hexToWorld(hex);
+        if (isWall(k) || zoneOf(w0.x, w0.y) !== zone) continue;
         const w = (1 - d / (p.r + 0.5)) ** 2 + 0.04;
         const e = cover.get(k) ?? { hex, parts: [] };
         e.parts.push({ p: pi, w });
@@ -190,7 +212,8 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   // 2. traces: a chain of lit cells between connected places
   const traceLines: { color: string; cells: Hex[] }[] = [];
   for (const e of edges) {
-    const line = hexLine(worldToHex(e.from.x, e.from.y), worldToHex(e.to.x, e.to.y));
+    const pts = [e.from, ...(e.via ?? []), e.to].map((p) => worldToHex(p.x, p.y));
+    const line = pts.slice(1).flatMap((h, i) => hexLine(pts[i]!, h).slice(i === 0 ? 0 : 1));
     const color = traceColor(e.sector);
     for (const h of line) {
       const k = hexKey(h);
@@ -204,6 +227,20 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
       });
     }
     traceLines.push({ color, cells: line });
+  }
+
+  // 2b. walls: raised cells in front of everything; a gap is rubble, or the trace that runs through it
+  for (const w of walls) {
+    const k = w.key;
+    const hex = worldToHex(w.x, w.y);
+    const there = cells.get(k);
+    if (w.look === 'gap') {
+      if (there?.trace) continue;
+      cells.set(k, { hex, color: WALL_COLOR.gap, sector: there?.sector ?? 'core', trace: false, flat: true, wall: 'gap' });
+      continue;
+    }
+    const color = `${WALL_COLOR[w.look]}${WALL_FADE[Math.min(w.away, WALL_FADE.length - 1)]}`;
+    cells.set(k, { hex, color, sector: there?.sector ?? 'core', trace: false, flat: false, wall: 'stand' });
   }
 
   // 3. keep the ground around traces and places flat, so nothing hides them
@@ -229,8 +266,9 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     let level = c.flat ? 0 : n < 80 ? 0 : n < 96 ? 1 : 2;
     if (k > 0.55) level = 0;
     else if (k > 0.3) level = Math.min(level, 1);
+    if (c.wall) level = c.wall === 'stand' ? WALL_LEVEL : 0;
     levelOf.set(hexKey(c.hex), level);
-    const lit = c.trace ? c.color : mix(c.color, '#FFFFFF', 0.05 * level);
+    const lit = c.trace || c.wall ? c.color : mix(c.color, '#FFFFFF', 0.05 * level);
     tiles.push({ x: w.x, y: w.y, level, color: lit });
   }
   tiles.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -239,7 +277,7 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
   // the tile centre. The circuit board near the core stays bare; the further out, the more of it.
   const props: Prop[] = [];
   for (const c of cells.values()) {
-    if (c.trace || c.flat || c.noisy || !c.areas?.length) continue;
+    if (c.trace || c.flat || c.noisy || c.wall || !c.areas?.length) continue;
     const w = hexToWorld(c.hex);
     const chance = 0.55 * (1 - 0.8 * computerness(w.x, w.y));
     const h = hashString(`prop:${hexKey(c.hex)}`);
@@ -346,14 +384,20 @@ export function buildHexScene(sites: Site[], edges: TraceEdge[]): HexScene {
     if (!site.noise) continue;
     const c0 = worldToHex(site.x, site.y);
     for (const cell of cells.values()) {
-      if (cell.trace || hexDistance(cell.hex, c0) > 1) continue;
+      if (cell.trace || cell.wall || hexDistance(cell.hex, c0) > 1) continue;
       const w = hexToWorld(cell.hex);
       const g = hashString(`noise:${hexKey(cell.hex)}`) % 3;
       hexPoly(noiseB[g]!, w.x, w.y, LIFT[levelOf.get(hexKey(cell.hex)) ?? 0]!, HEX_R * 0.9);
     }
   }
 
-  return { tiles, props, ghosts, traces, circuit, noise: noiseB.map((b) => b.detach()) };
+  // 9. the glowing top edge of the walls in front of the network
+  const glowB = Skia.PathBuilder.Make();
+  for (const w of walls) {
+    if (w.look === 'active') hexPoly(glowB, w.x, w.y, LIFT[WALL_LEVEL]!, HEX_R);
+  }
+
+  return { tiles, props, ghosts, traces, circuit, noise: noiseB.map((b) => b.detach()), glow: glowB.detach() };
 }
 
 export const ghostColor = (band: number) => `#6F93B8${BAND_ALPHA[band] ?? '00'}`;

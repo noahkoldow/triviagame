@@ -23,12 +23,12 @@ import {
 } from 'react-native-reanimated';
 import {
   areaById,
-  areasOfSector,
-  firewallReached,
+  breachesOf,
   type Firewall,
-  type Outpost,
   sectorOfArea,
   snapToHex,
+  traceVia,
+  wallsInSight,
   type NetNode,
   type Pool,
   type Sector,
@@ -44,7 +44,7 @@ import {
   dragToWorld,
   project,
 } from './camera';
-import { LIFT, makeHexAtlas } from './hexAtlas';
+import { LIFT, WALL_LEVEL, makeHexAtlas } from './hexAtlas';
 import { makePropAtlas } from './propAtlas';
 import { buildHexScene, ghostColor, type TraceEdge } from './hexmap';
 import {
@@ -52,10 +52,9 @@ import {
   NODE_DEPTH,
   NODE_R,
   NodeTile,
-  FirewallTile,
-  OutpostTile,
   ShardTile,
   SiteTile,
+  WallSign,
   type NodeInfo,
   type Shard,
 } from './NodeViews';
@@ -76,10 +75,7 @@ interface Props {
   /** Screen y (in the map's own coordinates) where the focused node should sit; wins over `focusLift`. */
   focusMidY?: number;
   showStrand?: boolean;
-  /** Disturbed areas still to be connected. */
-  outposts?: Outpost[];
-  onOutpost?: (id: string) => void;
-  /** Bosses on the borders between sectors. */
+  /** The walls around the outer areas; the map shows the parts the network has come close to. */
   firewalls?: Firewall[];
   onFirewall?: (id: string) => void;
   /** Debris field of the node the player is currently scavenging. */
@@ -104,8 +100,6 @@ function NetMapBase({
   focusLift = 0,
   focusMidY,
   showStrand = false,
-  outposts = [],
-  onOutpost,
   firewalls = [],
   onFirewall,
   debris,
@@ -146,6 +140,8 @@ function NetMapBase({
     [nodes],
   );
   const byId = useMemo(() => Object.fromEntries(placed.map((n) => [n.id, n])), [placed]);
+  // the walls hide in the fog until the network comes within a few cells
+  const sight = useMemo(() => wallsInSight(placed, firewalls), [placed, firewalls]);
 
   const infos = useMemo(() => {
     const out: Record<string, NodeInfo> = {};
@@ -175,42 +171,27 @@ function NetMapBase({
         noise: n.state === 'damaged' || (n.state === 'open' && n.attempts > 0),
       };
     });
-    const far = outposts
-      .filter((o) => !o.connected)
-      .map<Site>((o) => ({
-        id: o.id,
-        ...snapToHex(o.x, o.y),
-        area: o.area,
-        sector: sectorOfArea(o.area),
-        state: 'locked',
-        noise: true,
-      }));
-    const walls = firewalls.map<Site>((f) => ({
-      id: f.id,
-      ...snapToHex(f.x, f.y),
-      area: areasOfSector(f.a)[0]!.id,
-      sector: f.a,
-      state: 'locked',
-    }));
-    return [...real, ...far, ...walls, ...strand];
-  }, [placed, pool, strand, outposts, firewalls]);
+    return [...real, ...strand];
+  }, [placed, pool, strand]);
 
   const edges = useMemo<TraceEdge[]>(() => {
     const out: TraceEdge[] = [];
+    const gaps = breachesOf(firewalls);
     for (const n of placed) {
       const info = infos[n.id]!;
       const lit = !n.locked && n.state !== 'open';
       const from = n.parentId ? byId[n.parentId]?.pos : { x: 0, y: 0 };
-      if (from) out.push({ from, to: n.pos, sector: info.sector, lit });
+      // a trace into another zone runs through the gaps in the walls
+      if (from) out.push({ from, to: n.pos, via: traceVia(gaps, from, n.pos), sector: info.sector, lit });
     }
     strand.forEach((s, i) => {
       const from = i === 0 ? { x: 0, y: 0 } : strand[i - 1]!;
       out.push({ from, to: s, sector: s.sector, lit: false });
     });
     return out;
-  }, [placed, infos, byId, strand]);
+  }, [placed, infos, byId, strand, firewalls]);
 
-  const scene = useMemo(() => buildHexScene(sites, edges), [sites, edges]);
+  const scene = useMemo(() => buildHexScene(sites, edges, sight.cells), [sites, edges, sight]);
 
   // --- atlas instances (built once per scene; drawing them is one GPU call) ---
   const tileDraw = useMemo(() => {
@@ -257,19 +238,10 @@ function NetMapBase({
   onDismissRef.current = onDismiss;
   const scavengingRef = useRef(false);
   scavengingRef.current = !!debris;
-  const onOutpostRef = useRef(onOutpost);
-  onOutpostRef.current = onOutpost;
-  const openOutposts = useMemo(
-    () => outposts.filter((o) => !o.connected).map((o) => ({ id: o.id, ...snapToHex(o.x, o.y) })),
-    [outposts],
-  );
-  const outpostsRef = useRef(openOutposts);
-  outpostsRef.current = openOutposts;
   const onFirewallRef = useRef(onFirewall);
   onFirewallRef.current = onFirewall;
-  const wallPlaces = useMemo(() => firewalls.map((f) => ({ id: f.id, ...snapToHex(f.x, f.y) })), [firewalls]);
-  const wallsRef = useRef(wallPlaces);
-  wallsRef.current = wallPlaces;
+  const sightRef = useRef(sight);
+  sightRef.current = sight;
   const shardsRef = useRef<Shard[]>([]);
   shardsRef.current = debris?.shards ?? [];
 
@@ -366,17 +338,19 @@ function NetMapBase({
             onShardRef.current?.(sBest.id);
             return;
           }
-          for (const o of outpostsRef.current) {
-            const p = project(x, y, s, w, h, o.x, o.y, NODE_DEPTH);
-            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(36, NODE_R * s + 8)) {
-              onOutpostRef.current?.(o.id);
+          // a wall: its sign, or any of its cells in sight
+          for (const sign of sightRef.current.signs) {
+            const p = project(x, y, s, w, h, sign.x, sign.y, LIFT[WALL_LEVEL]! + 22);
+            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(30, 40 * s)) {
+              onFirewallRef.current?.(sign.firewall);
               return;
             }
           }
-          for (const f of wallsRef.current) {
-            const p = project(x, y, s, w, h, f.x, f.y, NODE_DEPTH + 6);
-            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(36, NODE_R * s + 8)) {
-              onFirewallRef.current?.(f.id);
+          for (const c of sightRef.current.cells) {
+            if (!c.firewall) continue;
+            const p = project(x, y, s, w, h, c.x, c.y, LIFT[WALL_LEVEL]!);
+            if (Math.hypot(p.x - tx, p.y - ty) <= Math.max(18, 22 * s)) {
+              onFirewallRef.current?.(c.firewall);
               return;
             }
           }
@@ -402,8 +376,7 @@ function NetMapBase({
     'worklet';
     return Math.floor(g * 16);
   };
-  const outShiftA = useDerivedValue(() => [{ translateX: -1 - (step(glitch.value) % 3) }]);
-  const outShiftB = useDerivedValue(() => [{ translateX: 1 + ((step(glitch.value) + 2) % 3) }]);
+  const glowOpacity = useDerivedValue(() => 0.35 + pulse.value * 0.5);
   const noiseA = useDerivedValue(() => (((step(glitch.value) * 37 + 11) % 7) / 7) * 0.4);
   const noiseB = useDerivedValue(() => (((step(glitch.value) * 53 + 5) % 5) / 5) * 0.4);
   const noiseC = useDerivedValue(() => (((step(glitch.value) * 29 + 3) % 6) / 6) * 0.35);
@@ -449,23 +422,14 @@ function NetMapBase({
       node?: NetNode;
       shard?: Shard;
       site?: Site;
-      outpost?: { id: string; x: number; y: number; area: string };
-      wall?: { id: string; x: number; y: number; broken: boolean; locked: boolean; a: string; b: string };
+      sign?: (typeof sight.signs)[number];
     }[] = [
-      ...firewalls.map((f) => {
-        const p = snapToHex(f.x, f.y);
-        const locked = !f.broken && !firewallReached(placed, f);
-        return { y: p.y, wall: { id: f.id, x: p.x, y: p.y, broken: f.broken, locked, a: f.a, b: f.b } };
-      }),
-      ...outposts
-        .filter((o) => !o.connected)
-        .map((o) => ({ ...o, ...snapToHex(o.x, o.y) }))
-        .map((o) => ({ y: o.y, outpost: o })),
+      ...sight.signs.map((sign) => ({ y: sign.y, sign })),
       ...placed.filter((n) => n.id !== debris?.nodeId).map((n) => ({ y: n.pos.y, node: n })),
       ...strand.map((s) => ({ y: s.y, site: s })),
     ];
     return list.sort((a, b) => a.y - b.y);
-  }, [placed, strand, debris?.nodeId, outposts, firewalls]);
+  }, [placed, strand, debris?.nodeId, sight]);
 
   const focusStack = useMemo(() => {
     const list: { y: number; node?: NetNode; shard?: Shard }[] = [
@@ -526,6 +490,11 @@ function NetMapBase({
             <Path path={scene.noise[2]!} color="#B46BFF" />
           </Group>
 
+          {/* the walls the network stands at glow */}
+          <Group opacity={glowOpacity}>
+            <Path path={scene.glow} style="stroke" strokeWidth={2.5} strokeJoin="round" color="#FFB09C" />
+          </Group>
+
           {/* circuit traces on top of the lit trace tiles */}
           {scene.traces.map((t) => (
             <Group key={t.color}>
@@ -535,26 +504,14 @@ function NetMapBase({
 
           <CoreTile />
           {stack.map((b) =>
-            b.wall ? (
-              <FirewallTile
-                key={`w-${b.wall.id}`}
-                x={b.wall.x}
-                y={b.wall.y}
-                broken={b.wall.broken}
-                locked={b.wall.locked}
-                label="Firewall"
+            b.sign ? (
+              <WallSign
+                key={`w-${b.sign.firewall}`}
+                x={b.sign.x}
+                y={b.sign.y}
+                label={areaById(b.sign.area).de}
+                reached={b.sign.reached}
                 font={font}
-              />
-            ) : b.outpost ? (
-              <OutpostTile
-                key={`o-${b.outpost.id}`}
-                x={b.outpost.x}
-                y={b.outpost.y}
-                color={SECTOR_COLOR[sectorOfArea(b.outpost.area)]}
-                label={areaById(b.outpost.area).de}
-                font={font}
-                shiftA={outShiftA}
-                shiftB={outShiftB}
               />
             ) : b.node ? (
               <NodeTile

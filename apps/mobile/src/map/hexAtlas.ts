@@ -15,13 +15,15 @@ import { SQUASH } from './camera';
  * with a tile colour (modulate) gives the top face, the lit side and the dark
  * side automatically.
  */
-export const LEVELS = 3;
-/** How far a tile of each level is raised above the flat ones (world units). */
-export const LIFT = [0, 7, 14];
-const WALL = [8, 15, 22];
+export const LEVELS = 4;
+/** How far a tile of each level is raised above the flat ones (world units). The last level is a wall. */
+export const LIFT = [0, 7, 14, 30];
+const WALL = [8, 15, 22, 38];
+/** The level of a firewall cell: a tall hexagon with brick joints on its sides. */
+export const WALL_LEVEL = 3;
 
 const CELL_W = 48;
-const CELL_H = 64;
+const CELL_H = 76;
 const AX = CELL_W / 2; // anchor: centre of the top face inside a sprite
 const AY = 2 + HEX_R * SQUASH;
 const W = (Math.sqrt(3) / 2) * HEX_R;
@@ -67,6 +69,32 @@ export function makeHexAtlas(): HexAtlas | null {
     canvas.drawPath(poly([c[4]!, c[3]!, [c[3]![0], c[3]![1] + wall], [c[4]![0], c[4]![1] + wall]]), fill);
     fill.setColor(Skia.Color('#838383'));
     canvas.drawPath(poly([c[3]!, c[2]!, [c[2]![0], c[2]![1] + wall], [c[3]![0], c[3]![1] + wall]]), fill);
+    if (k === WALL_LEVEL) {
+      // brick joints: three courses, the vertical joints shifted from course to course
+      stroke.setStrokeWidth(1);
+      stroke.setColor(Skia.Color('#5E5E5E'));
+      const face = (a: [number, number], b: [number, number]) => {
+        for (let row = 1; row <= 3; row++) {
+          const dy = (row * wall) / 4;
+          const line = Skia.PathBuilder.Make();
+          line.moveTo(a[0], a[1] + dy);
+          line.lineTo(b[0], b[1] + dy);
+          canvas.drawPath(line.detach(), stroke);
+        }
+        for (let row = 0; row < 4; row++) {
+          for (const t of row % 2 ? [0.25, 0.75] : [0.5]) {
+            const x = a[0] + (b[0] - a[0]) * t;
+            const y = a[1] + (b[1] - a[1]) * t + (row * wall) / 4;
+            const joint = Skia.PathBuilder.Make();
+            joint.moveTo(x, y);
+            joint.lineTo(x, y + wall / 4);
+            canvas.drawPath(joint.detach(), stroke);
+          }
+        }
+      };
+      face(c[4]!, c[3]!);
+      face(c[3]!, c[2]!);
+    }
     // top face with a faint grid line
     const top = poly(c);
     fill.setColor(Skia.Color('#FFFFFF'));

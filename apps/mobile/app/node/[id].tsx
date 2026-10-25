@@ -101,7 +101,7 @@ function NodeGame({
     spawned?: string[];
     closedCircle?: boolean;
     prepared?: boolean;
-    reachedAreas?: string[];
+    reachedWalls?: string[];
     gaveUp?: boolean;
     /** A repair before its day: children regrow, but no box, reward or integrity. */
     early?: boolean;
@@ -162,7 +162,7 @@ function NodeGame({
         spawned: r.spawned,
         closedCircle: r.closedCircle,
         prepared: r.prepared,
-        reachedAreas: r.reachedAreas,
+        reachedWalls: r.reachedWalls,
         guardian,
         attempts: node.attempts + 1,
       });
@@ -400,10 +400,10 @@ function NodeGame({
                 </P>
               </Card>
             ) : null}
-            {(r.reachedAreas ?? []).map((a) => (
-              <Card key={a} style={{ borderColor: colors.primary }}>
-                <P style={{ color: colors.primary }}>
-                  Neuer Bereich verbunden: {areaById(a).de}! Das Rauschen dort lichtet sich, ein neuer Knoten wartet.
+            {(r.reachedWalls ?? []).map((a) => (
+              <Card key={a} style={{ borderColor: colors.bad }}>
+                <P style={{ color: colors.bad }}>
+                  Firewall erreicht: Dein Netz steht an der Wand vor {areaById(a).de}. Tippe sie auf der Karte an, um sie anzugreifen.
                 </P>
               </Card>
             ))}

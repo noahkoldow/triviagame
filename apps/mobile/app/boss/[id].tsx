@@ -10,6 +10,7 @@ import {
   FINALE_REWARD,
   areaById,
   bossQuestions,
+  fightFrom,
   finaleQuestions,
   firewallReached,
   isCorrect,
@@ -48,7 +49,7 @@ export default function BossScreen() {
       : fw.broken
         ? 'Diese Firewall ist bereits gebrochen.'
         : !firewallReached(Object.values(getState().network.nodes), fw)
-          ? 'Dein Netz ist noch nicht bis zu dieser Firewall gewachsen. Brücken in ihren Sektoren neigen sich dorthin.'
+          ? 'Dein Netz steht noch nicht an dieser Wand. Wachse bis direkt an sie heran, dann kannst du sie angreifen.'
           : null;
   // decided once when the screen opens: winning breaks the firewall (or ends the finale) and
   // losing can drop integrity to 0, but the outcome of this fight must stay on screen
@@ -81,7 +82,12 @@ function Fight({ fwId }: { fwId?: string }) {
   const questions = useMemo(
     () =>
       fw
-        ? bossQuestions(pool, { ...fw, attempts: attempt }, getState().skill)
+        ? bossQuestions(
+            pool,
+            { ...fw, attempts: attempt },
+            getState().skill,
+            fightFrom(pool, Object.values(getState().network.nodes), fw),
+          )
         : finaleQuestions(pool, attempt, getState().skill),
     [fwId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
   );
@@ -95,8 +101,8 @@ function Fight({ fwId }: { fwId?: string }) {
   const [outcome, setOutcome] = useState<BossOutcome | null>(null);
 
   const q = questions[i];
-  const sector = q ? sectorOfArea(q.area) : (fw?.a ?? 'science');
-  const title = fw ? `Firewall: ${de.sectorsShort[fw.a]} × ${de.sectorsShort[fw.b]}` : 'Kern: morph.ai';
+  const sector = q ? sectorOfArea(q.area) : fw ? sectorOfArea(fw.area) : 'science';
+  const title = fw ? `Firewall: ${areaById(fw.area).de}` : 'Kern: morph.ai';
 
   const check = () => {
     if (!q || !answer) return;
@@ -139,7 +145,7 @@ function Fight({ fwId }: { fwId?: string }) {
                 <P style={{ color: colors.text }}>
                   {finale
                     ? `${right} von ${questions.length} richtig, ganz aus eigener Kraft. morph.ai ist ganz still geworden. Und das Netz um dich herum … sieht plötzlich anders aus.`
-                    : `${right} von ${questions.length} richtig. Das Wissen aus beiden Sektoren hat gereicht. Dahinter öffnet sich eine neue Zone.`}
+                    : `${right} von ${questions.length} richtig. Die Wand bricht auf, dahinter öffnet sich ${areaById(fw!.area).de}.`}
                 </P>
                 <View style={styles.row}>
                   <Chip label={`+${reward.xp} XP`} color={colors.accent} />

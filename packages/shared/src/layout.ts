@@ -1,6 +1,7 @@
 import { seededRng } from './rng';
 import { SECTOR_ANGLE } from './taxonomy';
 import type { Sector, Vec3 } from './types';
+import { clampToZone } from './walls';
 
 export const ROOT_RADIUS = 150;
 const MIN_GAP = 64;
@@ -34,14 +35,56 @@ export interface PlaceOptions {
   side?: Partial<Record<Sector, number>>;
   existing: Vec3[];
   seed: string;
-  /** Lean the direction toward this point (an outpost); `pull` 0..1 is how strongly. */
+  /** Lean the direction toward this point (a wall to reach); `pull` 0..1 is how strongly. */
   target?: { x: number; y: number; pull: number };
+  /** The zone of the node's area (see `walls.ts`): it never ends up behind a wall. */
+  zone?: string;
+}
+
+/**
+ * Keeps a point inside its zone, away from the walls, and pushes it out of the way of the
+ * nodes that are already there. In the core zone the walls are the ring only.
+ */
+export function settle(p: { x: number; y: number }, zone: string | undefined, existing: { x: number; y: number }[]) {
+  const inZone = (q: { x: number; y: number }) => (zone ? clampToZone(q, zone) : q);
+  const free = (q: { x: number; y: number }) => existing.every((e) => Math.hypot(q.x - e.x, q.y - e.y) >= MIN_GAP - 1);
+  let at = inZone(p);
+  for (let iter = 0; iter < 12; iter++) {
+    let moved = false;
+    for (const e of existing) {
+      let dx = at.x - e.x;
+      let dy = at.y - e.y;
+      // two points clamped onto the same spot at a wall: step aside in some direction
+      if (Math.hypot(dx, dy) < 0.5) {
+        dx = Math.cos(iter * 2.4);
+        dy = Math.sin(iter * 2.4);
+      }
+      const d = Math.hypot(dx, dy);
+      if (d < MIN_GAP) {
+        const push = (MIN_GAP - d) / d;
+        at = inZone({ x: at.x + dx * push, y: at.y + dy * push });
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  if (free(at)) return at;
+  // pushed against a wall with no room left: look for the nearest free spot around it
+  for (let ring = 1; ring <= 8; ring++) {
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2 + ring;
+      const q = inZone({ x: at.x + Math.cos(a) * ring * MIN_GAP * 0.6, y: at.y + Math.sin(a) * ring * MIN_GAP * 0.6 });
+      if (free(q)) return q;
+    }
+  }
+  return at;
 }
 
 /**
  * Organic placement: direction follows the parent outward, spacing varies per
  * kind (deepen close, bridge farther) plus noise, the main sector keeps the
- * node inside its wedge, side weights bend it slightly toward the neighbour.
+ * node inside its wedge, side weights bend it slightly toward the neighbour,
+ * and the zone keeps it on its side of the walls.
  */
 export function placeNode(o: PlaceOptions): Vec3 {
   const rng = seededRng(o.seed);
@@ -69,7 +112,7 @@ export function placeNode(o: PlaceOptions): Vec3 {
   };
   let { r, th } = polar(cand);
 
-  // keep the node within its main sector's wedge
+  // keep the node within its main sector's wedge (an outer zone is a narrower slice of it)
   const axis = SECTOR_ANGLE[o.mainSector];
   th = axis + Math.max(-WEDGE, Math.min(WEDGE, angDiff(th, axis)));
   // bend toward side sectors (small deviation, never a jump to the middle)
@@ -79,21 +122,8 @@ export function placeNode(o: PlaceOptions): Vec3 {
   }
   r = Math.max(r, ROOT_RADIUS + 20);
 
-  let p = { x: Math.cos(th) * r, y: Math.sin(th) * r };
-  for (let iter = 0; iter < 12; iter++) {
-    let moved = false;
-    for (const e of o.existing) {
-      const dx = p.x - e.x;
-      const dy = p.y - e.y;
-      const d = Math.hypot(dx, dy) || 0.001;
-      if (d < MIN_GAP) {
-        const push = (MIN_GAP - d) / d;
-        p = { x: p.x + dx * push, y: p.y + dy * push };
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
+  const p = settle({ x: Math.cos(th) * r, y: Math.sin(th) * r }, o.zone, o.existing);
   const pr = polar(p).r;
   return { x: p.x, y: p.y, z: depthOf(pr, (rng() - 0.5) * 0.16) };
 }
+

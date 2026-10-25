@@ -22,14 +22,25 @@ vi.mock('react-native-reanimated', () => ({ useDerivedValue: (f: () => unknown) 
 
 import {
   AREAS,
+  BOSS_QUESTIONS,
+  CORE_ZONE,
   MOCK_QUESTIONS,
   Pool,
+  WALL_MARGIN,
+  WALL_RADIUS,
+  breachesOf,
   initialPlayer,
+  recordBoss,
   recordCorrect,
   recordWrong,
   sectorOfArea,
   snapToHex,
+  traceVia,
+  wallsInSight,
+  zoneOf,
+  type PlayerState,
 } from '@nexus/shared';
+import { LIFT, WALL_LEVEL } from './hexAtlas';
 import { buildHexScene, type TraceEdge } from './hexmap';
 import { PROP_VARIANTS, drawAreaProp, type Pen } from './propAtlas';
 import { buildStrand, type Site } from './scenery';
@@ -51,33 +62,65 @@ function sitesAndEdges(p: ReturnType<typeof initialPlayer>): { sites: Site[]; ed
       noise: n.state === 'damaged' || (n.state === 'open' && n.attempts > 0),
     };
   });
-  for (const o of p.network.outposts ?? []) {
-    if (o.connected) continue;
-    sites.push({ id: o.id, ...snapToHex(o.x, o.y), area: o.area, sector: sectorOfArea(o.area), state: 'locked', noise: true });
-  }
-  const edges: TraceEdge[] = nodes.map((n) => ({
-    from: n.parentId ? byId[n.parentId]!.pos : { x: 0, y: 0 },
-    to: n.pos,
-    sector: sectorOfArea(pool.get(n.questionId).area),
-    lit: n.state !== 'open',
-  }));
+  const gaps = breachesOf(p.network.firewalls);
+  const edges: TraceEdge[] = nodes.map((n) => {
+    const from = n.parentId ? byId[n.parentId]!.pos : { x: 0, y: 0 };
+    return { from, to: n.pos, via: traceVia(gaps, from, n.pos), sector: sectorOfArea(pool.get(n.questionId).area), lit: n.state !== 'open' };
+  });
   return { sites, edges };
+}
+
+/** The first node moved right in front of the wall around biomedicine. */
+function atWall(p: PlayerState): PlayerState {
+  const r = WALL_RADIUS - WALL_MARGIN;
+  const a = -Math.PI * 0.375;
+  const n0 = p.network.nodes['n0']!;
+  return { ...p, network: { ...p.network, nodes: { ...p.network.nodes, n0: { ...n0, pos: { ...n0.pos, x: Math.cos(a) * r, y: Math.sin(a) * r } } } } };
 }
 
 describe('map scene', () => {
   it('loads the node and chip drawings (module-level paths)', async () => {
     const v = await import('./NodeViews');
     // memoised components are objects; what matters is that loading them did not throw
-    for (const c of [v.CoreTile, v.NodeTile, v.OutpostTile, v.ShardTile, v.SiteTile]) expect(c).toBeTruthy();
+    for (const c of [v.CoreTile, v.NodeTile, v.ShardTile, v.SiteTile, v.WallSign]) expect(c).toBeTruthy();
   });
 
-  it('builds for a fresh game with outposts', () => {
+  it('builds for a fresh game, with no wall in sight yet', () => {
     const { sites, edges } = sitesAndEdges(initialPlayer(pool));
     const s = buildHexScene(sites, edges);
     expect(s.tiles.length).toBeGreaterThan(100);
     expect(s.circuit.length).toBeGreaterThan(0);
     expect(s.noise).toHaveLength(3);
     expect(s.ghosts.length).toBeGreaterThan(0);
+    expect(s.tiles.some((t) => t.level === WALL_LEVEL)).toBe(false);
+  });
+
+  it('raises the wall in front of the network and keeps the land on its side', () => {
+    const p = atWall(initialPlayer(pool));
+    const nodes = Object.values(p.network.nodes);
+    const sight = wallsInSight(nodes, p.network.firewalls!);
+    const { sites, edges } = sitesAndEdges(p);
+    const s = buildHexScene(sites, edges, sight.cells);
+    const wall = s.tiles.filter((t) => t.level === WALL_LEVEL);
+    expect(wall.length).toBeGreaterThan(3);
+    expect(LIFT[WALL_LEVEL]).toBeGreaterThan(LIFT[2]!);
+    // no land grows behind the wall: every tile that is not wall lies in the core zone
+    for (const t of s.tiles) if (t.level !== WALL_LEVEL) expect(zoneOf(t.x, t.y)).toBe(CORE_ZONE);
+    // the wall that can be attacked glows
+    expect((s.glow as unknown as { calls: unknown[] }).calls.length).toBeGreaterThan(0);
+  });
+
+  it('opens a gap the trace runs through once the wall is broken', () => {
+    const p = recordBoss(atWall(initialPlayer(pool)), pool, 'fw-biomedicine', BOSS_QUESTIONS).player;
+    const sight = wallsInSight(Object.values(p.network.nodes), p.network.firewalls!);
+    const { sites, edges } = sitesAndEdges(p);
+    const s = buildHexScene(sites, edges, sight.cells);
+    const gap = sight.cells.filter((c) => c.look === 'gap');
+    expect(gap.length).toBeGreaterThan(2);
+    // no raised tile where the wall fell, and land behind it now
+    for (const g of gap) expect(s.tiles.find((t) => Math.round(t.x) === Math.round(g.x) && Math.round(t.y) === Math.round(g.y))?.level ?? 0).toBe(0);
+    expect(s.tiles.some((t) => zoneOf(t.x, t.y) === 'biomedicine' && t.level !== WALL_LEVEL)).toBe(true);
+    expect(edges.some((e) => (e.via ?? []).length === 1)).toBe(true);
   });
 
   it('builds after a few answers, with damaged nodes and the preview strand', () => {
@@ -131,19 +174,20 @@ describe('map scene', () => {
     const site = (id: string, x: number, area: string): Site => ({
       id,
       x,
-      y: -700,
+      y: -330,
       area,
       sector: sectorOfArea(area),
       state: 'solved',
     });
+    // both in the core zone: there is no wall between them
     const a = site('a', -60, 'physics');
-    const b = site('b', 60, 'biomedicine');
+    const b = site('b', 60, 'history');
     const s = buildHexScene([a, b], []);
     const areaOf = (sprite: number) => AREAS[Math.floor(sprite / PROP_VARIANTS)]!.id;
     const near = s.props.filter((p) => Math.abs(p.x) < 80);
     const kinds = new Set(near.map((p) => areaOf(p.sprite)));
-    expect(kinds.has('physics') && kinds.has('biomedicine')).toBe(true);
-    // colours: some tiles are neither pure physics nor pure biomedicine ground
+    expect(kinds.has('physics') && kinds.has('history')).toBe(true);
+    // colours: some tiles are neither pure physics nor pure history ground
     const colours = new Set(s.tiles.map((t) => t.color));
     expect(colours.size).toBeGreaterThan(4);
   });

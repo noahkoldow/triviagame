@@ -128,7 +128,7 @@ describe('AI: prompts and parsing', () => {
   it('asks for the right area, difficulty and type, and shows the shape of that type', () => {
     for (const type of QUESTION_TYPES) {
       const p = buildGenerationPrompt({ area: 'physics', difficulty: 2, type, count: 3, avoidTopics: ['Schall'] });
-      expect(p).toContain('Physik');
+      expect(p).toContain('Naturwissenschaften');
       expect(p).toContain(`Type: ${type}`);
       expect(p).toContain('Difficulty: 2');
       expect(p).toContain('Schall');

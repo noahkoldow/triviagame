@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AREAS,
+  CORE_ZONE,
   MOCK_QUESTIONS,
   Pool,
   ROOT_QUESTIONS,
@@ -13,6 +14,7 @@ import {
   migrateSave,
   recordCorrect,
   sectorOfArea,
+  zoneOf,
   type PlayerState,
 } from './index';
 
@@ -56,13 +58,36 @@ describe('migrating old saves', () => {
     expect(m.unlockedAreas.sort()).toEqual([...new Set([...initialUnlockedAreas(), 'biomedicine', 'arts'])].sort());
     expect(m.skill).toEqual({ physics: 1100, arts: 900 });
     expect(Object.keys(m.interest)).toEqual(['biomedicine']);
-    expect(m.network.outposts!.every((o) => AREAS.some((a) => a.id === o.area))).toBe(true);
-    expect(m.network.outposts!.find((o) => o.area === 'arts')!.connected).toBe(true);
-    const fw = m.network.firewalls!.find((f) => f.a === 'science' && f.b === 'earth')!;
-    expect(fw).toMatchObject({ broken: true, attempts: 2 });
+    // the walls replace outposts and the old firewalls on the sector borders: open areas are open behind a gap
+    expect('outposts' in m.network).toBe(false);
+    expect(m.network.firewalls).toHaveLength(8);
+    for (const f of m.network.firewalls!) {
+      const open = ['biomedicine', 'arts'].includes(f.area);
+      expect(f.broken, f.area).toBe(open);
+      if (open) expect(f.breach!.from).toBe(CORE_ZONE);
+    }
     expect(m.story.seen).toEqual(['first-link', 'wake-earth']);
     expect(migrateArea('computing')).toBe('technology');
     expect(migrateArea('nope')).toBeUndefined();
+  });
+
+  it('moves the nodes of an old map into the zones of their areas', () => {
+    const fresh = initialPlayer(pool);
+    const far = { ...fresh.network.nodes['n0']!, id: 'n4', kind: 'deepen' as const, questionId: 'sci-light', pos: { x: 30, y: -900, z: 0.5 } };
+    const old = {
+      ...fresh,
+      network: {
+        ...fresh.network,
+        nodes: { ...fresh.network.nodes, n4: far },
+        firewalls: [{ id: 'fw-science-earth', a: 'science', b: 'earth', x: 300, y: -300, broken: true, attempts: 1 }],
+      },
+    } as unknown as PlayerState;
+    const m = migrateSave(old, pool);
+    const n4 = m.network.nodes['n4']!;
+    expect(zoneOf(n4.pos.x, n4.pos.y)).toBe(CORE_ZONE);
+    expect(m.network.nodes['n0']!.pos).toEqual(fresh.network.nodes['n0']!.pos);
+    // without a pool the nodes stay where they are
+    expect(migrateSave(old).network.nodes['n4']!.pos).toEqual(far.pos);
   });
 
   it('moves the folders of the old cache into the folder structure', () => {
@@ -85,8 +110,8 @@ describe('migrating old saves', () => {
     const p = recordCorrect(initialPlayer(pool), pool, 'n0', '2026-10-01', 0).player;
     const m = migrateSave(p);
     expect(m.unlockedAreas).toEqual(p.unlockedAreas);
-    expect(m.network.outposts).toBe(p.network.outposts);
-    expect(m.network.firewalls).toEqual(p.network.firewalls);
+    expect(m.network).toBe(p.network);
+    expect(migrateSave(p, pool).network).toBe(p.network);
     expect(m.story).toEqual(p.story);
   });
 });

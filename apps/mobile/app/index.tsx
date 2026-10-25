@@ -43,8 +43,10 @@ import {
   markSeen,
   pendingBeats,
   REVEAL_ID,
+  fightFrom,
   firewallReached,
   firewallSteps,
+  wallsInSight,
   leagueIsNew,
   leagueUnlocked,
   LEAGUE_NOTICED_ID,
@@ -77,7 +79,6 @@ export default function Home() {
   const cache = useGame((p) => p.cache);
   const archive = useGame((p) => p.archive);
   const gems = useGame((p) => p.gems);
-  const outposts = network.outposts ?? [];
   const firewalls = network.firewalls ?? [];
   const integrity = useGame((p) => p.integrity);
   const name = useGame((p) => p.profile.name);
@@ -95,11 +96,12 @@ export default function Home() {
   const integrityVideo = rewardedOffer(getState(), 'integrity', today(), Date.now());
   // the shop shows a dot while today's bonus waits
   const dailyDue = useGame((p) => dailyBonusDue(p, today()));
-  const [outpostId, setOutpostId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [firewallId, setFirewallId] = useState<string | null>(null);
 
   const nodes = useMemo(() => Object.values(network.nodes), [network]);
+  // the walls the network has come close to (the others still hide in the fog)
+  const sight = useMemo(() => wallsInSight(nodes, network.firewalls ?? []), [nodes, network.firewalls]);
   const due = dueReviews(getState(), today());
   const player = useGame((p) => p);
   const facts = useMemo(() => storyFacts(player, pool), [player]);
@@ -219,21 +221,9 @@ export default function Home() {
   const dropFile = (f: CacheEntry & { file: string }) => update((p) => cacheDropFile(p, f));
   const debrisFree = debrisQ ? cacheFreeSlots(getState(), pool, debrisQ.area) : 0;
 
-  const outpost = outpostId ? outposts.find((o) => o.id === outpostId && !o.connected) : undefined;
-  const outpostSteps = outpost
-    ? Math.max(
-        1,
-        Math.round(
-          Math.min(
-            ...nodes
-              .filter((n) => !n.locked)
-              .map((n) => Math.hypot(n.pos.x - outpost.x, n.pos.y - outpost.y)),
-          ) / 110,
-        ),
-      )
-    : 0;
-  const outpostCost = outpost ? areaCost(outpost.area) : 0;
   const firewall = firewallId ? firewalls.find((f) => f.id === firewallId) : undefined;
+  const wallArea = firewall ? areaById(firewall.area).de : '';
+  const wallCost = firewall ? areaCost(firewall.area) : 0;
 
   const debrisProp = useMemo(
     () =>
@@ -248,7 +238,7 @@ export default function Home() {
   const openCount = nodes.filter((n) => n.state === 'open' && !n.locked).length;
   const hint = debrisId ? getHint(debrisId) : null;
 
-  const busy = !!(debrisId || shard || explorerOpen || cacheOpen || firewall || outpost || unstable || selected || listOpen);
+  const busy = !!(debrisId || shard || explorerOpen || cacheOpen || firewall || unstable || selected || listOpen);
   const beat = focused && !busy ? pendingBeats(player, pool)[0] : undefined;
 
   // after the finale the network shows what it really is (once; it can be replayed in the settings)
@@ -306,15 +296,10 @@ export default function Home() {
         focusZoom={debrisId ? 1.15 : undefined}
         focusLift={debrisId ? 0.25 : 0}
         focusMidY={focusMidY}
-        outposts={outposts}
         firewalls={firewalls}
         onFirewall={(id) => {
           tap();
           setFirewallId(id);
-        }}
-        onOutpost={(id) => {
-          tap();
-          setOutpostId(id);
         }}
         debris={debrisProp}
         onShard={(id) => {
@@ -529,27 +514,27 @@ export default function Home() {
           <Dialog title="Firewall" icon="warn" onClose={() => setFirewallId(null)}>
             {firewall ? (
               <>
-                <Text style={styles.topic}>
-                  {de.sectorsShort[firewall.a]} × {de.sectorsShort[firewall.b]}
-                </Text>
+                <Text style={styles.topic}>{wallArea}</Text>
                 {firewall.broken ? (
-                  <Text style={styles.fragText}>Diese Firewall ist gebrochen. Dahinter liegt die neue Zone.</Text>
-                ) : !firewallReached(nodes, firewall) ? (
-                  // the network has to grow there first
                   <Text style={styles.fragText}>
-                    Noch außer Reichweite. morph.ai hat diese Firewall an der Grenze zwischen {de.sectorsShort[firewall.a]} und{' '}
-                    {de.sectorsShort[firewall.b]} errichtet. Wachse bis hierher: Brücken in diesen Sektoren neigen sich zur
-                    Firewall. Entfernung: etwa {firewallSteps(nodes, firewall)} Schritte.
+                    Diese Firewall ist durchbrochen. Durch die Lücke wächst dein Netz in {wallArea}.
+                  </Text>
+                ) : !firewallReached(nodes, firewall) ? (
+                  // the network has to grow right up to the wall first
+                  <Text style={styles.fragText}>
+                    Hinter dieser Wand liegt {wallArea}. morph.ai hat sie hochgezogen. Wachse bis direkt an die Wand, dann
+                    kannst du sie angreifen. Entfernung: etwa {firewallSteps(nodes, firewall)} Schritte.
                   </Text>
                 ) : (
                   <>
                     <Text style={styles.fragText}>
-                      morph.ai hat hier eine Firewall errichtet. Um sie zu brechen, beantwortest du {BOSS_QUESTIONS} Fragen, je
-                      zur Hälfte aus beiden Sektoren. {BOSS_PASS} müssen stimmen. Es gibt keinen Cache, nur dein Wissen.
+                      Dein Netz steht an der Wand. Um durchzubrechen, beantwortest du {BOSS_QUESTIONS} Fragen, je zur Hälfte aus{' '}
+                      {areaById(fightFrom(pool, nodes, firewall)).de} und {wallArea}. {BOSS_PASS} müssen stimmen. Es gibt keinen
+                      Cache, nur dein Wissen.
                     </Text>
                     <Text style={styles.cardSub}>
-                      Belohnung: {BOSS_REWARD.gems} Gems, {BOSS_REWARD.bits} Bits, {BOSS_REWARD.xp} XP und je ein Außenposten dieser beiden
-                      Sektoren wird verbunden.
+                      Belohnung: {BOSS_REWARD.gems} Gems, {BOSS_REWARD.bits} Bits, {BOSS_REWARD.xp} XP, und die Wand bricht an dieser
+                      Stelle auf: {wallArea} öffnet sich.
                     </Text>
                     <Button
                       label={integrity === 0 ? 'Netz instabil' : 'Angreifen'}
@@ -562,38 +547,22 @@ export default function Home() {
                     />
                   </>
                 )}
+                {!firewall.broken ? (
+                  // as with every area, gems open it at once (the story only counts fights)
+                  <Button
+                    variant="gem"
+                    label={`Sofort öffnen · ${wallCost}`}
+                    icon="gem"
+                    sub={`Du hast ${gems} Gems`}
+                    disabled={gems < wallCost}
+                    onPress={() => {
+                      const area = firewall.area;
+                      update((p) => unlockArea(p, area, pool));
+                      setFirewallId(null);
+                    }}
+                  />
+                ) : null}
                 <Button label="Schließen" variant="ghost" onPress={() => setFirewallId(null)} />
-              </>
-            ) : null}
-          </Dialog>
-        </Pressable>
-      </Modal>
-
-      {/* a disturbed outpost */}
-      <Modal transparent animationType="fade" visible={!!outpost} onRequestClose={() => setOutpostId(null)}>
-        <Pressable style={styles.center} onPress={() => setOutpostId(null)}>
-          <Dialog title="Gestörter Bereich" icon="warn" onClose={() => setOutpostId(null)}>
-            {outpost ? (
-              <>
-                <Text style={styles.topic}>{areaById(outpost.area).de}</Text>
-                <Text style={styles.fragText}>
-                  Dieser Bereich ist noch vom Rauschen verzerrt. Wachse in seine Richtung: Die Fragen auf dem Weg
-                  nähern sich seinem Thema, und sobald dein Netz ihn erreicht, ist er verbunden. Entfernung: etwa{' '}
-                  {outpostSteps} Schritte.
-                </Text>
-                <Button
-                  variant="gem"
-                  label={`Sofort verbinden · ${outpostCost}`}
-                  icon="gem"
-                  sub={`Du hast ${gems} Gems`}
-                  disabled={gems < outpostCost}
-                  onPress={() => {
-                    const id = outpost.area;
-                    update((p) => unlockArea(p, id, pool));
-                    setOutpostId(null);
-                  }}
-                />
-                <Button label="Schließen" onPress={() => setOutpostId(null)} />
               </>
             ) : null}
           </Dialog>
@@ -676,31 +645,28 @@ export default function Home() {
                   </Pressable>
                 );
               })}
-              {firewalls
-                .filter((f) => !f.broken)
-                .map((f) => (
-                  <Pressable
-                    key={f.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Firewall ${de.sectors[f.a]} und ${de.sectors[f.b]}, ${
-                      firewallReached(nodes, f) ? 'erreicht' : 'noch nicht erreicht'
-                    }`}
-                    onPress={() => {
-                      setListOpen(false);
-                      setFirewallId(f.id);
-                    }}
-                    style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
-                  >
-                    <Icon name="warn" size={16} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.listTopic}>Firewall</Text>
-                      <Text style={styles.listSub}>
-                        {de.sectorsShort[f.a]} × {de.sectorsShort[f.b]} ·{' '}
-                        {firewallReached(nodes, f) ? 'erreicht' : `noch etwa ${firewallSteps(nodes, f)} Schritte`}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
+              {/* the firewalls in sight, like on the map */}
+              {sight.signs.map((sign) => (
+                <Pressable
+                  key={sign.firewall}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Firewall vor ${areaById(sign.area).de}, ${sign.reached ? 'erreicht' : 'noch nicht erreicht'}`}
+                  onPress={() => {
+                    setListOpen(false);
+                    setFirewallId(sign.firewall);
+                  }}
+                  style={({ pressed }) => [styles.listRow, pressed && { opacity: 0.6 }]}
+                >
+                  <Icon name="warn" size={16} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listTopic}>Firewall</Text>
+                    <Text style={styles.listSub}>
+                      {areaById(sign.area).de} ·{' '}
+                      {sign.reached ? 'erreicht' : `noch etwa ${firewallSteps(nodes, firewalls.find((f) => f.id === sign.firewall)!)} Schritte`}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
             </ScrollView>
             <Button label="Schließen" variant="ghost" onPress={() => setListOpen(false)} />
           </Dialog>

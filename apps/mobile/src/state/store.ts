@@ -42,23 +42,12 @@ export async function hydrate(): Promise<void> {
           stats: { ...base.stats, ...saved.stats },
           story: { ...base.story, ...saved.story },
           league: { ...base.league, ...saved.league },
-          network: saved.network?.nodes
-            ? {
-                ...saved.network,
-                firewalls: saved.network.firewalls ?? base.network.firewalls,
-                // saves from before outposts: areas that were already bought count as connected
-                outposts:
-                  saved.network.outposts ??
-                  base.network.outposts?.map((o) => ({
-                    ...o,
-                    connected: (saved.unlockedAreas ?? base.unlockedAreas).includes(o.area),
-                  })),
-              }
-            : base.network,
+          // saves from before the walls get them in `migrateSave`
+          network: saved.network?.nodes ? saved.network : base.network,
         };
         // old saves: areas of the former taxonomy move to the new one (D44); saves from before the
         // story count what already happened as seen, except the latest beat
-        const migrated = migrateSave(merged);
+        const migrated = migrateSave(merged, pool);
         state = saved.story ? migrated : catchUpStory(migrated, pool);
       }
     }

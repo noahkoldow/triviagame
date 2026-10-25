@@ -1,4 +1,4 @@
-import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, firewallReached, type BossOutcome } from './boss';
+import { BOSS_PASS, BOSS_REWARD, FINALE_PASS, FINALE_REWARD, firewallReached, type BossOutcome, type Firewall } from './boss';
 import { cacheWithoutArea, type CacheEntry, type CacheFile } from './cache';
 import { recordChoice, recordResult, type InterestMap } from './interest';
 import {
@@ -15,10 +15,9 @@ import {
   Pool,
   completeNode,
   createNetwork,
-  connectOutpost,
   growMissing,
   growWaiting,
-  outpostsReachedBy,
+  enterZone,
   reviewNode,
   unlockDebris,
   type SpawnContext,
@@ -32,6 +31,7 @@ import { initialLeague, type LeagueState } from './league';
 import { ROOT_QUESTIONS } from './content';
 import { sectorOfArea } from './taxonomy';
 import type { NetNode, NetworkState, Sector } from './types';
+import { WALL_REACH, approachOf, type Breach } from './walls';
 
 export interface PlayerProfile {
   name: string;
@@ -130,14 +130,15 @@ export function ctxFor(p: PlayerState, pool: Pool, seed: string): SpawnContext {
 }
 
 /**
- * The result of a firewall fight. With enough right answers the firewall breaks: a reward,
- * and a new zone opens (the nearest disturbed outpost of each of the two sectors is connected).
+ * The result of a firewall fight. With enough right answers the wall breaks where the network
+ * stands at it: a reward, a gap of a few cells, and the area behind opens with a first node.
  * Otherwise the network loses one integrity and the next fight draws new questions.
  */
 export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, correct: number): BossOutcome {
   const fw = p.network.firewalls?.find((f) => f.id === firewallId);
+  const at = fw && !fw.broken ? approachOf(Object.values(p.network.nodes), fw.area) : undefined;
   // a firewall the network has not grown to cannot be attacked
-  if (!fw || fw.broken || !firewallReached(Object.values(p.network.nodes), fw)) {
+  if (!fw || !at || at.cells > WALL_REACH) {
     return { player: p, passed: false, spawned: [], areas: [] };
   }
   const passed = correct >= BOSS_PASS;
@@ -159,61 +160,50 @@ export function recordBoss(p: PlayerState, pool: Pool, firewallId: string, corre
     bits: p.bits + BOSS_REWARD.bits,
     gems: p.gems + BOSS_REWARD.gems,
   };
-  const spawned: string[] = [];
-  const areas: string[] = [];
-  for (const sector of [fw.a, fw.b]) {
-    let best: { id: string; area: string } | undefined;
-    let bd = Infinity;
-    for (const o of player.network.outposts ?? []) {
-      if (o.connected || sectorOfArea(o.area) !== sector) continue;
-      const d = Math.hypot(o.x - fw.x, o.y - fw.y);
-      if (d < bd) {
-        bd = d;
-        best = o;
-      }
-    }
-    if (!best) continue;
-    const unlocked = player.unlockedAreas.includes(best.area) ? player.unlockedAreas : [...player.unlockedAreas, best.area];
-    const c = connectOutpost(player.network, best.id, undefined, ctxFor({ ...player, unlockedAreas: unlocked }, pool, `boss:${firewallId}:${best.id}`));
-    player = { ...player, network: c.state, unlockedAreas: unlocked };
-    areas.push(best.area);
-    if (c.node) spawned.push(c.node.id);
-  }
-  return { player, passed: true, spawned, areas };
-}
-
-/** Connects every outpost that the new nodes reached and opens its area. */
-function reach(
-  p: PlayerState,
-  pool: Pool,
-  fresh: NetNode[],
-  seed: string,
-): { player: PlayerState; spawned: string[]; areas: string[] } {
-  let player = p;
-  const spawned: string[] = [];
-  const areas: string[] = [];
-  for (const n of fresh) {
-    for (const oid of outpostsReachedBy(player.network, n)) {
-      const area = player.network.outposts!.find((o) => o.id === oid)!.area;
-      const unlocked = player.unlockedAreas.includes(area) ? player.unlockedAreas : [...player.unlockedAreas, area];
-      const c = connectOutpost(player.network, oid, n, ctxFor({ ...player, unlockedAreas: unlocked }, pool, `${seed}:${oid}`));
-      player = { ...player, network: c.state, unlockedAreas: unlocked };
-      areas.push(area);
-      if (c.node) spawned.push(c.node.id);
-    }
-  }
-  return { player, spawned, areas };
+  const opened = breakWall(player, pool, fw, { x: at.cell.x, y: at.cell.y, from: at.from }, at.node, `boss:${firewallId}`);
+  return { player: opened.player, passed: true, spawned: opened.spawned, areas: [fw.area] };
 }
 
 /**
- * New questions arrived in the pool: branches that had to wait for one grow now (and may reach
- * outposts). This is what keeps the network open-ended. Returns null when nothing grew.
+ * Opens the area behind a firewall through a gap at `breach`. With a pool a first node of the
+ * area grows there from `parent`.
+ */
+function breakWall(
+  p: PlayerState,
+  pool: Pool | undefined,
+  fw: Firewall,
+  breach: Breach,
+  parent: NetNode,
+  seed: string,
+  bought = false,
+): { player: PlayerState; spawned: string[] } {
+  const firewalls = p.network.firewalls!.map((f) =>
+    f.id === fw.id ? { ...f, broken: true, breach, ...(bought ? { bought } : {}) } : f,
+  );
+  const unlockedAreas = p.unlockedAreas.includes(fw.area) ? p.unlockedAreas : [...p.unlockedAreas, fw.area];
+  const player: PlayerState = { ...p, unlockedAreas, network: { ...p.network, firewalls } };
+  if (!pool) return { player, spawned: [] };
+  const c = enterZone(player.network, fw.area, breach, parent, ctxFor(player, pool, seed));
+  return { player: { ...player, network: c.state }, spawned: c.node ? [c.node.id] : [] };
+}
+
+/** Areas whose wall the network stands at now but did not before (for the result of an answer). */
+function newlyReached(before: NetworkState, after: NetworkState): string[] {
+  const was = Object.values(before.nodes);
+  const now = Object.values(after.nodes);
+  return (after.firewalls ?? [])
+    .filter((f) => !f.broken && firewallReached(now, f) && !firewallReached(was, f))
+    .map((f) => f.area);
+}
+
+/**
+ * New questions arrived in the pool: branches that had to wait for one grow now. This is what
+ * keeps the network open-ended. Returns null when nothing grew.
  */
 export function growWaitingNodes(p: PlayerState, pool: Pool, seed: string): { player: PlayerState; spawned: string[] } | null {
   const grown = growWaiting(p.network, ctxFor(p, pool, `wait:${seed}`));
   if (grown.spawned.length === 0) return null;
-  const reached = reach({ ...p, network: grown.state }, pool, grown.spawned, `wait:${seed}`);
-  return { player: reached.player, spawned: [...grown.spawned.map((n) => n.id), ...reached.spawned] };
+  return { player: { ...p, network: grown.state }, spawned: grown.spawned.map((n) => n.id) };
 }
 
 /** The player tapped a node: a strong interest signal for its area. */
@@ -252,8 +242,8 @@ export interface CorrectResult {
   closedCircle: boolean;
   /** A file of every key fragment was in the cache and the folder structure stayed closed. */
   prepared: boolean;
-  /** Areas that were connected by this answer. */
-  reachedAreas: string[];
+  /** Areas whose wall the network reached with this answer: their firewall can be attacked now. */
+  reachedWalls: string[];
 }
 
 function collect(p: PlayerState, pool: Pool, questionId: string, today: string) {
@@ -273,7 +263,7 @@ export function recordCorrect(
 ): CorrectResult {
   const n = p.network.nodes[nodeId];
   if (!n || n.state !== 'open') {
-    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false, reachedAreas: [] };
+    return { player: p, spawned: [], reward: { xp: 0, bits: 0, gems: 0 }, closedCircle: false, prepared: false, reachedWalls: [] };
   }
   const q = pool.get(n.questionId);
   const attempts = n.attempts + 1;
@@ -318,14 +308,13 @@ export function recordCorrect(
     codex: collect(p, pool, q.id, today),
     stats: { ...p.stats, correct: p.stats.correct + 1, solved: p.stats.solved + 1 },
   };
-  const reached = reach(player, pool, grown.spawned, `${nodeId}:${attempts}`);
   return {
-    player: reached.player,
-    spawned: [...grown.spawned.map((s) => s.id), ...reached.spawned],
+    player,
+    spawned: grown.spawned.map((s) => s.id),
     reward,
     closedCircle: grown.closedCircle,
     prepared,
-    reachedAreas: reached.areas,
+    reachedWalls: newlyReached(p.network, player.network),
   };
 }
 
@@ -358,13 +347,12 @@ export function recordReviewResult(
     network: grown.state,
     integrity: correct && due ? Math.min(MAX_INTEGRITY, p.integrity + 1) : p.integrity,
   };
-  const reached = reach(base, pool, grown.spawned as NetNode[], `${nodeId}:repair`);
   return {
     reward,
     due,
-    spawned: [...grown.spawned.map((s) => s.id), ...reached.spawned],
+    spawned: grown.spawned.map((s) => s.id),
     player: {
-      ...reached.player,
+      ...base,
       cache: cacheWithoutArea(p.cache, pool, q.area),
       xp: p.xp + reward.xp,
       bits: p.bits + reward.bits,
@@ -495,16 +483,19 @@ export function healIntegrity(p: PlayerState): PlayerState | null {
   return { ...p, gems: r.balance, integrity: MAX_INTEGRITY };
 }
 
-/** Buys an area with gems; with a pool the disturbed outpost of that area is connected too. */
+/**
+ * Buys an area with gems. Its wall opens where the network comes closest to it (no fight, so the
+ * story does not count it); with a pool a first node of the area grows behind the gap.
+ */
 export function unlockArea(p: PlayerState, areaId: string, pool?: Pool): PlayerState | null {
   if (p.unlockedAreas.includes(areaId)) return null;
   const r = trySpend(p.gems, areaCost(areaId));
   if (!r.ok) return null;
-  const opened: PlayerState = { ...p, gems: r.balance, unlockedAreas: [...p.unlockedAreas, areaId] };
-  const outpost = opened.network.outposts?.find((o) => o.area === areaId && !o.connected);
-  if (!outpost || !pool) return opened;
-  const c = connectOutpost(opened.network, outpost.id, undefined, ctxFor(opened, pool, `buy:${areaId}`));
-  return { ...opened, network: c.state };
+  const paid: PlayerState = { ...p, gems: r.balance };
+  const fw = paid.network.firewalls?.find((f) => f.area === areaId && !f.broken);
+  const at = fw ? approachOf(Object.values(paid.network.nodes), areaId) : undefined;
+  if (!fw || !at) return { ...paid, unlockedAreas: [...paid.unlockedAreas, areaId] };
+  return breakWall(paid, pool, fw, { x: at.cell.x, y: at.cell.y, from: at.from }, at.node, `buy:${areaId}`, true).player;
 }
 
 export function openDebris(p: PlayerState, nodeId: string): PlayerState | null {

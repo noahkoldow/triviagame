@@ -32,8 +32,8 @@ export const AREAS: Area[] = [
   {
     id: 'physics',
     sector: 'science',
-    de: 'Physik & Chemie',
-    en: 'Physics & chemistry',
+    de: 'Naturwissenschaften',
+    en: 'Natural sciences',
     scope: 'Relativitätstheorie, Aufbau der Atome, Periodensystem, physikalische Grundgesetze wie die Gravitation, Licht und Schall, chemische Reaktionen',
   },
   {

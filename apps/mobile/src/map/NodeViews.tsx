@@ -1,5 +1,4 @@
 import {
-  DashPathEffect,
   Group,
   Path,
   Rect,
@@ -14,6 +13,7 @@ import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { type NetNode, type Sector } from '@nexus/shared';
 import { colors, mix, shade } from '../theme';
 import { SQUASH } from './camera';
+import { LIFT, WALL_LEVEL } from './hexAtlas';
 
 export interface NodeInfo {
   node: NetNode;
@@ -338,53 +338,6 @@ function CoreTileBase() {
   );
 }
 
-/** A disturbed outpost: a flickering tile that has to be connected to the network. */
-function OutpostTileBase({
-  x,
-  y,
-  color,
-  label,
-  font,
-  shiftA,
-  shiftB,
-}: {
-  x: number;
-  y: number;
-  color: string;
-  label: string;
-  font: SkFont;
-  shiftA: SharedValue<{ translateX: number }[]>;
-  shiftB: SharedValue<{ translateX: number }[]>;
-}) {
-  const face = mix(color, '#3A2A48', 0.55);
-  const lw = font.getTextWidth(label);
-  return (
-    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
-      <Group transform={[{ translateY: 3 }]} opacity={0.5}>
-        <Path path={NODE.top} color="#02060C" />
-      </Group>
-      <Group transform={[{ translateY: -NODE_DEPTH }]}>
-        <Group transform={shiftA} opacity={0.4}>
-          <Path path={NODE.top} color="#FF4B8B" />
-        </Group>
-        <Group transform={shiftB} opacity={0.4}>
-          <Path path={NODE.top} color="#1CB0F6" />
-        </Group>
-        <Solid parts={NODE} face={face} edge={shade(face, 0.4)} />
-        <Path path={NODE_INNER} style="stroke" strokeWidth={2} strokeJoin="round" color="#FFFFFF" opacity={0.25}>
-          <DashPathEffect intervals={[5, 5]} />
-        </Path>
-        <Group transform={[{ translateY: -2 }, { scale: NODE_R * 0.36 }]}>
-          <Rect x={-0.12} y={-0.8} width={0.24} height={1.05} color="#FFFFFF" />
-          <Path path={dotPath} color="#FFFFFF" />
-        </Group>
-      </Group>
-      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
-      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#FFC4E0" />
-    </Group>
-  );
-}
-
 const brickPath = unitPath((p) => {
   const brick = (x0: number, y0: number, x1: number, y1: number) => {
     p.moveTo(x0, y0);
@@ -403,43 +356,21 @@ const brickPath = unitPath((p) => {
 });
 
 /**
- * A firewall: a brick-red hexagon wall on the border of two sectors; green and open once broken.
- * Until the network has grown there it stands greyed out behind the noise (`locked`).
+ * The sign on a firewall: a small plate floating above the wall where the network comes closest,
+ * naming the area behind it. Red once the network stands at the wall and can attack, grey before.
  */
-function FirewallTileBase({
-  x,
-  y,
-  broken,
-  locked = false,
-  label,
-  font,
-}: {
-  x: number;
-  y: number;
-  broken: boolean;
-  locked?: boolean;
-  label: string;
-  font: SkFont;
-}) {
-  const face = broken ? colors.primary : locked ? '#6E5F5C' : '#E0452B';
-  const lw = font.getTextWidth(label);
+function WallSignBase({ x, y, label, reached, font }: { x: number; y: number; label: string; reached: boolean; font: SkFont }) {
+  const w = font.getTextWidth(label) + 36;
+  const top = -LIFT[WALL_LEVEL]! - 34;
+  const ink = reached ? '#FFD2C8' : '#B9AEAB';
   return (
-    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]} opacity={locked ? 0.7 : 1}>
-      <Group transform={[{ translateY: 3 }]} opacity={0.5}>
-        <Path path={NODE.top} color="#02060C" />
+    <Group transform={[{ translateX: x }, { translateY: y * SQUASH }]}>
+      <RoundedRect x={-w / 2} y={top} width={w} height={24} r={12} color="#04080F" opacity={0.88} />
+      <RoundedRect x={-w / 2} y={top} width={w} height={24} r={12} style="stroke" strokeWidth={2} color={reached ? '#E0452B' : '#6E5F5C'} />
+      <Group transform={[{ translateX: -w / 2 + 15 }, { translateY: top + 12 }, { scale: 7 }]}>
+        <Path path={brickPath} color={ink} />
       </Group>
-      <Group transform={[{ translateY: -NODE_DEPTH - 6 }]}>
-        <Solid parts={NODE} face={face} edge={shade(face, 0.42)} />
-        <Group transform={[{ translateY: -2 }, { scale: NODE_R * 0.36 }]}>
-          {broken ? (
-            <Path path={checkPath} style="stroke" strokeWidth={0.36} strokeCap="round" strokeJoin="round" color="#FFFFFF" />
-          ) : (
-            <Path path={brickPath} color={locked ? '#B9AEAB' : '#FFFFFF'} />
-          )}
-        </Group>
-      </Group>
-      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color="#04080F" style="stroke" strokeWidth={4} />
-      <SkText x={-lw / 2} y={NODE_R * SQUASH + 17} text={label} font={font} color={broken ? '#CFF5A8' : locked ? '#B9AEAB' : '#FFD2C8'} />
+      <SkText x={-w / 2 + 28} y={top + 16.5} text={label} font={font} color={ink} />
     </Group>
   );
 }
@@ -492,7 +423,6 @@ function ShardTileBase({
 export const NodeTile = memo(NodeTileBase);
 export const SiteTile = memo(SiteTileBase);
 export const CoreTile = memo(CoreTileBase);
-export const OutpostTile = memo(OutpostTileBase);
 export const ShardTile = memo(ShardTileBase);
 
-export const FirewallTile = memo(FirewallTileBase);
+export const WallSign = memo(WallSignBase);

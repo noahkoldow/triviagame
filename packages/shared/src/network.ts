@@ -1,16 +1,16 @@
-import { createFirewalls, wallTarget } from './boss';
-
-/** How strongly a bridge leans toward a firewall it is growing to. */
-const WALL_PULL = 0.6;
-import { initialUnlockedAreas } from './monetization';
+import { createFirewalls, wallTarget, type Firewall } from './boss';
 import { pickArea, type InterestMap } from './interest';
-import { OUTPOST_REACH, areaDistance, createOutposts, steerTarget } from './outposts';
-import { placeNode, rootPosition, polar } from './layout';
-import { seededRng, type Rng } from './rng';
+import { areaDistance } from './links';
+import { placeNode, rootPosition, polar, settle } from './layout';
+import { type Rng } from './rng';
 import { targetDifficulty, BASE_SKILL, type SkillMap } from './skill';
 import { markDamaged, applyReview } from './srs';
 import { SECTORS, sectorOfArea } from './taxonomy';
-import type { NetNode, NetworkState, Question, Sector } from './types';
+import type { NetNode, NetworkState, Question, Sector, Vec3 } from './types';
+import { clampToZone, zoneOf, zoneOfArea, zoneRoute, type Breach } from './walls';
+
+/** How strongly a new node leans toward the wall its branch is growing to. */
+const WALL_PULL = { deepen: 0.7, bridge: 0.4 };
 
 export class Pool {
   readonly byId = new Map<string, Question>();
@@ -45,7 +45,6 @@ export function createNetwork(pool: Pool, roots: Record<Sector, string>): Networ
   return {
     nodes,
     usedQuestions: used,
-    outposts: createOutposts(initialUnlockedAreas()),
     firewalls: createFirewalls(),
   };
 }
@@ -56,7 +55,7 @@ export interface SpawnContext {
   skill: SkillMap;
   interest: InterestMap;
   rng: Rng;
-  /** Area of the outpost this branch grows toward; questions drift toward it. */
+  /** The area behind the wall this branch grows toward; questions drift toward it. */
   steerArea?: string;
 }
 
@@ -134,34 +133,45 @@ function nextId(state: NetworkState): string {
   return `n${Object.keys(state.nodes).length}`;
 }
 
+/** The gaps in the walls, for routes between zones. */
+export function breachesOf(firewalls: Firewall[] | undefined): { area: string; breach: Breach }[] {
+  return (firewalls ?? []).flatMap((f) => (f.breach ? [{ area: f.area, breach: f.breach }] : []));
+}
+
+/**
+ * Where a child in `zone` grows from: the parent itself in the same zone, otherwise the spot just
+ * behind the last gap on the way there, so the branch passes through the wall and not over it.
+ */
+function growFrom(state: NetworkState, parent: Vec3, zone: string): Vec3 {
+  const route = zoneRoute(breachesOf(state.firewalls), zoneOf(parent.x, parent.y), zone);
+  const gap = route?.[route.length - 1];
+  return gap ? { ...clampToZone(gap, zone), z: parent.z } : parent;
+}
+
 function addNode(
   state: NetworkState,
   parent: NetNode,
   q: Question,
   kind: 'deepen' | 'bridge' | 'debris',
   extra: Partial<NetNode> = {},
-  pull = 0,
 ): { state: NetworkState; node: NetNode } {
   const sector = sectorOfArea(q.area);
+  const zone = zoneOfArea(q.area);
   const existing = Object.values(state.nodes);
-  // bridges reach for the borders: they lean toward a firewall the network has not reached yet;
-  // deepenings (and bridges without such a wall) lean toward the next disturbed outpost
-  const wall = kind === 'bridge' ? wallTarget(state.firewalls, existing, parent.pos, sector) : undefined;
-  const out = steerTarget(state.outposts, parent.pos, sector);
-  const target = wall
-    ? { x: wall.x, y: wall.y, pull: WALL_PULL }
-    : out && pull > 0
-      ? { x: out.x, y: out.y, pull }
-      : undefined;
+  const from = growFrom(state, parent.pos, zone);
+  // branches reach for the walls: they lean toward a firewall the network has not reached yet
+  const wall = kind === 'debris' ? undefined : wallTarget(state.firewalls, existing, from, sector);
+  const target = wall ? { x: wall.x, y: wall.y, pull: WALL_PULL[kind as 'deepen' | 'bridge'] } : undefined;
   const id = nextId(state);
   const pos = placeNode({
-    parent: parent.pos,
+    parent: from,
     kind,
     mainSector: sector,
     side: q.side,
     existing: existing.map((n) => n.pos),
     seed: `${id}:${q.id}`,
     target,
+    zone,
   });
   const node: NetNode = {
     id,
@@ -184,59 +194,51 @@ function addNode(
   };
 }
 
-/** Lets the questions of a branch drift toward the outpost it is growing to. */
+/** Lets the questions of a branch drift toward the area behind the wall it is growing to. */
 function withSteer(state: NetworkState, node: NetNode, ctx: SpawnContext): SpawnContext {
   const sector = sectorOfArea(ctx.pool.get(node.questionId).area);
-  const out = steerTarget(state.outposts, node.pos, sector);
-  return out ? { ...ctx, steerArea: out.area } : ctx;
+  const wall = wallTarget(state.firewalls, Object.values(state.nodes), node.pos, sector);
+  return wall ? { ...ctx, steerArea: wall.firewall.area } : ctx;
 }
 
-/** Connects an outpost: its area opens up and a (still disturbed) node appears there. */
-export function connectOutpost(
+/**
+ * The wall around `area` broke at `breach`: a first (open) node of that area appears right behind
+ * the gap, grown from `parent`. Opening the area itself is up to the caller.
+ */
+export function enterZone(
   state: NetworkState,
-  outpostId: string,
-  parent: NetNode | undefined,
+  area: string,
+  breach: Breach,
+  parent: NetNode,
   ctx: SpawnContext,
 ): { state: NetworkState; node?: NetNode } {
-  const o = state.outposts?.find((x) => x.id === outpostId && !x.connected);
-  if (!o) return { state };
-  const outposts = state.outposts!.map((x) => (x.id === outpostId ? { ...x, connected: true } : x));
-  let next: NetworkState = { ...state, outposts };
   const used = new Set(state.usedQuestions);
-  const cands = ctx.pool.list.filter((q) => q.area === o.area && !used.has(q.id));
-  const q = closest(cands, targetDifficulty(ctx.skill[o.area] ?? BASE_SKILL));
-  if (!q) return { state: next };
-  const from =
-    parent ??
-    Object.values(state.nodes).sort(
-      (a, b) => Math.hypot(a.pos.x - o.x, a.pos.y - o.y) - Math.hypot(b.pos.x - o.x, b.pos.y - o.y),
-    )[0]!;
-  const id = nextId(next);
+  const cands = ctx.pool.list.filter((q) => q.area === area && !used.has(q.id));
+  const q = closest(cands, targetDifficulty(ctx.skill[area] ?? BASE_SKILL));
+  if (!q) return { state };
+  const id = nextId(state);
+  const at = settle(
+    clampToZone(breach, zoneOfArea(area)),
+    zoneOfArea(area),
+    Object.values(state.nodes).map((n) => n.pos),
+  );
   const node: NetNode = {
     id,
     questionId: q.id,
-    parentId: from.id,
+    parentId: parent.id,
     kind: 'bridge',
     state: 'open',
-    pos: { x: o.x, y: o.y, z: 0.5 },
+    pos: { x: at.x, y: at.y, z: 0.5 },
     attempts: 0,
     box: 0,
   };
-  next = { ...next, nodes: { ...next.nodes, [id]: node }, usedQuestions: [...next.usedQuestions, q.id] };
-  return { state: next, node };
-}
-
-/** Outposts that a freshly placed node is close enough to connect. */
-export function outpostsReachedBy(state: NetworkState, node: NetNode): string[] {
-  return (state.outposts ?? [])
-    .filter((o) => !o.connected && Math.hypot(o.x - node.pos.x, o.y - node.pos.y) <= OUTPOST_REACH)
-    .map((o) => o.id);
+  return { state: { ...state, nodes: { ...state.nodes, [id]: node }, usedQuestions: [...state.usedQuestions, q.id] }, node };
 }
 
 /**
  * Marks a node as solved (or damaged when it needed many attempts) and spawns
  * its children: a deepening and a bridge (fewer after wrong answers). Locked debris
- * fields no longer spawn: the disturbed outposts took their place (see outposts.ts).
+ * fields no longer spawn: the areas behind the walls took their place (see walls.ts).
  */
 export function completeNode(
   state: NetworkState,
@@ -291,7 +293,7 @@ function growChildren(
       waiting.push(kind);
       continue;
     }
-    const r = addNode(next, parent, q, kind, {}, kind === 'deepen' ? 0.7 : 0.3);
+    const r = addNode(next, parent, q, kind);
     next = r.state;
     spawned.push(r.node);
   }
