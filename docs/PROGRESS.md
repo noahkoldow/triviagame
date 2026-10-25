@@ -92,9 +92,14 @@ Spielbar in Expo Go (Mock-Daten):
 - **Ungeprüft auf Gerät:** Bosskampf-Animation (viele kleine Skia-Gruppen, Performance auf älteren Geräten), Textlängen der neuen Ansichten, Kreisdiagramm per react-native-svg.
 - **Karten und weitere Typen** (D66): Karte (Natural Earth), Ort antippen, Wer bin ich? (Bonus für früh gelöst), Quelle prüfen, beschädigte Dateien; Websuche beim Prüfer (`AI_CHECK_GROUNDING`, aus). **Ungeprüft:** Antippen der Karte auf dem Gerät (Koordinaten aus `locationX/Y`), Websuche gegen echtes Gemini.
 
+## Prototyp 0.14 (Die Firewalls werden angekündigt)
+
+- **Vorahnung** (D68): Bolt bemerkt die erste Wand im Rauschen, jeder Hüter nennt beim Erwachen seine zwei Säle hinter der Firewall, vor jedem Wandkampf eigene Worte von morph.ai und dem Hüter (Bolt, solange er schläft), nach der dritten Wand fängt der Kern morph.ais Vorbereitung auf das Finale auf. Zwei neue Logbuch-Einträge, alles in vier Sprachen.
+- **Ungeprüft auf Gerät:** Höhe des Kampf-Intros (drei Zeilen über der Frage) auf kleinen Bildschirmen. Die Reime der Muse und die neuen Texte sollten Muttersprachler gegenlesen.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (227 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (232 + 54 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die neuen Functions sind nicht gegen die Produktion getestet, weil der Deploy noch aussteht.
 
 ## Offen / nächste Schritte
 

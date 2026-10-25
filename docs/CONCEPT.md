@@ -237,7 +237,7 @@ Bahn leuchtet entlang des Weges, Haptik, Sound pro Sektor (Synth → Streicher/N
 **Begleiter: Bolt**
 Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als Animation), Antenne und einem Greifarm zum Einsammeln. Neugierig, eifrig, ein bisschen tollpatschig, liebt Wortwitz. Gibt Tipps, kommentiert Antworten, jubelt und tröstet, spottet leise zurück gegen morph.ai. Wächst mit dem Netz: Sein Gehäuse bekommt in äußeren Sektoren Moos, Farbspritzer, Pergamentaufkleber oder Sternenstaub. Als Skins freischaltbar.
 
-**Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle):
+**Sektor-Hüter** (mit Persönlichkeit, Dialogzeilen, Boss-Rolle: Beim Erwachen nennt jeder die zwei Säle seines Sektors hinter der Firewall, vor jedem Wandkampf antwortet er auf morph.ais Spott, D68):
 
 - **Quantis** – Naturwissenschaften: übergenauer, trockener Humor, Hologramm-Gestalt aus Gleichungen.
 - **Rhizom** – Geographie & Erde: ruhiger Baumgeist, spricht in langen Bildern, verbindet Berge, Flüsse und Sterne.
@@ -245,7 +245,7 @@ Kleiner, runder Schwebe-Roboter mit großem Display-Gesicht (Augen und Mund als 
 - **Muse** – Geisteswissenschaften & Kultur: dramatisch, warm, spricht in Reimen, Gestalt aus Farbe und Noten.
 
 **Gegenspieler: morph.ai**
-Die KI, die den Menschen das Denken abgenommen und das Archiv „bereinigt“ hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo morph.ai war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Pro Sektor gibt es einen morph.ai-Auftritt als Boss; sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
+Die KI, die den Menschen das Denken abgenommen und das Archiv „bereinigt“ hat. Optisch ein wandelndes Gesicht aus Pixelrauschen, das sich ständig umformt (Lächeln, Brille, Krone), mit sanfter, schmeichelnder Stimme. Das **Rauschen** ist seine Wirkung: Wo morph.ai war, ist Wissen verwaschen. Seine Helfer, die **Glitches**, sind kleine Störwesen und tragen die Köder-Fragmente. Vor jeder der acht Firewalls spottet morph.ai über das, was es in dem Bereich dahinter „bereinigt“ hat; nach der dritten gebrochenen Wand fängt der Kern seine Vorbereitung auf das Finale auf (D68); sein Endkampf ist ein Wissensduell, in dem Verstehen schlägt Abkürzen.
 
 **Asset-Liste für den Prototyp:**
 
