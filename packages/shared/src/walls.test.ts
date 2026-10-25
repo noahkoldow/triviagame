@@ -20,6 +20,8 @@ import {
   hexToWorld,
   initialPlayer,
   initialUnlockedAreas,
+  migrateSave,
+  moveBreach,
   placeNode,
   recordBoss,
   recordCorrect,
@@ -34,8 +36,9 @@ import {
   zoneRoute,
   type PlayerState,
 } from './index';
+import { servedPool } from './served.testutil';
 
-const pool = new Pool(MOCK_QUESTIONS);
+const pool = servedPool();
 const DAY = '2026-10-01';
 
 /** Plays with perfect answers, always the oldest open node, breaking every wall it reaches. */
@@ -65,24 +68,25 @@ describe('zones', () => {
     expect(zoneOf(0, -(WALL_RADIUS - 1))).toBe(CORE_ZONE);
     for (const z of OUTER_ZONES) {
       const mid = (z.from + z.to) / 2;
-      const p = { x: Math.cos(mid) * 800, y: Math.sin(mid) * 800 };
+      const p = { x: Math.cos(mid) * (WALL_RADIUS + 330), y: Math.sin(mid) * (WALL_RADIUS + 330) };
       expect(zoneOf(p.x, p.y)).toBe(z.area);
       expect(zoneOfArea(z.area)).toBe(z.area);
       // the slice lies inside the wedge of its sector (science points up)
       const off = Math.atan2(Math.sin(mid - SECTOR_ANGLE[sectorOfArea(z.area)]), Math.cos(mid - SECTOR_ANGLE[sectorOfArea(z.area)]));
       expect(Math.abs(off)).toBeLessThan(Math.PI / 4);
     }
-    expect(zoneOf(10, -800)).toBe('biomedicine');
-    expect(zoneOf(-10, -800)).toBe('technology');
-    expect(zoneOf(-800, 10)).toBe('law');
-    expect(zoneOf(-800, -10)).toBe('economy');
+    const out = WALL_RADIUS + 330;
+    expect(zoneOf(10, -out)).toBe('biomedicine');
+    expect(zoneOf(-10, -out)).toBe('technology');
+    expect(zoneOf(-out, 10)).toBe('law');
+    expect(zoneOf(-out, -10)).toBe('economy');
   });
 
   it('are closed: no way leads from the core outward or between two slices without crossing a wall', () => {
     const wall = new Set(wallCells().map((c) => c.key));
     const limit = WALL_OUTER - 100;
     // flood the free cells from the core and from the middle of every slice
-    const starts = [{ x: 0, y: 0 }, ...OUTER_ZONES.map((z) => ({ x: Math.cos((z.from + z.to) / 2) * 900, y: Math.sin((z.from + z.to) / 2) * 900 }))];
+    const starts = [{ x: 0, y: 0 }, ...OUTER_ZONES.map((z) => ({ x: Math.cos((z.from + z.to) / 2) * (WALL_RADIUS + 430), y: Math.sin((z.from + z.to) / 2) * (WALL_RADIUS + 430) }))];
     for (const s of starts) {
       const zone = zoneOf(s.x, s.y);
       const start = worldToHex(s.x, s.y);
@@ -117,8 +121,9 @@ describe('zones', () => {
         const near = Math.min(...wallCells().map((w) => hexDistance(w.hex, h)));
         expect(near, `${zone} ${i}`).toBeGreaterThanOrEqual(2);
         if (zoneOf(p.x, p.y) === zone && Math.hypot(c.x - p.x, c.y - p.y) > 0) {
-          // a point inside its zone only moves when it was too close to a wall
-          expect(Math.hypot(c.x - p.x, c.y - p.y)).toBeLessThanOrEqual(WALL_MARGIN + 43);
+          // a point inside its zone only moves when it was too close to a wall (in a corner of
+          // a slice, away from two walls at once)
+          expect(Math.hypot(c.x - p.x, c.y - p.y)).toBeLessThanOrEqual((WALL_MARGIN + 43) * Math.SQRT2);
         }
       }
     }
@@ -176,6 +181,38 @@ describe('walls', () => {
     expect(gap.length).toBeGreaterThanOrEqual(3);
     expect(gap.length).toBeLessThanOrEqual(7);
     for (const g of gap) expect(g.zones).toEqual(expect.arrayContaining(['biomedicine', CORE_ZONE]));
+  });
+
+  it('moves a gap from the smaller walls before onto the same spot of the bigger walls', () => {
+    const cell = wallBetween('biomedicine', CORE_ZONE)[3]!;
+    // the ring lay at 470 before
+    const old = { x: (cell.x * 470) / WALL_RADIUS, y: (cell.y * 470) / WALL_RADIUS, from: CORE_ZONE };
+    expect(breachCells('biomedicine', old)).toHaveLength(0);
+    const moved = moveBreach('biomedicine', old);
+    expect(Math.hypot(moved.x - cell.x, moved.y - cell.y)).toBeLessThan(60);
+    expect(breachCells('biomedicine', moved).length).toBeGreaterThanOrEqual(3);
+    // a gap on its wall stays
+    const now = { x: cell.x, y: cell.y, from: CORE_ZONE };
+    expect(moveBreach('biomedicine', now)).toBe(now);
+  });
+
+  it('an old save gets its gaps moved onto the bigger walls and its nodes into their zones', () => {
+    const p = grow(160);
+    const shrink = (v: { x: number; y: number }) => {
+      const r = Math.hypot(v.x, v.y);
+      const k = r <= WALL_RADIUS + 50 ? 470 / WALL_RADIUS : (470 + ((r - WALL_RADIUS) * 2030) / (WALL_OUTER - WALL_RADIUS)) / r;
+      return { x: v.x * k, y: v.y * k };
+    };
+    // the same map as it lay before the zones grew: ring at 470, outer edge at 2500
+    const nodes = Object.fromEntries(Object.values(p.network.nodes).map((n) => [n.id, { ...n, pos: { ...n.pos, ...shrink(n.pos) } }]));
+    const firewalls = p.network.firewalls!.map((f) => (f.breach ? { ...f, breach: { ...f.breach, ...shrink(f.breach) } } : f));
+    const old: PlayerState = { ...p, network: { ...p.network, nodes, firewalls, layout: 2 } };
+    const m = migrateSave(old, pool);
+    for (const f of m.network.firewalls!.filter((x) => x.breach)) expect(breachCells(f.area, f.breach!).length, f.area).toBeGreaterThan(0);
+    for (const n of Object.values(m.network.nodes)) {
+      const zone = n.kind === 'root' ? CORE_ZONE : zoneOfArea(pool.get(n.questionId).area);
+      expect(zoneOf(n.pos.x, n.pos.y), n.id).toBe(zone);
+    }
   });
 
   it('routes between zones through the gaps', () => {

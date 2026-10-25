@@ -11,7 +11,7 @@ export const ANCHOR_Y = 0.55;
 export const MIN_ZOOM = 0.5;
 export const MAX_ZOOM = 2.2;
 /** The camera centre never leaves this radius. */
-export const WORLD_LIMIT = 2600;
+export const WORLD_LIMIT = 3600;
 
 export function cameraTransform(cx: number, cy: number, s: number, w: number, h: number) {
   'worklet';

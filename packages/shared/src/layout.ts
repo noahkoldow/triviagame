@@ -1,7 +1,7 @@
 import { seededRng } from './rng';
 import { SECTOR_ANGLE } from './taxonomy';
 import type { Sector, Vec3 } from './types';
-import { clampToZone } from './walls';
+import { WALL_OUTER, clampToZone } from './walls';
 
 export const ROOT_RADIUS = 150;
 export const MIN_GAP = 64;
@@ -136,7 +136,7 @@ const THROUGH_COST = 150;
  */
 function freeSpot(from: Point, zone: string | undefined, existing: Point[], links: Link[]): Point | undefined {
   const inZone = (q: Point) => (zone ? clampToZone(q, zone) : q);
-  for (let ring = MAX_LINK; ring <= 2600; ring += MIN_GAP * 0.6) {
+  for (let ring = MAX_LINK; ring <= WALL_OUTER; ring += MIN_GAP * 0.6) {
     let best: Point | undefined;
     let fewest = Infinity;
     for (let k = 0; k < 24; k++) {

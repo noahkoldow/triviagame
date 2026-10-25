@@ -31,8 +31,9 @@ import {
   zoneOf,
   type PlayerState,
 } from './index';
+import { servedPool } from './served.testutil';
 
-const pool = new Pool(MOCK_QUESTIONS);
+const pool = servedPool();
 
 /** The network already stands at the wall around `area`: the first node moves right in front of it. */
 function atWall(p: PlayerState, area: string): PlayerState {

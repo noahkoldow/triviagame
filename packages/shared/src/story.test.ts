@@ -39,8 +39,9 @@ import {
   wallVoices,
   type PlayerState,
 } from './index';
+import { servedPool } from './served.testutil';
 
-const pool = new Pool(MOCK_QUESTIONS);
+const pool = servedPool();
 const DAY = '2026-10-01';
 
 /**
@@ -126,7 +127,7 @@ describe('story', () => {
     expect(storyLogs(seen, 'de').map((l) => l.name)).toEqual(['KERN_001.LOG']);
   });
 
-  it('can be played from the first node to the ending with the built-in questions', () => {
+  it('can be played from the first node to the ending once the server refills the areas', () => {
     const chapters = new Set<number>();
     const p = play(400, (x) => {
       chapters.add(chapterOf(storyFacts(x, pool), 'de').n);
@@ -183,10 +184,12 @@ describe('story', () => {
 describe('foreshadowing the firewalls', () => {
   it('Bolt notices the first wall out of the fog, before any is broken', () => {
     expect(storyFacts(initialPlayer(pool), pool).wallSeen).toBe(false);
+    // the ring lies a good way out: the first answers do not reach it yet
     const first = recordCorrect(initialPlayer(pool), pool, 'n0', DAY, 0).player;
-    expect(storyFacts(first, pool).wallSeen).toBe(true);
+    expect(storyFacts(first, pool).wallSeen).toBe(false);
     expect(pendingBeats(first, pool).map((b) => b.id)).toEqual(['first-link']);
-    const p = play(400, (x) => storyFacts(x, pool).solved >= 2);
+    const p = play(400, (x) => storyFacts(x, pool).wallSeen);
+    expect(storyFacts(p, pool).solved).toBeGreaterThan(4);
     expect(storyFacts(p, pool).broken).toBe(0);
     expect(pendingBeats(p, pool).map((b) => b.id)).toContain('first-wall');
     // once a wall is broken the moment has passed

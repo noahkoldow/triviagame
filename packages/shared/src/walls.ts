@@ -14,10 +14,13 @@ import { HEX_R, hexDistance, hexKey, hexNeighbors, hexToWorld, worldToHex, type 
 
 /** The zone of the four starting areas. Every other zone is named after its area. */
 export const CORE_ZONE = 'core';
-/** Radius of the firewall ring around the core zone (world units). */
-export const WALL_RADIUS = 470;
-/** The walls between the outer areas run out this far (the camera stops at 2600). */
-export const WALL_OUTER = 2500;
+/** Radius of the firewall ring around the core zone (world units); the roots sit at 150. */
+export const WALL_RADIUS = 800;
+/** The walls between the outer areas run out this far (the camera stops at 3600). */
+export const WALL_OUTER = 3500;
+/** The ring and the outer edge before the zones grew; old breaches are moved with them. */
+const OLD_RADIUS = 470;
+const OLD_OUTER = 2500;
 /** Nodes keep this far from a wall (world units), so a node tile never touches it. */
 export const WALL_MARGIN = 80;
 /** A wall is one cell thick; its cells lie outside the ring and on the far side of a slice. */
@@ -166,6 +169,24 @@ export interface Breach {
 export function breachCells(area: string, breach: Breach): WallCell[] {
   const c = worldToHex(breach.x, breach.y);
   return wallBetween(area, breach.from).filter((w) => hexDistance(w.hex, c) <= BREACH_CELLS);
+}
+
+/**
+ * A breach from before the zones grew lies off its wall now: it moves to the same spot on the
+ * bigger wall (same angle, the distance stretched like the zones). A breach on its wall stays.
+ */
+export function moveBreach(area: string, breach: Breach): Breach {
+  if (breachCells(area, breach).length) return breach;
+  const r = Math.hypot(breach.x, breach.y) || 1;
+  const k =
+    r <= OLD_RADIUS + THICK
+      ? WALL_RADIUS / r
+      : (WALL_RADIUS + ((r - OLD_RADIUS) * (WALL_OUTER - WALL_RADIUS)) / (OLD_OUTER - OLD_RADIUS)) / r;
+  const to = { x: breach.x * k, y: breach.y * k };
+  const cell = wallBetween(area, breach.from).sort(
+    (a, b) => Math.hypot(a.x - to.x, a.y - to.y) - Math.hypot(b.x - to.x, b.y - to.y),
+  )[0];
+  return cell ? { ...breach, x: cell.x, y: cell.y } : breach;
 }
 
 type Pos = { pos: { x: number; y: number } };
