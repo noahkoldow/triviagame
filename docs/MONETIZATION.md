@@ -93,11 +93,11 @@ Der Code ist fertig (AdMob-Anbieter, Einwilligung, Regeln). Es fehlen Konten und
 
 1. **AdMob-Konto** mit Zahlungsprofil (Adresse, Bankverbindung, Steuerangaben).
 2. In AdMob eine **iOS-App** anlegen (nach dem Store-Start mit dem App-Store-Eintrag verknüpfen) und drei **Anzeigenblöcke**: Rewarded, Interstitial, App-Open. Für Android später dasselbe.
-3. **EAS-Umgebungsvariablen** (öffentlich, keine Secrets): `ADMOB_IOS_APP_ID`, `EXPO_PUBLIC_ADMOB_IOS_REWARDED`, `EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL`, `EXPO_PUBLIC_ADMOB_IOS_APP_OPEN` (für Android die `ANDROID`-Varianten). Bis dahin laufen Googles Test-IDs, die nichts auszahlen.
+3. **EAS-Umgebungsvariablen** in der Umgebung `production` (öffentlich, keine Secrets): `ADMOB_IOS_APP_ID`, `EXPO_PUBLIC_ADMOB_IOS_REWARDED`, `EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL`, `EXPO_PUBLIC_ADMOB_IOS_APP_OPEN`, `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (für Android die `ANDROID`-Varianten). Ohne sie bricht `eas build --profile production` ab (D74); Development- und Preview-Builds laufen mit Googles Test-IDs und ohne Käufe.
 4. AdMob → **Datenschutz und Mitteilungen**: DSGVO-Mitteilung (EWR, UK, Schweiz) und die **IDFA-Erklärung** für iOS veröffentlichen. Die App zeigt sie über UMP vor dem ersten Laden, die ATT-Abfrage kommt aus dieser Mitteilung (Text in `app.config.ts`).
 5. **`app-ads.txt`** auf der Website der Entwickler-Domain (dieselbe Domain wie die Marketing- bzw. Support-URL im App Store) mit der Zeile aus AdMob.
 6. **App-Datenschutz-Etikett:** Werbedaten, Geräte-ID (bei ATT-Zustimmung), „zum Tracking verwendet“ für personalisierte Werbung; Käufe nach den Angaben von RevenueCat.
-7. **Käufe:** Paid Apps Agreement, die Produkte aus §3 in App Store Connect, RevenueCat-Konto mit dem Entitlement `plus` (an `plus_month`, `plus_year`, `plus_life`). Der RevenueCat-Anbieter selbst ist noch zu bauen (→ `CODEX_HANDOFF.md` P2.1); das Interface steht.
+7. **Käufe:** Paid Apps Agreement, die Produkte aus §3 in App Store Connect, RevenueCat-Konto mit dem Entitlement `plus` (an `plus_month`, `plus_year`, `plus_life`). Der RevenueCat-Anbieter ist gebaut (`src/services/revenuecat.ts`, D74); unter Android heißen die Abos in RevenueCat `plus_month:<basisplan>`.
 8. **Development Build** auf einem echten Gerät: Einwilligung, Rewarded, Interstitial, App-Open mit Test-IDs prüfen, danach mit echten IDs und registriertem Testgerät.
 
 ## 7. Nach dem Start (in dieser Reihenfolge)

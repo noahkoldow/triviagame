@@ -112,15 +112,28 @@ Spielbar in Expo Go (Mock-Daten):
 - **Zeitlimit:** eine Uhr pro Firewall-Kampf und Finale (je nach Fragetypen, etwa 2:30 bei acht Auswahlfragen), läuft nur bei offener Frage; abgelaufen heißt verloren. Mit Screenreader doppelt so lang.
 - **Ungeprüft auf Gerät:** Kamerafahrt und Umrisse der Säle (Zoom unter `MIN_ZOOM`), Höhe des angedockten Dialogs auf kleinen Bildschirmen, ob die Uhr zu knapp oder zu großzügig ist.
 
+## Prototyp 0.17 (Store-Blocker, D74)
+
+- **Käufe:** RevenueCat in Store-Builds, nie der Mock; ohne Schlüssel keine Kauf-Knöpfe.
+- **Build:** Profil `production` mit `submit`, Abbruch ohne echte AdMob-/RevenueCat-IDs, Privacy Manifest ergänzt, ATT-Text in vier Sprachen, Android ohne Speicher-Rechte.
+- **Kinder:** unter 13 kindgerichtete G-Anzeigen, unter 16 höchstens PG.
+- **Spielstand:** wird bei fehlenden Fragen repariert statt verworfen, mit Sicherung; Absturz-Bildschirm statt App-Ende.
+- **Fragen:** Hinweis „Bolt sucht neue Fragen“ mit Neuversuch, Melden von Fragen (Function `report`), Pools füllen sich selbst bis 25 (Function `topUpPools`).
+- **Rangliste:** erster Abgleich gedeckelt, TTL für inaktive Einträge und den Budget-Zähler.
+- **Nicht deployed:** `report`, `topUpPools`, die neuen TTL-Regeln und das neue `league` (Deckel, `expiresAt`). Bis zum Deploy meldet die App ins Leere (404, wird ignoriert).
+- **Ungeprüft auf Gerät:** RevenueCat-Kauf und -Wiederherstellen (Sandbox), Melde-Fenster, Hinweis bei leerem Pool, Absturz-Bildschirm.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (247 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions` und `league`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (253 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions`, `league`, `report` und `topUpPools`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
 
 ## Offen / nächste Schritte
 
 1. **Server beobachten:** Functions sind seit 25.10.2026 live. Noch prüfen: Rangliste mit `join`, `sync` mit `board`, `leave` aus der App; TTL-Regeln in der Konsole; Tagesbudget `AI_DAILY_CALL_LIMIT` anheben, wenn der Pool zu langsam wächst (D69 braucht Nachschub).
 2. Auf dem Handy testen (Expo Go), Optik/Performance nachjustieren.
 3. Store-Launch nach `docs/CODEX_SUBMISSION.md` (geprüfter Befund, Entscheidungen E1–E8, Reihenfolge); Details in `docs/CODEX_HANDOFF.md`.
-4. **Geld:** AdMob-Konto, Anzeigenblöcke, EAS-Variablen, UMP-Mitteilungen, `app-ads.txt` (`docs/MONETIZATION.md` §6); RevenueCat-Anbieter für Käufe; Development Build mit Test-Anzeigen auf einem Gerät.
+4. **Geld:** AdMob-Konto, Anzeigenblöcke, RevenueCat-Konto und Produkte, EAS-Variablen in `production`, UMP-Mitteilungen, `app-ads.txt` (`docs/MONETIZATION.md` §6); Development Build mit Test-Anzeigen und Sandbox-Käufen auf einem Gerät.
+4a. **Deploy** von `report`, `topUpPools`, `league` und den TTL-Regeln (`firebase deploy --only functions,firestore:indexes`); `AI_DAILY_CALL_LIMIT` für den Vorlauf anheben (E7), damit die 1200 Fragen vor dem Start stehen.
+4b. **Vor der Einreichung (👤):** Bundle-ID und Name festlegen, Datenschutzerklärung und Impressum unter einer URL (`PRIVACY_URL`, `SUPPORT_EMAIL`), Datenschutztext der App aktualisieren, App Check, Store-Eintrag in vier Sprachen, Altersfreigabe, Datenschutz-Etikett und Data Safety.
 5. Tages-Puls mit morph.ai als Gastgeber, Duelle/Koop, Events.
 6. Sounds, Design-Review abarbeiten; Übersetzungen von Muttersprachlern gegenlesen lassen.
