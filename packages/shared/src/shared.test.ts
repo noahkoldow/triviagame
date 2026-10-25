@@ -369,3 +369,12 @@ describe('hex grid', () => {
     for (let i = 1; i < line.length; i++) expect(hexDistance(line[i - 1]!, line[i]!)).toBe(1);
   });
 });
+
+describe('question pool', () => {
+  it('keeps its own list, so refilling it never empties the built-in questions', () => {
+    const p = new Pool(MOCK_QUESTIONS);
+    const n = MOCK_QUESTIONS.length;
+    p.list.length = 0;
+    expect(MOCK_QUESTIONS).toHaveLength(n);
+  });
+});

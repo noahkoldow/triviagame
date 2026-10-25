@@ -28,7 +28,10 @@ export const LAYOUT_VERSION = 2;
 
 export class Pool {
   readonly byId = new Map<string, Question>();
-  constructor(public readonly list: Question[]) {
+  /** Its own copy: the app refills the list when the language changes, the source array stays whole. */
+  readonly list: Question[];
+  constructor(list: Question[]) {
+    this.list = [...list];
     for (const q of list) this.byId.set(q.id, q);
   }
   get(id: string): Question {
