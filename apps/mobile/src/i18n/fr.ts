@@ -108,8 +108,10 @@ export const fr: Strings = {
       `Jusqu’à ${files} fichiers par domaine. Pendant une question, tu ouvres gratuitement les fichiers de son domaine ; après l’essai, cette partie du cache se vide.`,
     firewall: 'Pare-feu',
     wallBroken: (area) => `Ce pare-feu est percé. Par la brèche, ton réseau grandit vers ${area}.`,
-    wallFar: (area, steps) =>
-      `Derrière ce mur se trouve ${area}. morph.ai l’a dressé. Avance jusqu’au pied du mur, puis tu pourras l’attaquer. Distance : environ ${steps} étapes.`,
+    wallLead: 'morph.ai a dressé ce mur. Dès que tout est rempli, tu peux attaquer.',
+    checkReach: 'Au pied du mur',
+    checkNodes: 'Nœuds résolus',
+    checkRepair: 'Nœuds réparés',
     wallText: (layers, rounds, from, area) =>
       `Ton réseau est au pied du mur. Le pare-feu a ${layers} couches : chaque bonne réponse en abat une, chaque mauvaise laisse morph.ai en reconstruire une. Tu as ${rounds} questions, moitié ${from}, moitié ${area}. Pas de cache, seulement ton savoir.`,
     wallReward: (gems, bits, xp, area) =>
@@ -248,8 +250,7 @@ export const fr: Strings = {
       '« Merci, c’était justement la brique qui me manquait. »',
     ],
     hold: ['« Raté. Mon mur est encore intact. »', '« Pas même une égratignure. »'],
-    wallQuota: (n) =>
-      `morph.ai a bâti ce mur avec de l’oubli, et seul le savoir peut l’abattre. Ton réseau n’en sait pas encore assez : réponds encore à ${n === 1 ? 'un nœud' : `${n} nœuds`}, et il sera assez fort pour attaquer.`,
+    wallQuota: (done, need) => `Ton réseau n’en sait pas encore assez : ${done} nœuds sur ${need} résolus.`,
     pushBack: (n) =>
       `morph.ai contre-attaque : ${n === 1 ? 'un nœud près du mur est endommagé' : `${n} nœuds près du mur sont endommagés`}. Répare-${n === 1 ? 'le' : 'les'} avant d’attaquer à nouveau.`,
     pushedBack: (n) =>

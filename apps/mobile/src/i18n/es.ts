@@ -108,8 +108,10 @@ export const es: Strings = {
       `Hasta ${files} archivos por área temática. En una pregunta abres gratis los archivos de su área; tras el intento, esa parte de la caché vuelve a quedar vacía.`,
     firewall: 'Cortafuegos',
     wallBroken: (area) => `Este cortafuegos está roto. Por la brecha, tu red crece hacia ${area}.`,
-    wallFar: (area, steps) =>
-      `Detrás de este muro está ${area}. morph.ai lo levantó. Crece hasta el pie del muro y podrás atacarlo. Distancia: unos ${steps} pasos.`,
+    wallLead: 'morph.ai levantó este muro. Cuando todo esté cumplido, podrás atacar.',
+    checkReach: 'Al pie del muro',
+    checkNodes: 'Nodos respondidos',
+    checkRepair: 'Nodos reparados',
     wallText: (layers, rounds, from, area) =>
       `Tu red está al pie del muro. El cortafuegos tiene ${layers} capas: cada respuesta correcta derriba una, cada fallo deja que morph.ai reconstruya una. Tienes ${rounds} preguntas, la mitad de ${from} y la mitad de ${area}. No hay caché, solo tu saber.`,
     wallReward: (gems, bits, xp, area) =>
@@ -248,8 +250,7 @@ export const es: Strings = {
       '“Gracias, justo me faltaba ese ladrillo.”',
     ],
     hold: ['“Fallaste. Mi muro sigue entero.”', '“Ni un rasguño.”'],
-    wallQuota: (n) =>
-      `morph.ai levantó este muro con olvido, y solo el saber lo derriba. Tu red aún no sabe lo suficiente: responde ${n === 1 ? 'un nodo más' : `${n} nodos más`} y será lo bastante fuerte para atacar.`,
+    wallQuota: (done, need) => `Tu red aún no sabe lo suficiente: ${done} de ${need} nodos respondidos.`,
     pushBack: (n) =>
       `morph.ai contraataca: ${n === 1 ? 'un nodo junto al muro está dañado' : `${n} nodos junto al muro están dañados`}. Repára${n === 1 ? 'lo' : 'los'} antes de volver a atacar.`,
     pushedBack: (n) =>

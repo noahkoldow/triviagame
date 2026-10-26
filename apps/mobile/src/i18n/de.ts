@@ -112,8 +112,11 @@ export const de = {
       `Bis zu ${files} Dateien pro Themengebiet. In einer Frage öffnest du die Dateien ihres Gebiets gratis; nach dem Versuch ist dieser Teil des Caches wieder leer.`,
     firewall: 'Firewall',
     wallBroken: (area: string) => `Diese Firewall ist durchbrochen. Durch die Lücke wächst dein Netz in ${area}.`,
-    wallFar: (area: string, steps: number) =>
-      `Hinter dieser Wand liegt ${area}. morph.ai hat sie hochgezogen. Wachse bis direkt an die Wand, dann kannst du sie angreifen. Entfernung: etwa ${steps} Schritte.`,
+    /** Above the checklist of what a wall needs before a fight (reached, answered nodes, repairs). */
+    wallLead: 'morph.ai hat diese Wand hochgezogen. Ist alles erfüllt, kannst du angreifen.',
+    checkReach: 'An der Wand',
+    checkNodes: 'Knoten beantwortet',
+    checkRepair: 'Knoten repariert',
     wallText: (layers: number, rounds: number, from: string, area: string) =>
       `Dein Netz steht an der Wand. Die Firewall hat ${layers} Schichten: Jede richtige Antwort reißt eine ein, jede falsche lässt morph.ai eine wieder aufbauen. Du hast ${rounds} Fragen, je zur Hälfte aus ${from} und ${area}. Es gibt keinen Cache, nur dein Wissen.`,
     wallReward: (gems: number, bits: number, xp: number, area: string) =>
@@ -254,8 +257,7 @@ export const de = {
     ],
     hold: ['„Daneben. Meine Wand steht noch ganz.“', '„Nicht mal ein Kratzer.“'],
     /** The wall waits until enough nodes are answered (D73). */
-    wallQuota: (n: number) =>
-      `morph.ai hat diese Wand aus Vergessen gebaut, und nur Wissen reißt sie ein. Dein Netz weiß noch nicht genug: Beantworte noch ${n === 1 ? 'einen Knoten' : `${n} Knoten`}, dann ist es stark genug für den Angriff.`,
+    wallQuota: (done: number, need: number) => `Dein Netz weiß noch nicht genug: ${done} von ${need} Knoten beantwortet.`,
     /** morph.ai strikes back after a lost fight at a wall (D72). */
     pushBack: (n: number) =>
       `morph.ai schlägt zurück: ${n === 1 ? 'Ein Knoten an der Wand ist' : `${n} Knoten an der Wand sind`} beschädigt. Repariere ${n === 1 ? 'ihn' : 'sie'}, bevor du wieder angreifst.`,

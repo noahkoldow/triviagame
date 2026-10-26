@@ -108,8 +108,10 @@ export const en: Strings = {
       `Up to ${files} files per topic area. In a question you open the files of its area for free; after the attempt that part of the cache is empty again.`,
     firewall: 'Firewall',
     wallBroken: (area) => `This firewall is broken. Your network grows into ${area} through the gap.`,
-    wallFar: (area, steps) =>
-      `${area} lies behind this wall. morph.ai put it up. Grow right up to the wall and then you can attack it. Distance: about ${steps} steps.`,
+    wallLead: 'morph.ai put up this wall. Once everything is ticked off, you can attack.',
+    checkReach: 'At the wall',
+    checkNodes: 'Nodes answered',
+    checkRepair: 'Nodes repaired',
     wallText: (layers, rounds, from, area) =>
       `Your network stands at the wall. The firewall has ${layers} layers: every right answer tears one down, every wrong one lets morph.ai rebuild one. You have ${rounds} questions, half from ${from} and half from ${area}. There is no cache, only your knowledge.`,
     wallReward: (gems, bits, xp, area) =>
@@ -248,8 +250,7 @@ export const en: Strings = {
       '“Thanks, that was just the brick I was missing.”',
     ],
     hold: ['“Missed. My wall is still whole.”', '“Not even a scratch.”'],
-    wallQuota: (n) =>
-      `morph.ai built this wall out of forgetting, and only knowledge tears it down. Your network does not know enough yet: answer ${n === 1 ? 'one more node' : `${n} more nodes`}, and it will be strong enough to attack.`,
+    wallQuota: (done, need) => `Your network doesn’t know enough yet: ${done} of ${need} nodes answered.`,
     pushBack: (n) =>
       `morph.ai strikes back: ${n === 1 ? 'one node by the wall is' : `${n} nodes by the wall are`} damaged. Repair ${n === 1 ? 'it' : 'them'} before you attack again.`,
     pushedBack: (n) =>

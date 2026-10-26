@@ -43,7 +43,9 @@ import {
   markSeen,
   pendingBeats,
   pushedBack,
+  wallQuota,
   wallQuotaLeft,
+  answeredNodes,
   hallsOf,
   REVEAL_ID,
   fightFrom,
@@ -246,6 +248,7 @@ export default function Home() {
   const wallCost = firewall ? areaCost(firewall.area) : 0;
   const wallPushed = firewall ? pushedBack(network.nodes, firewall) : [];
   const wallQuotaMissing = firewall ? wallQuotaLeft(nodes, firewalls) : 0;
+  const wallAtIt = firewall ? firewallReached(nodes, firewall) : false;
 
   const debrisProp = useMemo(
     () =>
@@ -562,25 +565,37 @@ export default function Home() {
                 <Text style={styles.topic}>{wallArea}</Text>
                 {firewall.broken ? (
                   <Text style={styles.fragText}>{t.map.wallBroken(wallArea)}</Text>
-                ) : !firewallReached(nodes, firewall) ? (
-                  // the network has to grow right up to the wall first
-                  <Text style={styles.fragText}>{t.map.wallFar(wallArea, firewallSteps(nodes, firewall))}</Text>
-                ) : wallQuotaMissing > 0 ? (
-                  // reached, but morph.ai only lets a network with enough answered nodes at its walls (D73)
-                  <Text style={styles.fragText}>{t.boss.wallQuota(wallQuotaMissing)}</Text>
-                ) : wallPushed.length > 0 ? (
-                  // morph.ai struck back after the last lost fight: those nodes need their repair first
+                ) : !wallAtIt || wallQuotaMissing > 0 || wallPushed.length > 0 ? (
+                  // what the wall still needs, as counters: reach it, enough answered nodes (D73) and,
+                  // after a lost fight, the repairs of the nodes morph.ai damaged (D72)
                   <>
-                    <Text style={styles.fragText}>{t.boss.pushedBack(wallPushed.length)}</Text>
-                    <Button
-                      label={t.map.showDamaged}
-                      onPress={() => {
-                        setFirewallId(null);
-                        setHighlight(wallPushed);
-                        focus(wallPushed[0]!);
-                        setTimeout(() => setHighlight([]), 6000);
-                      }}
-                    />
+                    <Text style={styles.cardSub}>{t.map.wallLead}</Text>
+                    <View style={styles.checks}>
+                      <Check label={t.map.checkReach} done={wallAtIt} value={wallAtIt ? '✓' : t.map.stepsLeft(firewallSteps(nodes, firewall))} />
+                      <Check
+                        label={t.map.checkNodes}
+                        done={wallQuotaMissing === 0}
+                        value={`${Math.min(answeredNodes(nodes).length, wallQuota(firewalls))} / ${wallQuota(firewalls)}`}
+                      />
+                      {wallPushed.length > 0 ? (
+                        <Check
+                          label={t.map.checkRepair}
+                          done={false}
+                          value={`${(firewall.pushed ?? []).length - wallPushed.length} / ${(firewall.pushed ?? []).length}`}
+                        />
+                      ) : null}
+                    </View>
+                    {wallPushed.length > 0 ? (
+                      <Button
+                        label={t.map.showDamaged}
+                        onPress={() => {
+                          setFirewallId(null);
+                          setHighlight(wallPushed);
+                          focus(wallPushed[0]!);
+                          setTimeout(() => setHighlight([]), 6000);
+                        }}
+                      />
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -823,6 +838,16 @@ export default function Home() {
   );
 }
 
+/** One line of a wall's checklist: what it needs and how far the player is. */
+function Check({ label, value, done }: { label: string; value: string; done: boolean }) {
+  return (
+    <View style={styles.check} accessible accessibilityLabel={`${label}: ${value}`}>
+      <Text style={styles.checkLabel}>{label}</Text>
+      <Text style={[styles.checkValue, done && { color: colors.good }]}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, paddingTop: 6, gap: 8 },
@@ -868,6 +893,10 @@ const styles = StyleSheet.create({
   cardLabel: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 1.3 },
   cardSub: { color: colors.dim, fontSize: 14 },
   fragText: { color: colors.text, fontSize: 18, lineHeight: 26 },
+  checks: { gap: 6 },
+  check: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  checkLabel: { color: colors.text, fontSize: 16, flexShrink: 1 },
+  checkValue: { color: colors.dim, fontSize: 16, fontWeight: '900', fontVariant: ['tabular-nums'] },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', padding: 12 },
   sheet: {
     backgroundColor: colors.panel,

@@ -123,6 +123,11 @@ Spielbar in Expo Go (Mock-Daten):
 - **Nicht deployed:** `report`, `topUpPools`, die neuen TTL-Regeln und das neue `league` (Deckel, `expiresAt`). Bis zum Deploy meldet die App ins Leere (404, wird ignoriert).
 - **Ungeprüft auf Gerät:** RevenueCat-Kauf und -Wiederherstellen (Sandbox), Melde-Fenster, Hinweis bei leerem Pool, Absturz-Bildschirm.
 
+## Prototyp 0.18 (Zähler statt Erklärtext, D75)
+
+- **Firewall-Fenster als Checkliste:** Statt Absätzen ein Satz und Zähler: „An der Wand“ (✓ oder „noch etwa N Schritte“), „Knoten beantwortet 12 / 15“ und nach einem verlorenen Kampf „Knoten repariert 1 / 2“. Erfüllte Punkte leuchten grün, alle Bedingungen sind gleichzeitig sichtbar.
+- **Ungeprüft auf Gerät:** Zeilenbreite der Checkliste in FR/ES.
+
 ## Verifiziert
 
 `pnpm typecheck` (shared, functions, mobile), `pnpm test` (253 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions`, `league`, `report` und `topUpPools`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).

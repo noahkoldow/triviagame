@@ -33,7 +33,9 @@ import {
   storyFacts,
   strikeWall,
   timeOutWall,
+  wallQuota,
   wallQuotaLeft,
+  answeredNodes,
   wallAlly,
   wallFightState,
   wallVoices,
@@ -86,7 +88,7 @@ export default function BossScreen() {
         : !firewallReached(Object.values(getState().network.nodes), fw)
           ? t.boss.notReached
           : wallQuotaLeft(Object.values(getState().network.nodes), getState().network.firewalls) > 0
-            ? t.boss.wallQuota(wallQuotaLeft(Object.values(getState().network.nodes), getState().network.firewalls))
+            ? t.boss.wallQuota(answeredNodes(Object.values(getState().network.nodes)).length, wallQuota(getState().network.firewalls))
             : pushedBack(getState().network.nodes, fw).length > 0
               ? t.boss.pushedBack(pushedBack(getState().network.nodes, fw).length)
               : null;
