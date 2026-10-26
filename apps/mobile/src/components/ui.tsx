@@ -154,7 +154,20 @@ export function Pill({ label, color }: { label: string; color: string }) {
   );
 }
 
+/** One line of a checklist: a measurable condition and how far the player is ("12 / 15", green once met). */
+export function Check({ label, value, done }: { label: string; value: string; done: boolean }) {
+  return (
+    <View style={styles.check} accessible accessibilityLabel={`${label}: ${value}`}>
+      <Text style={styles.checkLabel}>{label}</Text>
+      <Text style={[styles.checkValue, done && { color: colors.good }]}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  check: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  checkLabel: { color: colors.text, fontSize: 16, flexShrink: 1 },
+  checkValue: { color: colors.dim, fontSize: 16, fontWeight: '900', fontVariant: ['tabular-nums'] },
   btn: {
     minHeight: 44,
     paddingHorizontal: 14,

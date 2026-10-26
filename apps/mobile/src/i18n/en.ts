@@ -207,7 +207,10 @@ export const en: Strings = {
   },
 
   boss: {
-    finaleClosed: 'The finale only opens once all starting nodes are solved, all guardians are awake and all firewalls are broken.',
+    finaleClosed: 'The finale opens once everything is ticked off.',
+    finaleRoots: 'Starting nodes solved',
+    finaleGuardians: 'Guardians awake',
+    finaleWalls: 'Firewalls broken',
     noFirewall: 'This firewall does not exist.',
     alreadyBroken: 'This firewall is already broken.',
     notReached: 'Your network isn’t at this wall yet. Grow right up to it and then you can attack it.',
@@ -424,8 +427,9 @@ export const en: Strings = {
     defaultName: 'Rebuilder',
     network: 'Connectedness',
     networkLine: (n: number, total: number, pct: number) => `${n} of ${total} synapses · +${pct} % XP and bits on every answer`,
-    networkEmpty: (need: number) =>
-      `No synapse yet. Solve ${need} nodes in each of two related areas, then you can connect them on the map.`,
+    networkEmpty: 'No synapse yet. Your nearest related pair:',
+    networkReady: 'Ready: connect the two on the map.',
+    networkNone: 'No synapse yet. Open an area related to one of yours.',
   },
 
   settings: {

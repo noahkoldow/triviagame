@@ -207,7 +207,10 @@ export const fr: Strings = {
   },
 
   boss: {
-    finaleClosed: 'La finale ne s’ouvre qu’une fois tous les nœuds de départ résolus, tous les gardiens éveillés et tous les pare-feu brisés.',
+    finaleClosed: 'La finale s’ouvre dès que tout est rempli.',
+    finaleRoots: 'Nœuds de départ résolus',
+    finaleGuardians: 'Gardiens éveillés',
+    finaleWalls: 'Pare-feu brisés',
     noFirewall: 'Ce pare-feu n’existe pas.',
     alreadyBroken: 'Ce pare-feu est déjà brisé.',
     notReached: 'Ton réseau n’est pas encore au pied de ce mur. Avance jusqu’à lui, puis tu pourras l’attaquer.',
@@ -425,8 +428,9 @@ export const fr: Strings = {
     defaultName: 'Reconstructeur',
     network: 'Connectivité',
     networkLine: (n: number, total: number, pct: number) => `${n} synapses sur ${total} · +${pct} % d’XP et de bits sur chaque réponse`,
-    networkEmpty: (need: number) =>
-      `Pas encore de synapse. Résous ${need} nœuds dans chacun de deux domaines voisins, puis relie-les sur la carte.`,
+    networkEmpty: 'Pas encore de synapse. Ta paire voisine la plus proche :',
+    networkReady: 'Prêt : relie les deux sur la carte.',
+    networkNone: 'Pas encore de synapse. Ouvre un domaine voisin de l’un des tiens.',
   },
 
   settings: {

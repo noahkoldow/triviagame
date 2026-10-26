@@ -212,7 +212,11 @@ export const de = {
   },
 
   boss: {
-    finaleClosed: 'Das Finale öffnet sich erst, wenn alle Startknoten gelöst, alle Hüter wach und alle Firewalls gebrochen sind.',
+    /** Above the counters of what the finale needs (D75). */
+    finaleClosed: 'Das Finale öffnet sich, sobald alles erfüllt ist.',
+    finaleRoots: 'Startknoten gelöst',
+    finaleGuardians: 'Hüter wach',
+    finaleWalls: 'Firewalls gebrochen',
     noFirewall: 'Diese Firewall gibt es nicht.',
     alreadyBroken: 'Diese Firewall ist bereits gebrochen.',
     notReached: 'Dein Netz steht noch nicht an dieser Wand. Wachse bis direkt an sie heran, dann kannst du sie angreifen.',
@@ -435,8 +439,9 @@ export const de = {
     defaultName: 'Rekonstrukteur',
     network: 'Vernetzung',
     networkLine: (n: number, total: number, pct: number) => `${n} von ${total} Synapsen · +${pct} % XP und Bits auf jede Antwort`,
-    networkEmpty: (need: number) =>
-      `Noch keine Synapse. Löse in zwei verwandten Bereichen je ${need} Knoten, dann kannst du sie auf der Karte verbinden.`,
+    networkEmpty: 'Noch keine Synapse. Dein nächstes verwandtes Paar:',
+    networkReady: 'Bereit: Verbinde die beiden auf der Karte.',
+    networkNone: 'Noch keine Synapse. Öffne einen Bereich, der mit einem deiner Bereiche verwandt ist.',
   },
 
   settings: {

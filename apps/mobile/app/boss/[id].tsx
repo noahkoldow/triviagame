@@ -31,6 +31,7 @@ import {
   sectorOfArea,
   startWallFight,
   storyFacts,
+  SECTORS,
   strikeWall,
   timeOutWall,
   wallQuota,
@@ -51,7 +52,7 @@ import { FirewallScene } from '../../src/components/FirewallScene';
 import { Guardian } from '../../src/components/Guardian';
 import { Morph, type MorphForm } from '../../src/components/Morph';
 import { QuestionView } from '../../src/components/QuestionView';
-import { Button, Card, Chip, H1, P, Pill, tap } from '../../src/components/ui';
+import { Button, Card, Check, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { WIN, Window } from '../../src/components/Win';
 import { pool } from '../../src/services/content';
 import { setRecentlySpawned } from '../../src/state/session';
@@ -105,6 +106,7 @@ export default function BossScreen() {
         <ScrollView contentContainerStyle={styles.body}>
           <Window title={isSynapse ? t.boss.synapse : isFinale ? t.boss.core : t.boss.firewall} icon="warn" onClose={() => router.back()}>
             <P>{reason}</P>
+            {isFinale && reason === t.boss.finaleClosed ? <FinaleChecks /> : null}
             <Button label={t.common.back} onPress={() => router.back()} />
           </Window>
         </ScrollView>
@@ -125,6 +127,25 @@ const pick = (lines: readonly string[], n: number) => lines[n % lines.length]!;
  * questions are left than layers stand (`wallFightState`), or when its one clock runs out (D71).
  * The guardian of the sector, once awake, fights beside Bolt and reacts to every answer.
  */
+/** What the finale still needs, as counters: starting nodes, guardians, firewalls won in a fight (D75). */
+function FinaleChecks() {
+  const t = useStrings();
+  const f = useGame((p) => storyFacts(p, pool));
+  const all = SECTORS.length;
+  const rows: [string, number][] = [
+    [t.boss.finaleRoots, f.roots],
+    [t.boss.finaleGuardians, f.awake.length],
+    [t.boss.finaleWalls, f.broken],
+  ];
+  return (
+    <View style={{ gap: 6 }}>
+      {rows.map(([label, n]) => (
+        <Check key={label} label={label} done={n >= all} value={`${Math.min(n, all)} / ${all}`} />
+      ))}
+    </View>
+  );
+}
+
 function WallFightView({ fwId }: { fwId: string }) {
   const router = useRouter();
   const t = useStrings();

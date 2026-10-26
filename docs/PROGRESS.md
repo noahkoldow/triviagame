@@ -126,6 +126,8 @@ Spielbar in Expo Go (Mock-Daten):
 ## Prototyp 0.18 (Zähler statt Erklärtext, D75)
 
 - **Firewall-Fenster als Checkliste:** Statt Absätzen ein Satz und Zähler: „An der Wand“ (✓ oder „noch etwa N Schritte“), „Knoten beantwortet 12 / 15“ und nach einem verlorenen Kampf „Knoten repariert 1 / 2“. Erfüllte Punkte leuchten grün, alle Bedingungen sind gleichzeitig sichtbar.
+- **Synapsen im Profil:** ohne Synapse das nächste offene verwandte Paar als Zähler („Physik 3 / 4 · Biomedizin 2 / 4“), voll: „Bereit: Verbinde die beiden auf der Karte.“
+- **Finale:** ist es noch zu, drei Zähler (Startknoten, Hüter, Firewalls je x / 4) statt eines Satzes.
 - **Ungeprüft auf Gerät:** Zeilenbreite der Checkliste in FR/ES.
 
 ## Verifiziert

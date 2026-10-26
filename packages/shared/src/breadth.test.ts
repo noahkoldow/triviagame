@@ -24,6 +24,7 @@ import {
   synapseId,
   synapsePair,
   synapseQuestions,
+  synapseProgress,
   synapseSpots,
   varied,
   wallsInSight,
@@ -86,6 +87,16 @@ describe('synapses', () => {
     // an area that is not open does not count
     expect(synapseSpots(withSolved(initialPlayer(pool), [...PHYSICS, ...BIO]), pool)).toEqual([]);
     expect(storyFacts(p, pool).synapseReady).toBe(1);
+  });
+
+  it('count towards the nearest open pair', () => {
+    const p = readyPair();
+    expect(synapseProgress(p, pool)).toEqual({ a: 'physics', b: 'biomedicine', na: SYNAPSE_NEED, nb: SYNAPSE_NEED });
+    const fewer = withSolved({ ...initialPlayer(pool), unlockedAreas: p.unlockedAreas }, [...PHYSICS.slice(0, 2), BIO[0]!]);
+    expect(synapseProgress(fewer, pool)).toEqual({ a: 'physics', b: 'biomedicine', na: 2, nb: 1 });
+    // a pair whose second area is still closed does not count
+    const closed = withSolved(initialPlayer(pool), PHYSICS);
+    expect(synapseProgress(closed, pool)?.b).not.toBe('biomedicine');
   });
 
   it('probe with questions already solved in both areas, in turns, deterministic', () => {

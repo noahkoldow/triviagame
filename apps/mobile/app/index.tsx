@@ -72,7 +72,7 @@ import { CacheFiles } from '../src/components/CacheFiles';
 import { StoryDialog } from '../src/components/StoryDialog';
 import { cacheActionFor, cacheItems, cacheKey, structureView } from '../src/state/folders';
 import { Dialog, Window } from '../src/components/Win';
-import { Button, Pill, tap } from '../src/components/ui';
+import { Button, Check, Pill, tap } from '../src/components/ui';
 import { NetMap } from '../src/map/NetMap';
 import type { Shard } from '../src/map/NodeViews';
 import { pool } from '../src/services/content';
@@ -838,16 +838,6 @@ export default function Home() {
   );
 }
 
-/** One line of a wall's checklist: what it needs and how far the player is. */
-function Check({ label, value, done }: { label: string; value: string; done: boolean }) {
-  return (
-    <View style={styles.check} accessible accessibilityLabel={`${label}: ${value}`}>
-      <Text style={styles.checkLabel}>{label}</Text>
-      <Text style={[styles.checkValue, done && { color: colors.good }]}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, paddingTop: 6, gap: 8 },
@@ -894,9 +884,6 @@ const styles = StyleSheet.create({
   cardSub: { color: colors.dim, fontSize: 14 },
   fragText: { color: colors.text, fontSize: 18, lineHeight: 26 },
   checks: { gap: 6 },
-  check: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  checkLabel: { color: colors.text, fontSize: 16, flexShrink: 1 },
-  checkValue: { color: colors.dim, fontSize: 16, fontWeight: '900', fontVariant: ['tabular-nums'] },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', padding: 12 },
   sheet: {
     backgroundColor: colors.panel,

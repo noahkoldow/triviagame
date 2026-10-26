@@ -90,6 +90,22 @@ export function synapseSpots(p: PlayerState, pool: Pool, today = ''): SynapseSpo
   return out;
 }
 
+/**
+ * The open pair nearest to a synapse, for a counter ("Physik 3 / 4 · Bio 2 / 4"): both areas open,
+ * not joined yet, the most solved nodes towards `SYNAPSE_NEED` (each capped there). None open: undefined.
+ */
+export function synapseProgress(p: PlayerState, pool: Pool): { a: string; b: string; na: number; nb: number } | undefined {
+  const joined = new Set((p.network.synapses ?? []).map((s) => s.id));
+  let best: { a: string; b: string; na: number; nb: number } | undefined;
+  for (const [a, b] of AREA_LINKS) {
+    if (joined.has(synapseId(a, b)) || !p.unlockedAreas.includes(a) || !p.unlockedAreas.includes(b)) continue;
+    const na = Math.min(SYNAPSE_NEED, solvedIn(p.network, pool, a).length);
+    const nb = Math.min(SYNAPSE_NEED, solvedIn(p.network, pool, b).length);
+    if (!best || na + nb > best.na + best.nb) best = { a, b, na, nb };
+  }
+  return best;
+}
+
 /** How much more every answer pays for the synapses (0.05 each). */
 export function networkBonus(p: PlayerState): number {
   return SYNAPSE_BONUS * (p.network.synapses?.length ?? 0);

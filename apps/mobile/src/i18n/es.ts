@@ -207,7 +207,10 @@ export const es: Strings = {
   },
 
   boss: {
-    finaleClosed: 'La final solo se abre cuando todos los nodos iniciales están resueltos, todos los guardianes despiertos y todos los cortafuegos rotos.',
+    finaleClosed: 'La final se abre cuando todo esté cumplido.',
+    finaleRoots: 'Nodos iniciales resueltos',
+    finaleGuardians: 'Guardianes despiertos',
+    finaleWalls: 'Cortafuegos rotos',
     noFirewall: 'Este cortafuegos no existe.',
     alreadyBroken: 'Este cortafuegos ya está roto.',
     notReached: 'Tu red todavía no ha llegado a este muro. Crece hasta su pie y podrás atacarlo.',
@@ -425,8 +428,9 @@ export const es: Strings = {
     defaultName: 'Reconstructor',
     network: 'Conectividad',
     networkLine: (n: number, total: number, pct: number) => `${n} de ${total} sinapsis · +${pct} % de XP y bits en cada respuesta`,
-    networkEmpty: (need: number) =>
-      `Todavía ninguna sinapsis. Resuelve ${need} nodos en cada una de dos áreas relacionadas y conéctalas en el mapa.`,
+    networkEmpty: 'Todavía ninguna sinapsis. Tu par relacionado más cercano:',
+    networkReady: 'Listo: conecta los dos en el mapa.',
+    networkNone: 'Todavía ninguna sinapsis. Abre un área relacionada con una de las tuyas.',
   },
 
   settings: {

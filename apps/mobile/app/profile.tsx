@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AREA_LINKS, SECTORS, SYNAPSE_NEED, areaName, footprint, levelFromXp, networkBonus } from '@nexus/shared';
+import { AREA_LINKS, SECTORS, SYNAPSE_NEED, areaName, footprint, levelFromXp, networkBonus, synapseProgress } from '@nexus/shared';
 import { useWindowDimensions } from 'react-native';
 import { Bolt } from '../src/components/Bolt';
 import { Radar } from '../src/components/Radar';
-import { BackBar, Button, Card, H1, P } from '../src/components/ui';
+import { BackBar, Button, Card, Check, H1, P } from '../src/components/ui';
 import { pool } from '../src/services/content';
 import { leagueApi } from '../src/services/league';
 import { getState, resetGame, useGame } from '../src/state/store';
@@ -26,6 +26,7 @@ export default function Profile() {
   const chartSize = Math.min(width - 24 - 28 - 6, 380);
   const state = useGame((p) => p);
   const areas = footprint(state, pool);
+  const next = synapseProgress(state, pool);
   const axes = areas.map((x) => ({
     // short axis labels, so all areas fit around the chart
     label: t.profile.short[x.area] ?? areaName(x.area, t.lang),
@@ -81,8 +82,15 @@ export default function Profile() {
                 </Text>
               ))}
             </>
+          ) : next ? (
+            // the nearest open pair as counters (D75)
+            <>
+              <P>{next.na + next.nb === 2 * SYNAPSE_NEED ? t.profile.networkReady : t.profile.networkEmpty}</P>
+              <Check label={areaName(next.a, t.lang)} done={next.na === SYNAPSE_NEED} value={`${next.na} / ${SYNAPSE_NEED}`} />
+              <Check label={areaName(next.b, t.lang)} done={next.nb === SYNAPSE_NEED} value={`${next.nb} / ${SYNAPSE_NEED}`} />
+            </>
           ) : (
-            <P>{t.profile.networkEmpty(SYNAPSE_NEED)}</P>
+            <P>{t.profile.networkNone}</P>
           )}
         </Card>
 
