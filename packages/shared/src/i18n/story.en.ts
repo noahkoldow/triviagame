@@ -12,7 +12,11 @@ export const STORY_EN: StoryText = {
     restart: { title: 'Restart', goal: 'Solve the four starting nodes' },
     guardians: { title: 'The guardians', goal: (n) => `Wake the four guardians: ${n} solved nodes per sector` },
     firewalls: { title: 'The firewalls', goal: 'Grow out to the firewall and break open four areas' },
-    finale: { title: 'The grand recap', goal: 'Face morph.ai in the core' },
+    finale: {
+      title: 'The grand recap',
+      goal: 'Face morph.ai in the core',
+      prepare: (n, a) => `Answer ${n} nodes in each of all ${a} areas`,
+    },
     endless: {
       title: 'Endless',
       connect: (n) => `Connect all ${n} areas`,
@@ -275,4 +279,10 @@ export const STORY_EN: StoryText = {
     },
   },
   wallBolt: 'The guardian of this sector is still asleep. Then it is just the two of us: every right answer is one stone less!',
+  finalePhases: {
+    science: 'Formulas, measurements, experiments. What for? I always gave you the result right away. Show me you know it yourself.',
+    earth: 'Countries, rivers, climate zones. You used to ask me for every way. Can you find it alone now?',
+    humanities: 'History, art, language: I summed them up for you, crown included. What is left of them when I fall silent?',
+    society: 'E-e-error. Law, economy, politics, this is my last layer. Break it, and I will never think for you again.',
+  },
 };

@@ -45,6 +45,10 @@ export const GUARDIANS: Record<Sector, { id: GuardianId; name: string }> = {
 /** Solved nodes in a sector that wake its guardian. */
 export const GUARDIAN_WAKE = 3;
 
+/** Before the finale opens, this many areas (all twelve) need this many answered nodes each (D76). */
+export const FINALE_AREAS = 12;
+export const FINALE_AREA_NODES = 3;
+
 /** Everything the story says, in one language. */
 export interface StoryText {
   guardianTitles: Record<GuardianId, string>;
@@ -52,7 +56,7 @@ export interface StoryText {
     restart: { title: string; goal: string };
     guardians: { title: string; goal: (wake: number) => string };
     firewalls: { title: string; goal: string };
-    finale: { title: string; goal: string };
+    finale: { title: string; goal: string; prepare: (nodes: number, areas: number) => string };
     endless: { title: string; connect: (areas: number) => string; milestone: (next: number) => string };
   };
   /** By beat id; a beat that leaves a log file has `log` in every language. */
@@ -68,6 +72,8 @@ export interface StoryText {
   walls: Record<string, { morph: string; guardian: string }>;
   /** Bolt's answer while the guardian of the sector still sleeps. */
   wallBolt: string;
+  /** What morph.ai says at the start of each phase of the final duel, by its sector (D76). */
+  finalePhases: Record<Sector, string>;
 }
 
 export const STORY_TEXT: Record<Lang, StoryText> = { de: STORY_DE, en: STORY_EN, fr: STORY_FR, es: STORY_ES };
@@ -100,6 +106,8 @@ export interface StoryFacts {
   damaged: number;
   /** Firewalls broken in a fight (bought gaps do not count). */
   broken: number;
+  /** Areas with at least `FINALE_AREA_NODES` answered nodes. */
+  areasReady: number;
   /** A standing firewall has come out of the fog (a node is within `WALL_SIGHT` cells of it). */
   wallSeen: boolean;
   /** Open topic areas. */
@@ -127,6 +135,7 @@ export function leagueIsNew(p: PlayerState): boolean {
 
 export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
   const bySector: Record<Sector, number> = { science: 0, earth: 0, humanities: 0, society: 0 };
+  const byArea = new Map<string, number>();
   let solved = 0;
   let roots = 0;
   let damaged = 0;
@@ -135,8 +144,11 @@ export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
     solved++;
     if (n.kind === 'root') roots++;
     if (n.state === 'damaged') damaged++;
-    bySector[sectorOfArea(pool.get(n.questionId).area)]++;
+    const area = pool.get(n.questionId).area;
+    bySector[sectorOfArea(area)]++;
+    byArea.set(area, (byArea.get(area) ?? 0) + 1);
   }
+  const areasReady = [...byArea.values()].filter((x) => x >= FINALE_AREA_NODES).length;
   const awake = SECTORS.filter((s) => bySector[s] >= GUARDIAN_WAKE);
   const firewalls = p.network.firewalls ?? [];
   const broken = firewalls.filter((f) => f.broken && !f.bought).length;
@@ -150,13 +162,15 @@ export function storyFacts(p: PlayerState, pool: Pool): StoryFacts {
     awake,
     damaged,
     broken,
+    areasReady,
     wallSeen,
     connected: p.unlockedAreas.length,
     synapses: p.network.synapses?.length ?? 0,
     synapseReady: synapseSpots(p, pool).length,
     integrity: p.integrity,
     finale,
-    finaleOpen: !finale && roots >= SECTORS.length && awake.length === SECTORS.length && broken >= SECTORS.length,
+    finaleOpen:
+      !finale && roots >= SECTORS.length && awake.length === SECTORS.length && broken >= SECTORS.length && areasReady >= FINALE_AREAS,
     revealed: p.story.seen.includes(REVEAL_ID),
   };
 }
@@ -183,8 +197,12 @@ export function chapterOf(f: StoryFacts, lang: Lang): Chapter {
   if (f.broken < SECTORS.length) {
     return { n: 3, ...c.firewalls, done: f.broken, total: SECTORS.length };
   }
+  // the great recap: knowledge in every area first, then the duel
+  if (!f.finale && f.areasReady < FINALE_AREAS) {
+    return { n: 4, title: c.finale.title, goal: c.finale.prepare(FINALE_AREA_NODES, FINALE_AREAS), done: f.areasReady, total: FINALE_AREAS };
+  }
   if (!f.finale) {
-    return { n: 4, ...c.finale, done: 0, total: 1, finale: true };
+    return { n: 4, title: c.finale.title, goal: c.finale.goal, done: 0, total: 1, finale: true };
   }
   // the story's climax is not the end: the archive keeps growing, and so do the goals
   if (f.connected < AREAS.length) {
@@ -373,6 +391,11 @@ export function wallVoices(
  * What a guardian says in a wall fight after an answer: `hit` for a right one, `hurt` when
  * morph.ai's noise strikes back, `breach` when the wall falls. `n` picks among the lines.
  */
+/** morph.ai's words at the start of a phase of the final duel (D76). */
+export function finalePhaseLine(lang: Lang, sector: Sector): string {
+  return STORY_TEXT[lang].finalePhases[sector];
+}
+
 export function guardianFightLine(lang: Lang, who: GuardianId, kind: 'hit' | 'hurt' | 'breach', n: number): string {
   const words = STORY_TEXT[lang].guardianFight[who];
   if (kind === 'breach') return words.breach;

@@ -1,19 +1,25 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BOSS_REWARD,
   FIREWALL_HP,
   FIREWALL_ROUNDS,
+  FINALE_AREA_NODES,
+  FINALE_AREAS,
   FINALE_ID,
-  FINALE_PASS,
+  FINALE_PHASE_PASS,
+  FINALE_PHASE_QUESTIONS,
   FINALE_REWARD,
+  GUARDIANS,
   areaName,
   bossQuestions,
   fightClock,
   fightFrom,
-  finaleQuestions,
+  finalePhaseLine,
+  finalePhaseState,
+  finalePhases,
   firewallReached,
   guardianFightLine,
   isCorrect,
@@ -42,11 +48,13 @@ import {
   wallVoices,
   type Answer,
   type BossOutcome,
+  type FinalePhase,
   type GuardianId,
   type WallFight,
   type WallHit,
 } from '@nexus/shared';
 import { Bolt, type Mood } from '../../src/components/Bolt';
+import { CacheExplorer } from '../../src/components/CacheExplorer';
 import { ClockBar, formatClock, useFightClock, useScreenReader } from '../../src/components/FightClock';
 import { FirewallScene } from '../../src/components/FirewallScene';
 import { Guardian } from '../../src/components/Guardian';
@@ -55,6 +63,7 @@ import { QuestionView } from '../../src/components/QuestionView';
 import { Button, Card, Check, Chip, H1, P, Pill, tap } from '../../src/components/ui';
 import { WIN, Window } from '../../src/components/Win';
 import { pool } from '../../src/services/content';
+import { structureView } from '../../src/state/folders';
 import { setRecentlySpawned } from '../../src/state/session';
 import { getState, today, update, useGame } from '../../src/state/store';
 import { useStrings } from '../../src/strings';
@@ -115,7 +124,7 @@ export default function BossScreen() {
   }
   if (isSynapse) return <Fight synId={id} />;
   if (!isFinale) return <WallFightView fwId={id} />;
-  return <Fight />;
+  return <FinaleFight />;
 }
 
 /** Picks one of a few lines, so the same event does not always say the same thing. */
@@ -127,20 +136,21 @@ const pick = (lines: readonly string[], n: number) => lines[n % lines.length]!;
  * questions are left than layers stand (`wallFightState`), or when its one clock runs out (D71).
  * The guardian of the sector, once awake, fights beside Bolt and reacts to every answer.
  */
-/** What the finale still needs, as counters: starting nodes, guardians, firewalls won in a fight (D75). */
+/** What the finale still needs, as counters: starting nodes, guardians, firewalls won in a fight, areas (D75, D76). */
 function FinaleChecks() {
   const t = useStrings();
   const f = useGame((p) => storyFacts(p, pool));
   const all = SECTORS.length;
-  const rows: [string, number][] = [
-    [t.boss.finaleRoots, f.roots],
-    [t.boss.finaleGuardians, f.awake.length],
-    [t.boss.finaleWalls, f.broken],
+  const rows: [string, number, number][] = [
+    [t.boss.finaleRoots, f.roots, all],
+    [t.boss.finaleGuardians, f.awake.length, all],
+    [t.boss.finaleWalls, f.broken, all],
+    [t.boss.finaleAreas(FINALE_AREA_NODES), f.areasReady, FINALE_AREAS],
   ];
   return (
     <View style={{ gap: 6 }}>
-      {rows.map(([label, n]) => (
-        <Check key={label} label={label} done={n >= all} value={`${Math.min(n, all)} / ${all}`} />
+      {rows.map(([label, n, need]) => (
+        <Check key={label} label={label} done={n >= need} value={`${Math.min(n, need)} / ${need}`} />
       ))}
     </View>
   );
@@ -381,39 +391,24 @@ function WallFightView({ fwId }: { fwId: string }) {
   );
 }
 
-/** A synapse probe (`synId`) or, without one, the final duel against morph.ai, which runs on one clock (D71). */
-function Fight({ synId }: { synId?: string }) {
+/** A synapse probe: questions already solved in two related areas, asked from memory without a clock. */
+function Fight({ synId }: { synId: string }) {
   const router = useRouter();
   const t = useStrings();
-  const finaleAttempts = useGame((p) => p.story.finaleAttempts);
-  const finale = !synId;
-  const pair = synId ? synapsePair(synId) : undefined;
-  // the questions are fixed when the fight starts (a lost fight raises the attempt count)
-  const attempt = useMemo(
-    () => (synId ? (getState().network.synapseTries?.[synId]?.attempts ?? 0) : finaleAttempts),
-    [synId], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const questions = useMemo(
-    () => (synId ? synapseQuestions(getState(), pool, synId) : finaleQuestions(pool, attempt, getState().skill)),
-    [synId, attempt], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const pass = finale ? FINALE_PASS : SYNAPSE_PASS;
-  const reward = finale ? FINALE_REWARD : SYNAPSE_REWARD;
+  const pair = synapsePair(synId);
+  // the questions are fixed when the probe starts (a lost probe raises the attempt count)
+  const attempt = useMemo(() => getState().network.synapseTries?.[synId]?.attempts ?? 0, [synId]);
+  const questions = useMemo(() => synapseQuestions(getState(), pool, synId), [synId]);
   const [i, setI] = useState(0);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [checked, setChecked] = useState(false);
   const [right, setRight] = useState(0);
   const [marks, setMarks] = useState<boolean[]>([]);
   const [outcome, setOutcome] = useState<BossOutcome | null>(null);
-  // the finale has one clock for all questions; a probe asks from memory without one
-  const [started, setStarted] = useState(!finale);
-  const [timedOut, setTimedOut] = useState(false);
-  const screenReader = useScreenReader();
-  const total = useMemo(() => fightClock(questions, screenReader), [questions, screenReader]);
 
   const q = questions[i];
   const sector = q ? sectorOfArea(q.area) : 'science';
-  const title = pair ? t.boss.synapseTitle(areaName(pair[0], t.lang), areaName(pair[1], t.lang)) : t.boss.coreTitle;
+  const title = pair ? t.boss.synapseTitle(areaName(pair[0], t.lang), areaName(pair[1], t.lang)) : t.boss.synapse;
 
   const check = () => {
     if (!q || !answer) return;
@@ -425,11 +420,8 @@ function Fight({ synId }: { synId?: string }) {
   };
 
   const finish = () => {
-    const r: BossOutcome = synId
-      ? { ...recordSynapse(getState(), pool, synId, right, today()), spawned: [], areas: [] }
-      : { ...recordFinale(getState(), pool, right), spawned: [], areas: [] };
+    const r: BossOutcome = { ...recordSynapse(getState(), pool, synId, right, today()), spawned: [], areas: [] };
     update(() => r.player);
-    if (r.passed) setRecentlySpawned(r.spawned);
     tap(r.passed ? 'success' : 'error');
     setOutcome(r);
   };
@@ -444,116 +436,54 @@ function Fight({ synId }: { synId?: string }) {
     finish();
   };
 
-  // the open question counts as wrong; what was right so far decides
-  const left = useFightClock(total, finale && started && !checked && !outcome, () => {
-    setTimedOut(true);
-    finish();
-  });
-
   if (outcome) {
-    const g = getState();
     return (
       <SafeAreaView style={styles.root}>
         <ScrollView contentContainerStyle={styles.body}>
           <Window
-            title={
-              synId
-                ? outcome.passed
-                  ? t.boss.synapseJoined
-                  : t.boss.synapseHolds
-                : outcome.passed
-                  ? t.boss.beaten
-                  : t.boss.morphHolds
-            }
+            title={outcome.passed ? t.boss.synapseJoined : t.boss.synapseHolds}
             icon={outcome.passed ? 'check' : 'warn'}
             onClose={() => router.back()}
           >
             {outcome.passed ? (
               <>
                 <H1>{t.boss.through}</H1>
-                <P style={{ color: colors.text }}>
-                  {pair
-                    ? t.boss.synapseWon(
-                        right,
-                        questions.length,
-                        areaName(pair[0], t.lang),
-                        areaName(pair[1], t.lang),
-                        Math.round(networkBonus(getState()) * 100),
-                      )
-                    : t.boss.finaleWon(right, questions.length)}
-                </P>
-                <View style={styles.row}>
-                  <Chip label={`+${reward.xp} XP`} color={colors.accent} />
-                  <Chip icon="bit" label={`+${reward.bits}`} color={colors.bit} />
-                  <Chip icon="gem" label={`+${reward.gems}`} color={colors.gem} />
-                </View>
-                {outcome.areas.map((a) => (
-                  <Card key={a} style={{ borderColor: colors.primary }}>
-                    <P style={{ color: colors.primary }}>{t.common.newArea(areaName(a, t.lang))}</P>
-                  </Card>
-                ))}
+                {pair ? (
+                  <P style={{ color: colors.text }}>
+                    {t.boss.synapseWon(
+                      right,
+                      questions.length,
+                      areaName(pair[0], t.lang),
+                      areaName(pair[1], t.lang),
+                      Math.round(networkBonus(getState()) * 100),
+                    )}
+                  </P>
+                ) : null}
+                <Rewards reward={SYNAPSE_REWARD} />
               </>
             ) : (
               <>
                 <View style={{ alignItems: 'center' }}>
-                  {synId ? <Bolt size={90} mood="think" /> : <Morph size={90} form="crown" />}
+                  <Bolt size={90} mood="think" />
                 </View>
-                <H1>{timedOut ? t.boss.timeUp : t.boss.notEnough}</H1>
-                <P style={{ color: colors.text }}>
-                  {synId
-                    ? t.boss.synapseLost(right, questions.length, pass)
-                    : timedOut
-                      ? t.boss.finaleTimeUp(right, pass, g.integrity)
-                      : t.boss.lost(right, questions.length, pass, finale, g.integrity)}
-                </P>
+                <H1>{t.boss.notEnough}</H1>
+                <P style={{ color: colors.text }}>{t.boss.synapseLost(right, questions.length, SYNAPSE_PASS)}</P>
               </>
             )}
-            {finale && outcome.passed ? (
-              // the network is about to show what it really is
-              <Button label={t.common.next} onPress={() => router.replace('/brain')} />
-            ) : (
-              <Button label={t.boss.toMap} onPress={() => router.back()} />
-            )}
+            <Button label={t.boss.toMap} onPress={() => router.back()} />
           </Window>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  if (!q) {
-    return (
-      <SafeAreaView style={styles.root}>
-        <ScrollView contentContainerStyle={styles.body}>
-          <Window title={synId ? t.boss.synapse : t.boss.core} icon="warn" onClose={() => router.back()}>
-            <P>{t.boss.tooFew}</P>
-            <Button label={t.common.back} onPress={() => router.back()} />
-          </Window>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
+  if (!q) return <TooFew title={t.boss.synapse} />;
 
   const isLast = i + 1 === questions.length;
-  if (!started) {
-    return (
-      <SafeAreaView style={styles.root}>
-        <ScrollView contentContainerStyle={styles.body}>
-          <Window title={title} icon="warn" onClose={() => router.back()}>
-            <View style={styles.intro}>
-              <Morph size={56} form="crown" />
-              <P style={{ color: colors.dim, flex: 1 }}>{t.boss.finaleIntro(pass)}</P>
-            </View>
-            <P style={{ color: colors.warn }}>{t.boss.finaleClock(formatClock(total))}</P>
-            <Button label={t.boss.start} onPress={() => setStarted(true)} />
-          </Window>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Window title={title} icon={synId ? 'spark' : 'warn'} onClose={() => router.back()}>
+        <Window title={title} icon="spark" onClose={() => router.back()}>
           {/* progress as blocks, like an old copy dialog */}
           <View style={styles.segments} accessible accessibilityLabel={t.boss.progressA11y(i + 1, questions.length)}>
             {questions.map((_, k) => (
@@ -567,13 +497,12 @@ function Fight({ synId }: { synId?: string }) {
               />
             ))}
           </View>
-          {finale ? <ClockBar left={left} total={total} /> : null}
           <View style={styles.row}>
             <Pill label={t.sectorsShort[sector]} color={colors.sector[sector]} />
             <Pill label={areaName(q.area, t.lang)} color={colors.dim} />
-            <Pill label={t.boss.needed(right, pass)} color={colors.warn} />
+            <Pill label={t.boss.needed(right, SYNAPSE_PASS)} color={colors.warn} />
           </View>
-          {i === 0 && !checked && !finale ? (
+          {i === 0 && !checked ? (
             <View style={styles.intro}>
               <Bolt size={56} mood="think" />
               <P style={{ color: colors.dim, flex: 1 }}>{t.boss.synapseIntro}</P>
@@ -603,6 +532,297 @@ function Fight({ synId }: { synId?: string }) {
   );
 }
 
+function Rewards({ reward }: { reward: { xp: number; bits: number; gems: number } }) {
+  return (
+    <View style={styles.row}>
+      <Chip label={`+${reward.xp} XP`} color={colors.accent} />
+      <Chip icon="bit" label={`+${reward.bits}`} color={colors.bit} />
+      <Chip icon="gem" label={`+${reward.gems}`} color={colors.gem} />
+    </View>
+  );
+}
+
+function TooFew({ title }: { title: string }) {
+  const router = useRouter();
+  const t = useStrings();
+  return (
+    <SafeAreaView style={styles.root}>
+      <ScrollView contentContainerStyle={styles.body}>
+        <Window title={title} icon="warn" onClose={() => router.back()}>
+          <P>{t.boss.tooFew}</P>
+          <Button label={t.common.back} onPress={() => router.back()} />
+        </Window>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+/** morph.ai changes its face from phase to phase of the final duel. */
+const PHASE_FORMS: MorphForm[] = ['smile', 'glasses', 'crown', 'glitch'];
+
+/**
+ * The final duel against morph.ai (D76): four phases, one per sector, each with its own clock
+ * and shield. A lost phase ends the duel; the next one brings new questions.
+ */
+function FinaleFight() {
+  const router = useRouter();
+  const t = useStrings();
+  // the questions are fixed when the duel starts (a lost duel raises the attempt count)
+  const attempt = useMemo(() => getState().story.finaleAttempts, []);
+  const phases = useMemo(() => finalePhases(pool, attempt, getState().skill, getState().archive), [attempt]);
+  const [n, setN] = useState(0);
+  const [score, setScore] = useState({ right: 0, asked: 0 });
+  const [outcome, setOutcome] = useState<{ passed: boolean; timeUp: boolean } | null>(null);
+
+  const phaseDone = (log: boolean[], timeUp: boolean) => {
+    setScore((x) => ({ right: x.right + log.filter((ok) => ok).length, asked: x.asked + log.length }));
+    const won = finalePhaseState(log, timeUp) === 'won';
+    if (won && n + 1 < phases.length) {
+      setN(n + 1);
+      return;
+    }
+    const r = recordFinale(getState(), pool, won ? phases.length : n);
+    update(() => r.player);
+    tap(r.passed ? 'success' : 'error');
+    setOutcome({ passed: r.passed, timeUp });
+  };
+
+  if (phases.some((ph) => ph.questions.length < FINALE_PHASE_QUESTIONS)) return <TooFew title={t.boss.core} />;
+
+  if (outcome) {
+    const sector = t.sectorsShort[phases[n]!.sector];
+    return (
+      <SafeAreaView style={styles.root}>
+        <ScrollView contentContainerStyle={styles.body}>
+          <Window
+            title={outcome.passed ? t.boss.beaten : t.boss.morphHolds}
+            icon={outcome.passed ? 'check' : 'warn'}
+            onClose={() => router.back()}
+          >
+            {outcome.passed ? (
+              <>
+                <H1>{t.boss.through}</H1>
+                <P style={{ color: colors.text }}>{t.boss.finaleWon(score.right, score.asked)}</P>
+                <Rewards reward={FINALE_REWARD} />
+                {/* the network is about to show what it really is */}
+                <Button label={t.common.next} onPress={() => router.replace('/brain')} />
+              </>
+            ) : (
+              <>
+                <View style={{ alignItems: 'center' }}>
+                  <Morph size={90} form={PHASE_FORMS[n]} />
+                </View>
+                <H1>{outcome.timeUp ? t.boss.timeUp : t.boss.notEnough}</H1>
+                <P style={{ color: colors.text }}>
+                  {outcome.timeUp
+                    ? t.boss.finaleTimeUp(n + 1, sector, getState().integrity)
+                    : t.boss.finaleLost(n + 1, sector, getState().integrity)}
+                </P>
+                <Button label={t.boss.toMap} onPress={() => router.back()} />
+              </>
+            )}
+          </Window>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  return <FinalePhaseView key={n} phase={phases[n]!} n={n} count={phases.length} attempt={attempt} onDone={phaseDone} />;
+}
+
+/**
+ * One phase of the final duel: morph.ai in its form for the phase, the sector's guardian beside
+ * Bolt, a shield of `FINALE_PHASE_PASS` layers and a clock of its own. The folder structure
+ * opens without energy, but the clock runs on while the player searches it.
+ */
+function FinalePhaseView({
+  phase,
+  n,
+  count,
+  attempt,
+  onDone,
+}: {
+  phase: FinalePhase;
+  n: number;
+  count: number;
+  attempt: number;
+  onDone: (log: boolean[], timeUp: boolean) => void;
+}) {
+  const t = useStrings();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const screenReader = useScreenReader();
+  const total = useMemo(() => fightClock(phase.questions, screenReader), [phase, screenReader]);
+  const structure = useMemo(() => structureView(getState()), []);
+  const ally = GUARDIANS[phase.sector];
+  const [started, setStarted] = useState(false);
+  const [log, setLog] = useState<boolean[]>([]);
+  const [answer, setAnswer] = useState<Answer | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [hit, setHit] = useState<{ kind: WallHit; seq: number } | null>(null);
+  const [foldersOpen, setFoldersOpen] = useState(false);
+
+  const state = finalePhaseState(log);
+  // while an answer is shown, its question stays on screen
+  const i = log.length - (checked ? 1 : 0);
+  const q = phase.questions[i];
+  const hp = Math.max(0, FINALE_PHASE_PASS - log.filter((ok) => ok).length);
+  const sceneW = Math.min(width - 24, 480) - 28;
+  // the clock keeps running while the folder structure is open
+  const left = useFightClock(total, started && !checked && state === 'on', () => {
+    tap('error');
+    setFoldersOpen(false);
+    onDone(log, true);
+  });
+
+  const check = () => {
+    if (!q || !answer) return;
+    const ok = isCorrect(q, answer);
+    tap(ok ? 'success' : 'error');
+    setLog([...log, ok]);
+    setHit({ kind: ok ? (hp === 1 ? 'breach' : 'crack') : 'hold', seq: log.length + 1 });
+    setChecked(true);
+  };
+
+  const next = () => {
+    if (state === 'on') {
+      setAnswer(null);
+      setChecked(false);
+      return;
+    }
+    onDone(log, false);
+  };
+
+  // after an answer: on a hit the guardian speaks, on a miss morph.ai and then the guardian it struck
+  const seq = hit?.seq ?? 0;
+  const struck = checked && (hit?.kind === 'crack' || hit?.kind === 'breach');
+  const lines: { who: 'morph' | 'ally'; text: string }[] = [];
+  if (struck) {
+    const breach = hit?.kind === 'breach';
+    lines.push({ who: 'ally', text: guardianFightLine(t.lang, ally.id, breach ? 'breach' : 'hit', seq) });
+    lines.push({ who: 'morph', text: breach ? t.boss.phaseBroken : t.boss.morphLow });
+  } else if (checked) {
+    lines.push({ who: 'morph', text: pick(t.boss.hold, seq) });
+    lines.push({ who: 'ally', text: guardianFightLine(t.lang, ally.id, 'hurt', seq) });
+  }
+  const sectorColor = colors.sector[phase.sector];
+  const sector = t.sectorsShort[phase.sector];
+  const speaker = (who: 'morph' | 'ally') =>
+    who === 'morph' ? { name: t.speakers.morph, color: MORPH_PINK } : { name: ally.name, color: sectorColor };
+  const morphForm: MorphForm = struck ? 'glitch' : PHASE_FORMS[n]!;
+  const boltMood: Mood = !checked ? 'think' : hit?.kind === 'breach' ? 'proud' : struck ? 'happy' : 'worried';
+  const filed = !!q && phase.filed.includes(q.id);
+
+  return (
+    <SafeAreaView style={styles.root}>
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <Window title={t.boss.coreTitle} icon="warn" onClose={() => router.back()}>
+          {/* the phases as blocks, then the shield of this one */}
+          <View style={styles.segments} accessible accessibilityLabel={t.boss.phase(n + 1, count, sector)}>
+            {Array.from({ length: count }, (_, k) => (
+              <View
+                key={k}
+                style={[styles.segment, k < n && { backgroundColor: colors.primary }, k === n && { backgroundColor: WIN.titleB }]}
+              />
+            ))}
+          </View>
+          <View style={styles.row}>
+            <Pill label={t.boss.phase(n + 1, count, sector)} color={sectorColor} />
+          </View>
+          <View style={styles.hpRow} accessible accessibilityLabel={t.boss.shieldA11y(hp, FINALE_PHASE_PASS)}>
+            <Text style={styles.hpLabel}>{t.boss.shield(hp, FINALE_PHASE_PASS)}</Text>
+            <View style={[styles.segments, { flex: 1 }]}>
+              {Array.from({ length: FINALE_PHASE_PASS }, (_, k) => (
+                <View key={k} style={[styles.segment, k < hp && { backgroundColor: MORPH_PINK }]} />
+              ))}
+            </View>
+          </View>
+          <FirewallScene
+            width={sceneW}
+            hp={hp}
+            max={FINALE_PHASE_PASS}
+            hit={hit}
+            color={sectorColor}
+            morphForm={morphForm}
+            boltMood={boltMood}
+            guardian={ally.id}
+            label={t.boss.shieldA11y(hp, FINALE_PHASE_PASS)}
+          />
+          {!started ? (
+            // before the clock starts: morph.ai's words for this sector and the rules
+            <>
+              <View style={styles.intro}>
+                <Text style={[styles.speaker, { color: MORPH_PINK }]}>{t.speakers.morph}</Text>
+                <P style={{ color: colors.text, flex: 1 }}>{finalePhaseLine(t.lang, phase.sector)}</P>
+              </View>
+              {n === 0 ? (
+                <>
+                  <P style={{ color: colors.dim }}>{t.boss.finaleIntro(count, FINALE_PHASE_QUESTIONS, FINALE_PHASE_PASS)}</P>
+                  <P style={{ color: colors.dim }}>{t.boss.finaleFolders}</P>
+                </>
+              ) : null}
+              <P style={{ color: colors.warn }}>{t.boss.phaseClock(formatClock(total))}</P>
+              <Button label={n === 0 ? t.boss.start : t.boss.startPhase} onPress={() => setStarted(true)} />
+            </>
+          ) : (
+            <ClockBar left={left} total={total} />
+          )}
+          {lines.map((l, k) => (
+            <View key={k} style={styles.intro}>
+              <Text style={[styles.speaker, { color: speaker(l.who).color }]}>{speaker(l.who).name}</Text>
+              <P style={{ color: colors.text, flex: 1 }}>{l.text}</P>
+            </View>
+          ))}
+
+          {started && q ? (
+            <>
+              <View style={styles.row}>
+                <Pill label={areaName(q.area, t.lang)} color={colors.dim} />
+              </View>
+              <Text style={styles.stem} maxFontSizeMultiplier={1.4}>
+                {q.stem}
+              </Text>
+              <QuestionView key={`${n}-${i}-${attempt}`} q={q} variant={attempt} reveal={checked} onChange={setAnswer} />
+              {checked ? (
+                <Card>
+                  <P style={{ color: colors.text }}>{q.explanation}</P>
+                </Card>
+              ) : null}
+            </>
+          ) : null}
+
+          {!started ? null : !checked && state === 'on' ? (
+            <>
+              {filed ? <P style={{ color: colors.primary }}>{t.boss.filedHint}</P> : null}
+              <Button label={t.boss.attack} disabled={answer === null} onPress={check} />
+              <Button
+                label={t.boss.folders}
+                icon="cache"
+                variant="ghost"
+                sub={structure.folders.length === 0 ? t.node.noFolders : t.boss.foldersSub}
+                disabled={structure.folders.length === 0}
+                onPress={() => setFoldersOpen(true)}
+              />
+            </>
+          ) : (
+            <Button
+              label={state === 'on' ? t.boss.nextQuestion : state === 'won' && n + 1 < count ? t.boss.nextPhase : t.boss.result}
+              onPress={next}
+            />
+          )}
+        </Window>
+      </ScrollView>
+
+      {/* the folder structure, free in the duel; the clock behind it keeps running */}
+      <Modal transparent animationType="fade" visible={foldersOpen} onRequestClose={() => setFoldersOpen(false)}>
+        <View style={styles.modalBack}>
+          <CacheExplorer folders={structure.folders} onClose={() => setFoldersOpen(false)} />
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
 const WALL_RED = '#D93645';
 const MORPH_PINK = '#FF86D0';
 
@@ -617,4 +837,5 @@ const styles = StyleSheet.create({
   hpRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   hpLabel: { color: WALL_RED, fontSize: 13, fontWeight: '900', letterSpacing: 0.6 },
   speaker: { fontSize: 13, fontWeight: '900' },
+  modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
 });

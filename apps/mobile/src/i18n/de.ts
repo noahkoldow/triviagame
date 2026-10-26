@@ -217,6 +217,25 @@ export const de = {
     finaleRoots: 'Startknoten gelöst',
     finaleGuardians: 'Hüter wach',
     finaleWalls: 'Firewalls gebrochen',
+    finaleAreas: (n: number) => `Bereiche mit je ${n} Antworten`,
+    /** The final duel in four phases (D76); `time` is already formatted ("1:10"). */
+    finaleIntro: (phases: number, questions: number, pass: number) =>
+      `morph.ai: „Vier Sektoren, vier Gesichter. Am Ende fragst du doch mich.“ Das Duell hat ${phases} Phasen, eine pro Sektor, und ihr Hüter kämpft mit. In jeder müssen ${pass} von ${questions} Fragen sitzen, sonst ist es vorbei.`,
+    finaleFolders: 'Deine Ordnerstruktur hilft: Im Duell kostet sie keine Blitze, aber die Uhr läuft weiter, während du suchst.',
+    phase: (n: number, total: number, sector: string) => `Phase ${n}/${total}: ${sector}`,
+    phaseClock: (time: string) => `Eine Uhr für diese Phase: ${time}. Sie läuft, solange eine Frage offen ist, auch beim Suchen in den Ordnern. Läuft sie ab, ist das Duell vorbei.`,
+    startPhase: 'Phase starten',
+    shield: (hp: number, max: number) => `SCHILD ${hp}/${max}`,
+    shieldA11y: (hp: number, max: number) => `Schild von morph.ai, ${hp} von ${max} Schichten stehen`,
+    phaseBroken: '„Mein Schild … gut, dann eben ein anderes Gesicht.“',
+    nextPhase: 'Nächste Phase',
+    folders: 'Ordnerstruktur öffnen',
+    foldersSub: 'Keine Blitze, die Uhr läuft weiter',
+    filedHint: 'Dazu liegt ein Ordner in deiner Ordnerstruktur.',
+    finaleLost: (phase: number, sector: string, integrity: number) =>
+      `Phase ${phase} (${sector}) hält. morph.ai: „Siehst du? Mich zu fragen wäre schneller gewesen.“ Die Integrität sinkt um 1 (jetzt ${integrity}). Das nächste Duell bringt andere Fragen.`,
+    finaleTimeUp: (phase: number, sector: string, integrity: number) =>
+      `Die Uhr ist in Phase ${phase} (${sector}) abgelaufen. Die Integrität sinkt um 1 (jetzt ${integrity}). Das nächste Duell bringt andere Fragen.`,
     noFirewall: 'Diese Firewall gibt es nicht.',
     alreadyBroken: 'Diese Firewall ist bereits gebrochen.',
     notReached: 'Dein Netz steht noch nicht an dieser Wand. Wachse bis direkt an sie heran, dann kannst du sie angreifen.',
@@ -235,16 +254,10 @@ export const de = {
     wallWon: (right: number, total: number, area: string) =>
       `${right} von ${total} richtig. Die Wand bricht auf, dahinter öffnet sich ${area}.`,
     notEnough: 'Nicht genug.',
-    lost: (right: number, total: number, pass: number, finale: boolean, integrity: number) =>
-      `${right} von ${total} richtig, nötig waren ${pass}. ${
-        finale ? 'morph.ai: „Siehst du? Mich zu fragen wäre schneller gewesen.“' : 'morph.ai: „Hübsch versucht.“'
-      } Die Integrität sinkt um 1 (jetzt ${integrity}). Beim nächsten Versuch kommen andere Fragen.`,
     toMap: 'Zurück zur Karte',
     tooFew: 'Dafür gibt es noch nicht genug Fragen.',
     progressA11y: (i: number, total: number) => `Frage ${i} von ${total}`,
     needed: (right: number, pass: number) => `${right} / ${pass} nötig`,
-    finaleIntro: (pass: number) =>
-      `morph.ai: „Acht Fragen, alle vier Sektoren, kein Cache, keine Ordner. Ich wette, am Ende fragst du doch mich.“ ${pass} müssen stimmen.`,
     /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
     wallRules: 'Vier Schichten Firewall, und jeden Fehler flickt morph.ai sofort. Jede richtige Antwort reißt eine Schicht ein. Kein Cache, keine Ordner, nur dein Kopf.',
     attack: 'Angreifen',
@@ -270,14 +283,11 @@ export const de = {
     /** One clock for the whole fight (D71); `time` is already formatted ("2:40"). */
     start: 'Angriff starten',
     clockRules: (time: string) => `Eine Uhr für den ganzen Kampf: ${time}. Sie läuft nur, solange eine Frage offen ist. Läuft sie ab, hält die Wand.`,
-    finaleClock: (time: string) => `Eine Uhr für das ganze Duell: ${time}. Sie läuft nur, solange eine Frage offen ist. Läuft sie ab, ist das Duell vorbei.`,
     clockA11y: (s: number) => `Noch ${s} Sekunden`,
     timeUp: 'Zeit abgelaufen',
     timeUpMorph: '„Die Zeit ist um. Ich hätte die Antwort in einer Millisekunde gewusst.“',
     wallTimeUp: (hp: number, integrity: number) =>
       `Die Uhr ist abgelaufen, die Firewall hält mit ${hp === 1 ? '1 Schicht' : `${hp} Schichten`}. Integrität sinkt um 1 (jetzt ${integrity}). Der nächste Versuch bringt andere Fragen.`,
-    finaleTimeUp: (right: number, pass: number, integrity: number) =>
-      `Die Uhr ist abgelaufen: ${right} richtig, ${pass} waren nötig. Integrität sinkt um 1 (jetzt ${integrity}). Das nächste Duell bringt andere Fragen.`,
     wallLost: (hp: number, integrity: number) =>
       `Die Firewall hält mit ${hp === 1 ? '1 Schicht' : `${hp} Schichten`}, und für den Rest reichen die Fragen nicht mehr. morph.ai: „Hübsch versucht.“ Die Integrität sinkt um 1 (jetzt ${integrity}). Beim nächsten Versuch kommen andere Fragen.`,
     answer: 'Antworten',

@@ -1,6 +1,5 @@
 import {
   BOSS_REWARD,
-  FINALE_PASS,
   FINALE_REWARD,
   FIREWALL_HP,
   answeredNodes,
@@ -56,7 +55,7 @@ import { initialStory, storyFacts, type StoryState } from './story';
 import { initialLeague, type LeagueState } from './league';
 import { ROOT_QUESTIONS } from './content';
 import { DEFAULT_LANG, type Lang } from './lang';
-import { sectorOfArea } from './taxonomy';
+import { SECTORS, sectorOfArea } from './taxonomy';
 import type { Answer, NetNode, NetworkState, Sector } from './types';
 import { WALL_REACH, approachOf, type Breach } from './walls';
 
@@ -493,16 +492,17 @@ export function recordMaintenance(
 }
 
 /**
- * The final duel against MORPH, open once all chapters before it are done. Won: the story
- * reaches its ending and pays big. Lost: one integrity, and the next duel brings new questions.
+ * The final duel against morph.ai, open once all chapters before it are done. Won (every phase,
+ * see `finalePhases`): the story reaches its ending and pays big. Lost: one integrity, and the next
+ * duel brings new questions.
  */
 export function recordFinale(
   p: PlayerState,
   pool: Pool,
-  correct: number,
+  phasesWon: number,
 ): { player: PlayerState; passed: boolean } {
   if (!storyFacts(p, pool).finaleOpen) return { player: p, passed: false };
-  if (correct < FINALE_PASS) {
+  if (phasesWon < SECTORS.length) {
     return {
       passed: false,
       player: {

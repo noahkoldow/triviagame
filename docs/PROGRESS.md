@@ -130,9 +130,16 @@ Spielbar in Expo Go (Mock-Daten):
 - **Finale:** ist es noch zu, drei Zähler (Startknoten, Hüter, Firewalls je x / 4) statt eines Satzes.
 - **Ungeprüft auf Gerät:** Zeilenbreite der Checkliste in FR/ES.
 
+## Prototyp 0.19 (Finale in vier Phasen, D76)
+
+- **Später:** Das Finale öffnet erst, wenn alle 12 Bereiche je 3 beantwortete Knoten haben. Kapitel 4 zählt das (x / 12), danach erst der Finale-Knopf.
+- **Vier Phasen:** je Sektor 3 Fragen, 2 richtig brechen das Schild, morph.ai wechselt das Gesicht und spricht zu jedem Sektor, der Hüter kämpft mit. Eigene Uhr pro Phase.
+- **Ordnerstruktur im Duell:** ohne Blitze, aber auf Zeit; je Phase eine Frage aus einem abgelegten Ordner, wenn es einen gibt.
+- **Ungeprüft auf Gerät:** Kampfbild mit 2-Schichten-Schild, Explorer über laufender Uhr, Textlängen in FR/ES.
+
 ## Verifiziert
 
-`pnpm typecheck` (shared, functions, mobile), `pnpm test` (253 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions`, `league`, `report` und `topUpPools`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
+`pnpm typecheck` (shared, functions, mobile), `pnpm test` (257 + 56 Tests), `expo export --platform ios` (Bundle baut), Functions-Bündel lädt und exportiert `questions`, `league`, `report` und `topUpPools`. **Nicht** auf Gerät/Simulator gelaufen; die Functions sind nur per `curl` gegen die Produktion geprüft (D69).
 
 ## Offen / nächste Schritte
 

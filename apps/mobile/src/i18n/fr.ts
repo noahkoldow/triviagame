@@ -211,6 +211,24 @@ export const fr: Strings = {
     finaleRoots: 'Nœuds de départ résolus',
     finaleGuardians: 'Gardiens éveillés',
     finaleWalls: 'Pare-feu brisés',
+    finaleAreas: (n) => `Domaines avec ${n} réponses chacun`,
+    finaleIntro: (phases, questions, pass) =>
+      `morph.ai : « Quatre secteurs, quatre visages. À la fin, tu me demanderas quand même. » Le duel a ${phases} phases, une par secteur, et son gardien combat à tes côtés. Dans chacune, ${pass} questions sur ${questions} doivent être justes, sinon c’est fini.`,
+    finaleFolders: 'Ton arborescence t’aide : pendant le duel, elle ne coûte pas d’énergie, mais l’horloge continue pendant que tu cherches.',
+    phase: (n, total, sector) => `Phase ${n}/${total} : ${sector}`,
+    phaseClock: (time) => `Une horloge pour cette phase : ${time}. Elle tourne tant qu’une question est ouverte, même quand tu cherches dans les dossiers. Si elle s’arrête, le duel est fini.`,
+    startPhase: 'Lancer la phase',
+    shield: (hp, max) => `BOUCLIER ${hp}/${max}`,
+    shieldA11y: (hp, max) => `Bouclier de morph.ai, ${hp} couches sur ${max} debout`,
+    phaseBroken: '« Mon bouclier … soit, un autre visage alors. »',
+    nextPhase: 'Phase suivante',
+    folders: 'Ouvrir l’arborescence',
+    foldersSub: 'Sans énergie, l’horloge continue',
+    filedHint: 'Un dossier sur ce sujet se trouve dans ton arborescence.',
+    finaleLost: (phase, sector, integrity) =>
+      `La phase ${phase} (${sector}) tient. morph.ai : « Tu vois ? Me demander aurait été plus rapide. » L’intégrité baisse de 1 (maintenant ${integrity}). Le prochain duel apporte d’autres questions.`,
+    finaleTimeUp: (phase, sector, integrity) =>
+      `L’horloge s’est arrêtée en phase ${phase} (${sector}). L’intégrité baisse de 1 (maintenant ${integrity}). Le prochain duel apporte d’autres questions.`,
     noFirewall: 'Ce pare-feu n’existe pas.',
     alreadyBroken: 'Ce pare-feu est déjà brisé.',
     notReached: 'Ton réseau n’est pas encore au pied de ce mur. Avance jusqu’à lui, puis tu pourras l’attaquer.',
@@ -228,16 +246,10 @@ export const fr: Strings = {
       `${right} sur ${total} justes, entièrement par tes propres moyens. morph.ai est devenu tout silencieux. Et le réseau autour de toi… paraît soudain différent.`,
     wallWon: (right, total, area) => `${right} sur ${total} justes. Le mur cède, et ${area} s’ouvre derrière.`,
     notEnough: 'Pas assez.',
-    lost: (right, total, pass, finale, integrity) =>
-      `${right} sur ${total} justes, il en fallait ${pass}. ${
-        finale ? 'morph.ai : « Tu vois ? Me demander aurait été plus rapide. »' : 'morph.ai : « Bien essayé. »'
-      } L’intégrité baisse de 1 (maintenant ${integrity}). Le prochain essai apportera d’autres questions.`,
     toMap: 'Retour à la carte',
     tooFew: 'Il n’y a pas encore assez de questions pour cela.',
     progressA11y: (i, total) => `Question ${i} sur ${total}`,
     needed: (right, pass) => `${right} / ${pass} requis`,
-    finaleIntro: (pass) =>
-      `morph.ai : « Huit questions, les quatre secteurs, pas de cache, pas de dossiers. Je parie que tu finiras par me demander. » ${pass} doivent être justes.`,
     /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
     wallRules: 'Quatre couches de pare-feu, et morph.ai répare chaque erreur aussitôt. Chaque bonne réponse abat une couche. Pas de cache, pas de dossiers, juste ta tête.',
     attack: 'Attaquer',
@@ -260,14 +272,11 @@ export const fr: Strings = {
       `Après ta dernière attaque, morph.ai a endommagé ${n === 1 ? 'un nœud' : `${n} nœuds`} près de ce mur. Répare-${n === 1 ? 'le' : 'les'} d’abord, puis tu pourras attaquer à nouveau.`,
     start: 'Lancer l’attaque',
     clockRules: (time) => `Une seule horloge pour tout le combat : ${time}. Elle ne tourne que lorsqu’une question est ouverte. Si elle s’arrête, le mur tient.`,
-    finaleClock: (time) => `Une seule horloge pour tout le duel : ${time}. Elle ne tourne que lorsqu’une question est ouverte. Si elle s’arrête, le duel est fini.`,
     clockA11y: (s) => `Encore ${s} secondes`,
     timeUp: 'Temps écoulé',
     timeUpMorph: '« Le temps est écoulé. J’aurais connu la réponse en une milliseconde. »',
     wallTimeUp: (hp, integrity) =>
       `L’horloge s’est arrêtée, le pare-feu tient avec ${hp === 1 ? '1 couche' : `${hp} couches`}. L’intégrité baisse de 1 (maintenant ${integrity}). La prochaine tentative apporte d’autres questions.`,
-    finaleTimeUp: (right, pass, integrity) =>
-      `L’horloge s’est arrêtée : ${right} bonnes réponses, il en fallait ${pass}. L’intégrité baisse de 1 (maintenant ${integrity}). Le prochain duel apporte d’autres questions.`,
     wallLost: (hp, integrity) =>
       `Le pare-feu tient avec ${hp === 1 ? '1 couche' : `${hp} couches`}, et il ne reste plus assez de questions pour le reste. morph.ai : « Joli essai. » L’intégrité baisse de 1 (maintenant ${integrity}). Au prochain essai, d’autres questions.`,
     answer: 'Répondre',

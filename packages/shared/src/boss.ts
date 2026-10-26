@@ -163,10 +163,17 @@ export function fightFrom(pool: Pool, nodes: NetNode[], fw: Firewall): string {
   return a ? pool.get(a.node.questionId).area : areasOfSector(sectorOfArea(fw.area))[0]!.id;
 }
 
-/** The final duel against MORPH in the core: two questions from every sector, six must be right. */
+/**
+ * The final duel against morph.ai in the core (D76): four phases, one per sector. In each phase
+ * morph.ai takes another form and the guardian of the sector fights beside the player; of three
+ * questions two must be right to break its shield, and a lost phase ends the duel. Every phase
+ * has its own clock. One question per phase comes, where the player has one, from a folder filed
+ * in the folder structure: who sorted well finds the answer there (in the duel the structure
+ * opens without energy, but the clock runs on).
+ */
 export const FINALE_ID = 'core';
-export const FINALE_QUESTIONS = 8;
-export const FINALE_PASS = 6;
+export const FINALE_PHASE_QUESTIONS = 3;
+export const FINALE_PHASE_PASS = 2;
 export const FINALE_REWARD = { xp: 200, bits: 150, gems: 10 };
 
 /** Questions near the player's level (plus `bias`) among `cands`, with some randomness. */
@@ -211,13 +218,33 @@ export function bossQuestions(pool: Pool, fw: Firewall, skill: SkillMap, from: s
   return interleave([qa, qb]);
 }
 
-/** The final duel: two questions per sector, one step above the player's level, in sector turns. */
-export function finaleQuestions(pool: Pool, attempt: number, skill: SkillMap): Question[] {
+/** One phase of the final duel: a sector, its questions, and those whose folder the player has filed. */
+export interface FinalePhase {
+  sector: Sector;
+  questions: Question[];
+  filed: string[];
+}
+
+/**
+ * The phases of the final duel, in sector order: three questions each, one step above the
+ * player's level, the second one from a filed folder when there is one. New questions per attempt.
+ */
+export function finalePhases(pool: Pool, attempt: number, skill: SkillMap, archive: { questionId: string }[]): FinalePhase[] {
   const rng = seededRng(`finale:${attempt}`);
-  const per = FINALE_QUESTIONS / SECTORS.length;
-  return interleave(
-    SECTORS.map((s) => nearLevel(pool.list.filter((q) => sectorOfArea(q.area) === s), per, skill, rng, 1)),
-  );
+  const filed = new Set(archive.map((e) => e.questionId));
+  return SECTORS.map((sector) => {
+    const cands = pool.list.filter((q) => sectorOfArea(q.area) === sector);
+    const own = nearLevel(cands.filter((q) => filed.has(q.id)), 1, skill, rng, 1);
+    const rest = nearLevel(cands.filter((q) => !own.includes(q)), FINALE_PHASE_QUESTIONS - own.length, skill, rng, 1);
+    return { sector, questions: [...rest.slice(0, 1), ...own, ...rest.slice(1)], filed: own.map((q) => q.id) };
+  });
+}
+
+/** A phase is won with `FINALE_PHASE_PASS` right answers and lost once that can no longer happen or its clock ran out. */
+export function finalePhaseState(log: boolean[], timeUp = false): 'on' | 'won' | 'lost' {
+  const right = log.filter((x) => x).length;
+  if (right >= FINALE_PHASE_PASS) return 'won';
+  return timeUp || log.length - right > FINALE_PHASE_QUESTIONS - FINALE_PHASE_PASS ? 'lost' : 'on';
 }
 
 /**

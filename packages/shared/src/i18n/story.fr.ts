@@ -12,7 +12,11 @@ export const STORY_FR: StoryText = {
     restart: { title: 'Redémarrage', goal: 'Résous les quatre nœuds de départ' },
     guardians: { title: 'Les gardiens', goal: (n) => `Réveille les quatre gardiens : ${n} nœuds résolus par secteur` },
     firewalls: { title: 'Les pare-feu', goal: 'Avance jusqu’au pare-feu et ouvre quatre domaines' },
-    finale: { title: 'Le grand bilan', goal: 'Affronte morph.ai dans le noyau' },
+    finale: {
+      title: 'Le grand bilan',
+      goal: 'Affronte morph.ai dans le noyau',
+      prepare: (n, a) => `Réponds à ${n} nœuds dans chacun des ${a} domaines`,
+    },
     endless: {
       title: 'Sans fin',
       connect: (n) => `Connecte les ${n} domaines`,
@@ -275,4 +279,10 @@ export const STORY_FR: StoryText = {
     },
   },
   wallBolt: 'Le gardien de ce secteur dort encore. Alors ce sera nous deux : chaque bonne réponse, c’est une pierre de moins !',
+  finalePhases: {
+    science: 'Formules, mesures, expériences. À quoi bon ? Je t’ai toujours donné le résultat tout de suite. Montre-moi que tu le sais toi-même.',
+    earth: 'Pays, fleuves, zones climatiques. Avant, tu me demandais chaque chemin. Le trouves-tu seul maintenant ?',
+    humanities: 'Histoire, art, langue : je te les ai résumés, couronne comprise. Qu’en reste-t-il quand je me tais ?',
+    society: 'E-e-erreur. Droit, économie, politique, c’est ma dernière couche. Brise-la, et je ne penserai plus jamais pour toi.',
+  },
 };

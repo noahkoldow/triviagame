@@ -211,6 +211,24 @@ export const en: Strings = {
     finaleRoots: 'Starting nodes solved',
     finaleGuardians: 'Guardians awake',
     finaleWalls: 'Firewalls broken',
+    finaleAreas: (n) => `Areas with ${n} answers each`,
+    finaleIntro: (phases, questions, pass) =>
+      `morph.ai: “Four sectors, four faces. In the end you will ask me anyway.” The duel has ${phases} phases, one per sector, and its guardian fights beside you. In each, ${pass} of ${questions} questions must be right, or it is over.`,
+    finaleFolders: 'Your folder structure helps: in the duel it costs no energy, but the clock keeps running while you search.',
+    phase: (n, total, sector) => `Phase ${n}/${total}: ${sector}`,
+    phaseClock: (time) => `One clock for this phase: ${time}. It runs while a question is open, also while you search the folders. If it runs out, the duel is over.`,
+    startPhase: 'Start phase',
+    shield: (hp, max) => `SHIELD ${hp}/${max}`,
+    shieldA11y: (hp, max) => `morph.ai's shield, ${hp} of ${max} layers standing`,
+    phaseBroken: '“My shield … fine, then another face.”',
+    nextPhase: 'Next phase',
+    folders: 'Open folder structure',
+    foldersSub: 'No energy, the clock keeps running',
+    filedHint: 'A folder on this lies in your folder structure.',
+    finaleLost: (phase, sector, integrity) =>
+      `Phase ${phase} (${sector}) holds. morph.ai: “See? Asking me would have been faster.” Integrity drops by 1 (now ${integrity}). The next duel brings other questions.`,
+    finaleTimeUp: (phase, sector, integrity) =>
+      `The clock ran out in phase ${phase} (${sector}). Integrity drops by 1 (now ${integrity}). The next duel brings other questions.`,
     noFirewall: 'This firewall does not exist.',
     alreadyBroken: 'This firewall is already broken.',
     notReached: 'Your network isn’t at this wall yet. Grow right up to it and then you can attack it.',
@@ -228,16 +246,10 @@ export const en: Strings = {
       `${right} of ${total} right, all on your own. morph.ai has gone very quiet. And the network around you … suddenly looks different.`,
     wallWon: (right, total, area) => `${right} of ${total} right. The wall breaks open and ${area} opens behind it.`,
     notEnough: 'Not enough.',
-    lost: (right, total, pass, finale, integrity) =>
-      `${right} of ${total} right, ${pass} were needed. ${
-        finale ? 'morph.ai: “See? Asking me would have been faster.”' : 'morph.ai: “Nice try.”'
-      } Integrity drops by 1 (now ${integrity}). The next try brings other questions.`,
     toMap: 'Back to the map',
     tooFew: 'There aren’t enough questions for this yet.',
     progressA11y: (i, total) => `Question ${i} of ${total}`,
     needed: (right, pass) => `${right} / ${pass} needed`,
-    finaleIntro: (pass) =>
-      `morph.ai: “Eight questions, all four sectors, no cache, no folders. I bet you’ll end up asking me after all.” ${pass} must be right.`,
     /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
     wallRules: 'Four layers of firewall, and morph.ai patches every mistake at once. Every right answer tears a layer down. No cache, no folders, just your head.',
     attack: 'Attack',
@@ -260,14 +272,11 @@ export const en: Strings = {
       `After your last attack morph.ai damaged ${n === 1 ? 'a node' : `${n} nodes`} by this wall. Repair ${n === 1 ? 'it' : 'them'} first, then you can attack again.`,
     start: 'Start the attack',
     clockRules: (time) => `One clock for the whole fight: ${time}. It only runs while a question is open. If it runs out, the wall holds.`,
-    finaleClock: (time) => `One clock for the whole duel: ${time}. It only runs while a question is open. If it runs out, the duel is over.`,
     clockA11y: (s) => `${s} seconds left`,
     timeUp: 'Time’s up',
     timeUpMorph: '“Time’s up. I would have known the answer in a millisecond.”',
     wallTimeUp: (hp, integrity) =>
       `The clock ran out and the firewall holds with ${hp === 1 ? '1 layer' : `${hp} layers`}. Integrity drops by 1 (now ${integrity}). The next attempt brings other questions.`,
-    finaleTimeUp: (right, pass, integrity) =>
-      `The clock ran out: ${right} right, ${pass} were needed. Integrity drops by 1 (now ${integrity}). The next duel brings other questions.`,
     wallLost: (hp, integrity) =>
       `The firewall holds with ${hp === 1 ? '1 layer' : `${hp} layers`}, and there are not enough questions left for the rest. morph.ai: “Nice try.” Integrity drops by 1 (now ${integrity}). The next attempt brings other questions.`,
     answer: 'Answer',

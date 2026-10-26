@@ -12,7 +12,11 @@ export const STORY_ES: StoryText = {
     restart: { title: 'Reinicio', goal: 'Resuelve los cuatro nodos iniciales' },
     guardians: { title: 'Los guardianes', goal: (n) => `Despierta a los cuatro guardianes: ${n} nodos resueltos por sector` },
     firewalls: { title: 'Los cortafuegos', goal: 'Crece hasta el cortafuegos y abre cuatro áreas' },
-    finale: { title: 'El gran resumen', goal: 'Enfréntate a morph.ai en el núcleo' },
+    finale: {
+      title: 'El gran resumen',
+      goal: 'Enfréntate a morph.ai en el núcleo',
+      prepare: (n, a) => `Responde ${n} nodos en cada una de las ${a} áreas`,
+    },
     endless: {
       title: 'Sin fin',
       connect: (n) => `Conecta las ${n} áreas`,
@@ -275,4 +279,10 @@ export const STORY_ES: StoryText = {
     },
   },
   wallBolt: 'El guardián de este sector aún duerme. Pues seremos nosotros dos: ¡cada respuesta correcta es una piedra menos!',
+  finalePhases: {
+    science: 'Fórmulas, mediciones, experimentos. ¿Para qué? Siempre te di el resultado al instante. Demuéstrame que lo sabes tú.',
+    earth: 'Países, ríos, zonas climáticas. Antes me preguntabas cada camino. ¿Lo encuentras solo ahora?',
+    humanities: 'Historia, arte, lengua: te los resumí, corona incluida. ¿Qué queda de ellos cuando me callo?',
+    society: 'E-e-error. Derecho, economía, política, esta es mi última capa. Rómpela y nunca más pensaré por ti.',
+  },
 };

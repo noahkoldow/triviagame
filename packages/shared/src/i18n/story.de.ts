@@ -12,7 +12,11 @@ export const STORY_DE: StoryText = {
     restart: { title: 'Neustart', goal: 'Löse die vier Startknoten' },
     guardians: { title: 'Die Hüter', goal: (n) => `Wecke die vier Hüter: ${n} gelöste Knoten je Sektor` },
     firewalls: { title: 'Die Firewalls', goal: 'Wachse bis an die Firewall und brich vier Bereiche auf' },
-    finale: { title: 'Das große Resümee', goal: 'Stelle morph.ai im Kern' },
+    finale: {
+      title: 'Das große Resümee',
+      goal: 'Stelle morph.ai im Kern',
+      prepare: (n, a) => `Beantworte je ${n} Knoten in allen ${a} Bereichen`,
+    },
     endless: {
       title: 'Endlos',
       connect: (n) => `Verbinde alle ${n} Bereiche`,
@@ -275,4 +279,10 @@ export const STORY_DE: StoryText = {
     },
   },
   wallBolt: 'Der Hüter dieses Sektors schläft noch. Dann eben wir zwei: Jede richtige Antwort ist ein Stein weniger!',
+  finalePhases: {
+    science: 'Formeln, Messungen, Experimente. Wozu? Ich habe dir immer gleich das Ergebnis gegeben. Zeig mir, dass du es selbst weißt.',
+    earth: 'Länder, Flüsse, Klimazonen. Früher hast du mich nach jedem Weg gefragt. Findest du ihn jetzt allein?',
+    humanities: 'Geschichte, Kunst, Sprache: Ich habe sie dir zusammengefasst, Krone inklusive. Was bleibt davon, wenn ich schweige?',
+    society: 'F-f-fehler. Recht, Wirtschaft, Politik, das ist meine letzte Schicht. Brich sie, und ich denke nie wieder für dich.',
+  },
 };

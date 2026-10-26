@@ -211,6 +211,24 @@ export const es: Strings = {
     finaleRoots: 'Nodos iniciales resueltos',
     finaleGuardians: 'Guardianes despiertos',
     finaleWalls: 'Cortafuegos rotos',
+    finaleAreas: (n) => `Áreas con ${n} respuestas cada una`,
+    finaleIntro: (phases, questions, pass) =>
+      `morph.ai: «Cuatro sectores, cuatro caras. Al final me preguntarás a mí.» El duelo tiene ${phases} fases, una por sector, y su guardián lucha a tu lado. En cada una deben ser correctas ${pass} de ${questions} preguntas, o se acabó.`,
+    finaleFolders: 'Tu estructura de carpetas ayuda: en el duelo no cuesta energía, pero el reloj sigue mientras buscas.',
+    phase: (n, total, sector) => `Fase ${n}/${total}: ${sector}`,
+    phaseClock: (time) => `Un reloj para esta fase: ${time}. Corre mientras hay una pregunta abierta, también mientras buscas en las carpetas. Si se acaba, el duelo termina.`,
+    startPhase: 'Empezar fase',
+    shield: (hp, max) => `ESCUDO ${hp}/${max}`,
+    shieldA11y: (hp, max) => `Escudo de morph.ai, ${hp} de ${max} capas en pie`,
+    phaseBroken: '«Mi escudo… bien, entonces otra cara.»',
+    nextPhase: 'Siguiente fase',
+    folders: 'Abrir estructura de carpetas',
+    foldersSub: 'Sin energía, el reloj sigue',
+    filedHint: 'Hay una carpeta sobre esto en tu estructura de carpetas.',
+    finaleLost: (phase, sector, integrity) =>
+      `La fase ${phase} (${sector}) resiste. morph.ai: «¿Ves? Preguntarme habría sido más rápido.» La integridad baja 1 (ahora ${integrity}). El próximo duelo trae otras preguntas.`,
+    finaleTimeUp: (phase, sector, integrity) =>
+      `El reloj se acabó en la fase ${phase} (${sector}). La integridad baja 1 (ahora ${integrity}). El próximo duelo trae otras preguntas.`,
     noFirewall: 'Este cortafuegos no existe.',
     alreadyBroken: 'Este cortafuegos ya está roto.',
     notReached: 'Tu red todavía no ha llegado a este muro. Crece hasta su pie y podrás atacarlo.',
@@ -228,16 +246,10 @@ export const es: Strings = {
       `${right} de ${total} correctas, solo con tu cabeza. morph.ai se ha quedado muy callado. Y la red a tu alrededor… de pronto se ve distinta.`,
     wallWon: (right, total, area) => `${right} de ${total} correctas. El muro se rompe y detrás se abre ${area}.`,
     notEnough: 'No es suficiente.',
-    lost: (right, total, pass, finale, integrity) =>
-      `${right} de ${total} correctas; hacían falta ${pass}. ${
-        finale ? 'morph.ai: “¿Lo ves? Preguntarme a mí habría sido más rápido.”' : 'morph.ai: “Buen intento.”'
-      } La integridad baja 1 (ahora ${integrity}). En el próximo intento habrá otras preguntas.`,
     toMap: 'Volver al mapa',
     tooFew: 'Todavía no hay suficientes preguntas para esto.',
     progressA11y: (i, total) => `Pregunta ${i} de ${total}`,
     needed: (right, pass) => `${right} / ${pass} necesarias`,
-    finaleIntro: (pass) =>
-      `morph.ai: “Ocho preguntas, los cuatro sectores, sin caché ni carpetas. Apuesto a que al final me preguntarás a mí.” ${pass} tienen que ser correctas.`,
     /** The rules of a wall fight; morph.ai and the guardian speak first (`wallVoices`). */
     wallRules: 'Cuatro capas de cortafuegos, y morph.ai parchea cada error al instante. Cada respuesta correcta derriba una capa. Sin caché, sin carpetas, solo tu cabeza.',
     attack: 'Atacar',
@@ -260,14 +272,11 @@ export const es: Strings = {
       `Tras tu último ataque, morph.ai dañó ${n === 1 ? 'un nodo' : `${n} nodos`} junto a este muro. Repára${n === 1 ? 'lo' : 'los'} primero y podrás volver a atacar.`,
     start: 'Iniciar el ataque',
     clockRules: (time) => `Un solo reloj para todo el combate: ${time}. Solo corre mientras hay una pregunta abierta. Si se acaba, el muro resiste.`,
-    finaleClock: (time) => `Un solo reloj para todo el duelo: ${time}. Solo corre mientras hay una pregunta abierta. Si se acaba, el duelo termina.`,
     clockA11y: (s) => `Quedan ${s} segundos`,
     timeUp: 'Se acabó el tiempo',
     timeUpMorph: '“Se acabó el tiempo. Yo habría sabido la respuesta en un milisegundo.”',
     wallTimeUp: (hp, integrity) =>
       `El reloj se ha agotado y el cortafuegos resiste con ${hp === 1 ? '1 capa' : `${hp} capas`}. La integridad baja en 1 (ahora ${integrity}). El próximo intento trae otras preguntas.`,
-    finaleTimeUp: (right, pass, integrity) =>
-      `El reloj se ha agotado: ${right} correctas, se necesitaban ${pass}. La integridad baja en 1 (ahora ${integrity}). El próximo duelo trae otras preguntas.`,
     wallLost: (hp, integrity) =>
       `El cortafuegos aguanta con ${hp === 1 ? '1 capa' : `${hp} capas`} y ya no quedan preguntas suficientes para el resto. morph.ai: “Buen intento.” La integridad baja 1 (ahora ${integrity}). En el próximo intento habrá otras preguntas.`,
     answer: 'Responder',

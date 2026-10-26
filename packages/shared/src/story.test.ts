@@ -11,8 +11,10 @@ import {
   LEAGUE_NOTICED_ID,
   leagueIsNew,
   leagueUnlocked,
-  FINALE_PASS,
-  FINALE_QUESTIONS,
+  FINALE_AREAS,
+  FINALE_AREA_NODES,
+  FINALE_PHASE_PASS,
+  FINALE_PHASE_QUESTIONS,
   FINALE_REWARD,
   GUARDIANS,
   GUARDIAN_WAKE,
@@ -22,7 +24,9 @@ import {
   canStartNode,
   catchUpStory,
   chapterOf,
-  finaleQuestions,
+  finalePhaseLine,
+  finalePhaseState,
+  finalePhases,
   guardianLine,
   initialPlayer,
   markSeen,
@@ -55,14 +59,15 @@ function play(steps: number, until?: (p: PlayerState) => boolean): PlayerState {
   let p = initialPlayer(pool);
   for (let i = 0; i < steps && !until?.(p); i++) {
     const ch = chapterOf(storyFacts(p, pool), 'de');
+    // walls stay a goal while the finale waits for knowledge in every area
     const wall =
-      ch.n === 3 ? p.network.firewalls!.find((f) => firewallReady(Object.values(p.network.nodes), p.network.firewalls, f)) : undefined;
+      ch.n === 3 || (ch.n === 4 && !ch.finale) ? p.network.firewalls!.find((f) => firewallReady(Object.values(p.network.nodes), p.network.firewalls, f)) : undefined;
     if (wall) {
       p = recordBoss(p, pool, wall.id, true, '2026-10-01').player;
       continue;
     }
-    if (ch.n === 4) {
-      p = recordFinale(p, pool, FINALE_QUESTIONS).player;
+    if (ch.finale) {
+      p = recordFinale(p, pool, SECTORS.length).player;
       continue;
     }
     const open = Object.values(p.network.nodes)
@@ -132,7 +137,7 @@ describe('story', () => {
 
   it('can be played from the first node to the ending once the server refills the areas', () => {
     const chapters = new Set<number>();
-    const p = play(400, (x) => {
+    const p = play(800, (x) => {
       chapters.add(chapterOf(storyFacts(x, pool), 'de').n);
       return x.story.finale;
     });
@@ -152,13 +157,13 @@ describe('story', () => {
   });
 
   it('keeps the ranking hidden until morph.ai is beaten, though everybody is on it', () => {
-    const p = play(400, (x) => storyFacts(x, pool).finaleOpen);
+    const p = play(800, (x) => storyFacts(x, pool).finaleOpen);
     expect(leagueUnlocked(p)).toBe(false);
     expect(leagueUnlocked({ ...p, league: { ...p.league, playerId: 'registered' } })).toBe(false);
   });
 
   it('lets the league button glow after the reveal until it is tapped', () => {
-    const p = play(400, (x) => x.story.finale);
+    const p = play(800, (x) => x.story.finale);
     expect(leagueIsNew(p)).toBe(false);
     const revealed = markSeen(p, REVEAL_ID);
     expect(leagueIsNew(revealed)).toBe(true);
@@ -191,13 +196,13 @@ describe('foreshadowing the firewalls', () => {
     const first = recordCorrect(initialPlayer(pool), pool, 'n0', DAY, 0).player;
     expect(storyFacts(first, pool).wallSeen).toBe(false);
     expect(pendingBeats(first, pool).map((b) => b.id)).toEqual(['first-link']);
-    const p = play(400, (x) => storyFacts(x, pool).wallSeen);
+    const p = play(800, (x) => storyFacts(x, pool).wallSeen);
     // the beat waits for a second answer, so it does not land on top of the first one
     expect(storyFacts(p, pool).solved).toBeGreaterThanOrEqual(2);
     expect(storyFacts(p, pool).broken).toBe(0);
     expect(pendingBeats(p, pool).map((b) => b.id)).toContain('first-wall');
     // once a wall is broken the moment has passed
-    const late = play(400, (x) => storyFacts(x, pool).broken >= 1);
+    const late = play(800, (x) => storyFacts(x, pool).broken >= 1);
     expect(pendingBeats(late, pool).map((b) => b.id)).not.toContain('first-wall');
   });
 
@@ -221,10 +226,10 @@ describe('foreshadowing the firewalls', () => {
   });
 
   it('the core overhears morph.ai after the third wall, until the finale is won', () => {
-    const three = play(400, (x) => storyFacts(x, pool).broken >= 3);
+    const three = play(800, (x) => storyFacts(x, pool).broken >= 3);
     const beats = pendingBeats(three, pool).map((b) => b.id);
     expect(beats.indexOf('core-glitch')).toBe(beats.indexOf('firewall-3') + 1);
-    const won = play(400, (x) => x.story.finale);
+    const won = play(800, (x) => x.story.finale);
     expect(pendingBeats(won, pool).map((b) => b.id)).not.toContain('core-glitch');
   });
 
@@ -233,7 +238,7 @@ describe('foreshadowing the firewalls', () => {
     const asleep = wallVoices(p, pool, 'astronomy');
     expect(asleep.morph).toBe(STORY_TEXT.de.walls.astronomy!.morph);
     expect(asleep.ally).toEqual({ who: 'bolt', name: 'Bolt', text: STORY_TEXT.de.wallBolt });
-    const awake = play(400, (x) => storyFacts(x, pool).awake.includes('earth'));
+    const awake = play(800, (x) => storyFacts(x, pool).awake.includes('earth'));
     const en = { ...awake, profile: { ...awake.profile, lang: 'en' as const } };
     expect(wallVoices(en, pool, 'astronomy').ally).toEqual({
       who: GUARDIANS.earth.id,
@@ -244,7 +249,7 @@ describe('foreshadowing the firewalls', () => {
 
   it('the awake guardian fights beside the player and reacts in every language', () => {
     expect(wallAlly(initialPlayer(pool), pool, 'astronomy')).toBeNull();
-    const awake = play(400, (x) => storyFacts(x, pool).awake.includes('earth'));
+    const awake = play(800, (x) => storyFacts(x, pool).awake.includes('earth'));
     expect(wallAlly(awake, pool, 'climate')).toEqual({ who: GUARDIANS.earth.id, name: GUARDIANS.earth.name });
     for (const lang of LANGS) {
       for (const g of Object.values(GUARDIANS)) {
@@ -259,32 +264,70 @@ describe('foreshadowing the firewalls', () => {
 });
 
 describe('finale', () => {
-  it('stays closed until roots, guardians and firewalls are done', () => {
+  it('stays closed until roots, guardians, firewalls and every area are done', () => {
     const p = initialPlayer(pool);
-    expect(recordFinale(p, pool, FINALE_QUESTIONS)).toEqual({ player: p, passed: false });
+    expect(recordFinale(p, pool, SECTORS.length)).toEqual({ player: p, passed: false });
+    // four walls are not enough: every area needs its answered nodes first (D76)
+    const walls = play(800, (x) => storyFacts(x, pool).broken >= SECTORS.length);
+    const f = storyFacts(walls, pool);
+    expect(f.areasReady).toBeLessThan(FINALE_AREAS);
+    expect(f.finaleOpen).toBe(false);
+    const ch = chapterOf(f, 'de');
+    expect(ch).toMatchObject({ n: 4, done: f.areasReady, total: FINALE_AREAS });
+    expect(ch.finale).toBeUndefined();
+    expect(ch.goal).toContain(String(FINALE_AREA_NODES));
   });
 
-  it('draws two questions per sector in turns, new ones per attempt', () => {
-    const qs = finaleQuestions(pool, 0, {});
-    expect(qs).toHaveLength(FINALE_QUESTIONS);
-    expect(qs.map((q) => sectorOfArea(q.area))).toEqual([...SECTORS, ...SECTORS]);
-    expect(new Set(qs.map((q) => q.id)).size).toBe(FINALE_QUESTIONS);
-    const later = [1, 2, 3].map((a) => finaleQuestions(pool, a, {}).map((q) => q.id).join());
-    expect(later.some((ids) => ids !== qs.map((q) => q.id).join())).toBe(true);
+  it('draws three questions per sector in four phases, new ones per attempt', () => {
+    const phases = finalePhases(pool, 0, {}, []);
+    expect(phases.map((ph) => ph.sector)).toEqual(SECTORS);
+    for (const ph of phases) {
+      expect(ph.questions).toHaveLength(FINALE_PHASE_QUESTIONS);
+      for (const q of ph.questions) expect(sectorOfArea(q.area)).toBe(ph.sector);
+      expect(ph.filed).toEqual([]);
+    }
+    const ids = phases.flatMap((ph) => ph.questions.map((q) => q.id));
+    expect(new Set(ids).size).toBe(ids.length);
+    const later = [1, 2, 3].map((a) => finalePhases(pool, a, {}, []).flatMap((ph) => ph.questions.map((q) => q.id)).join());
+    expect(later.some((x) => x !== ids.join())).toBe(true);
+  });
+
+  it('asks the second question of a phase from a filed folder', () => {
+    const q = pool.list.find((x) => sectorOfArea(x.area) === 'earth')!;
+    const phases = finalePhases(pool, 0, {}, [{ questionId: q.id }]);
+    const earth = phases.find((ph) => ph.sector === 'earth')!;
+    expect(earth.filed).toEqual([q.id]);
+    expect(earth.questions[1]!.id).toBe(q.id);
+    expect(phases.find((ph) => ph.sector === 'science')!.filed).toEqual([]);
+  });
+
+  it('wins a phase with two right answers and loses it with two wrong ones or the clock', () => {
+    expect(FINALE_PHASE_PASS).toBe(2);
+    expect(finalePhaseState([])).toBe('on');
+    expect(finalePhaseState([true, true])).toBe('won');
+    expect(finalePhaseState([false, true])).toBe('on');
+    expect(finalePhaseState([false, true, true])).toBe('won');
+    expect(finalePhaseState([true, false, false])).toBe('lost');
+    expect(finalePhaseState([true], true)).toBe('lost');
   });
 
   it('a lost duel costs integrity and counts; a won one ends the story', () => {
-    const ready = play(400, (x) => storyFacts(x, pool).finaleOpen);
+    const ready = play(800, (x) => storyFacts(x, pool).finaleOpen);
     expect(storyFacts(ready, pool).finaleOpen).toBe(true);
-    const lost = recordFinale(ready, pool, FINALE_PASS - 1);
+    expect(storyFacts(ready, pool).areasReady).toBe(FINALE_AREAS);
+    const lost = recordFinale(ready, pool, SECTORS.length - 1);
     expect(lost.passed).toBe(false);
     expect(lost.player.integrity).toBe(ready.integrity - 1);
     expect(lost.player.story.finaleAttempts).toBe(1);
-    const won = recordFinale(ready, pool, FINALE_PASS);
+    const won = recordFinale(ready, pool, SECTORS.length);
     expect(won.passed).toBe(true);
     expect(won.player.story.finale).toBe(true);
     expect(won.player.gems).toBe(ready.gems + FINALE_REWARD.gems);
-    expect(recordFinale(won.player, pool, FINALE_QUESTIONS).passed).toBe(false);
+    expect(recordFinale(won.player, pool, SECTORS.length).passed).toBe(false);
+  });
+
+  it('morph.ai speaks at every phase in every language', () => {
+    for (const lang of LANGS) for (const s of SECTORS) expect(finalePhaseLine(lang, s).length).toBeGreaterThan(0);
   });
 });
 
@@ -292,7 +335,7 @@ describe('voices', () => {
   it('guardians speak only once awake', () => {
     const p = initialPlayer(pool);
     expect(guardianLine(p, pool, 'science', 'a')).toBeNull();
-    const awake = play(400, (x) => storyFacts(x, pool).awake.includes('science'));
+    const awake = play(800, (x) => storyFacts(x, pool).awake.includes('science'));
     const line = guardianLine(awake, pool, 'science', 'a');
     expect(line?.who).toBe(GUARDIANS.science.id);
     expect(line?.text.length).toBeGreaterThan(0);
